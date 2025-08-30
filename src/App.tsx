@@ -1,4 +1,7 @@
 import React from 'react';
+import { AuthProvider } from './contexts/AuthContext';
+import { BookingProvider } from './contexts/BookingContext';
+import { useAuth } from './contexts/AuthContext';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { AboutUs } from './components/AboutUs';
@@ -7,8 +10,17 @@ import { PackagesAndPrices } from './components/PackagesAndPrices';
 import { Calendar } from './components/Calendar';
 import { Gallery } from './components/Gallery';
 import { Footer } from './components/Footer';
+import { Dashboard } from './components/Dashboard/Dashboard';
 
-function App() {
+function AppContent() {
+  const { user } = useAuth();
+
+  // If user is logged in, show dashboard
+  if (user) {
+    return <Dashboard />;
+  }
+
+  // Otherwise show the main website
   return (
     <div className="min-h-screen bg-gradient-to-b from-pink-50 via-green-50 to-yellow-50">
       <Header />
@@ -22,6 +34,16 @@ function App() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <BookingProvider>
+        <AppContent />
+      </BookingProvider>
+    </AuthProvider>
   );
 }
 

@@ -1,8 +1,23 @@
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useBookings } from '../contexts/BookingContext';
 
 export function Calendar() {
+  const { user } = useAuth();
+  const { addBooking } = useBookings();
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [formData, setFormData] = useState({
+    userName: '',
+    userPhone: '',
+    numberOfKids: '',
+    package: 'Pack Alegría - 15€',
+    comments: '',
+    date: '',
+    time: '16:00'
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState('');
   
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -49,6 +64,52 @@ export function Calendar() {
   const days = getDaysInMonth(currentMonth);
   const bookedDays = [5, 12, 18, 25, 28]; // Example booked days
   const availableDays = [3, 7, 14, 21, 24, 30]; // Example available days
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    setFormData(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!user) {
+      setSubmitMessage('Debes iniciar sesión para hacer una reserva');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      addBooking({
+        userId: user.id,
+        userName: formData.userName,
+        userPhone: formData.userPhone,
+        date: formData.date,
+        time: formData.time,
+        numberOfKids: formData.numberOfKids,
+        package: formData.package,
+        comments: formData.comments
+      });
+      
+      setSubmitMessage('¡Reserva enviada correctamente! Te contactaremos pronto para confirmar.');
+      setFormData({
+        userName: '',
+        userPhone: '',
+        numberOfKids: '',
+        package: 'Pack Alegría - 15€',
+        comments: '',
+        date: '',
+        time: '16:00'
+      });
+    } catch (error) {
+      setSubmitMessage('Error al enviar la reserva. Inténtalo de nuevo.');
+    }
+    
+    setIsSubmitting(false);
+  };
 
   return (
     <section id="calendario" className="py-20 bg-gradient-to-b from-gray-50 to-white">
@@ -142,14 +203,19 @@ export function Calendar() {
               </div>
               
               <form className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
                   <label className="block text-gray-700 font-medium mb-2">
                     Nombre del responsable
                   </label>
                   <input
                     type="text"
+                    name="userName"
+                    value={formData.userName}
+                    onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
                     placeholder="Tu nombre completo"
+                    required
                   />
                 </div>
                 
@@ -159,8 +225,12 @@ export function Calendar() {
                   </label>
                   <input
                     type="tel"
+                    name="userPhone"
+                    value={formData.userPhone}
+                    onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
                     placeholder="+34 123 456 789"
+                    required
                   />
                 </div>
                 
@@ -168,7 +238,12 @@ export function Calendar() {
                   <label className="block text-gray-700 font-medium mb-2">
                     Número de niños
                   </label>
-                  <select className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200">
+                  <select 
+                    name="numberOfKids"
+                    value={formData.numberOfKids}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                    required>
                     <option>Selecciona cantidad</option>
                     <option>1-5 niños</option>
                     <option>6-10 niños</option>
@@ -181,11 +256,50 @@ export function Calendar() {
                   <label className="block text-gray-700 font-medium mb-2">
                     Pack elegido
                   </label>
-                  <select className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200">
+                  <select 
+                    name="package"
+                    value={formData.package}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                    required>
                     <option>Pack Alegría - 15€</option>
                     <option>Pack Fiesta - 25€</option>
                     <option>Pack Especial - 35€</option>
                   </select>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      Fecha preferida
+                    </label>
+                    <input
+                      type="date"
+                      name="date"
+                      value={formData.date}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      Hora preferida
+                    </label>
+                    <select
+                      name="time"
+                      value={formData.time}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                      required
+                    >
+                      <option value="10:00">10:00</option>
+                      <option value="12:00">12:00</option>
+                      <option value="16:00">16:00</option>
+                      <option value="18:00">18:00</option>
+                    </select>
+                  </div>
                 </div>
                 
                 <div>
@@ -194,17 +308,43 @@ export function Calendar() {
                   </label>
                   <textarea
                     rows={3}
+                    name="comments"
+                    value={formData.comments}
+                    onChange={handleInputChange}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
                     placeholder="Cuéntanos sobre la celebración..."
                   ></textarea>
                 </div>
                 
+                {submitMessage && (
+                  <div className={`p-4 rounded-xl ${
+                    submitMessage.includes('Error') 
+                      ? 'bg-red-50 border border-red-200 text-red-600'
+                      : 'bg-green-50 border border-green-200 text-green-600'
+                  }`}>
+                    {submitMessage}
+                  </div>
+                )}
+                
                 <button
                   type="submit"
-                  className="w-full bg-gradient-to-r from-pink-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                  disabled={isSubmitting || !user}
+                  className="w-full bg-gradient-to-r from-pink-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
                 >
-                  Confirmar Reserva
+                  {isSubmitting ? 'Enviando...' : user ? 'Confirmar Reserva' : 'Inicia sesión para reservar'}
                 </button>
+                
+                {!user && (
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => handleAuthClick('login')}
+                      className="text-pink-500 font-medium hover:underline"
+                    >
+                      ¿Ya tienes cuenta? Inicia sesión aquí
+                    </button>
+                  </div>
+                )}
               </form>
             </div>
           </div>
