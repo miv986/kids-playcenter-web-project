@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Users, CheckCircle, XCircle, Trash2, Phone, Mail, Clock } from 'lucide-react';
+import { Calendar, Users, CheckCircle, XCircle, Trash2, Phone, Clock } from 'lucide-react';
 import { useBookings } from '../../contexts/BookingContext';
 import { Booking } from '../../types/auth';
 
@@ -7,7 +7,7 @@ export function AdminDashboard() {
   const { bookings, updateBookingStatus, deleteBooking } = useBookings();
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
 
-  const filteredBookings = bookings.filter(booking => 
+  const filteredBookings = bookings.filter(booking =>
     filter === 'all' || booking.status === filter
   );
 
@@ -100,41 +100,37 @@ export function AdminDashboard() {
           <div className="flex flex-wrap gap-4">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                filter === 'all' 
-                  ? 'bg-blue-500 text-white' 
+              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'all'
+                  ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Todas ({stats.total})
             </button>
             <button
               onClick={() => setFilter('pending')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                filter === 'pending' 
-                  ? 'bg-yellow-500 text-white' 
+              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'pending'
+                  ? 'bg-yellow-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Pendientes ({stats.pending})
             </button>
             <button
               onClick={() => setFilter('confirmed')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                filter === 'confirmed' 
-                  ? 'bg-green-500 text-white' 
+              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'confirmed'
+                  ? 'bg-green-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Confirmadas ({stats.confirmed})
             </button>
             <button
               onClick={() => setFilter('cancelled')}
-              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
-                filter === 'cancelled' 
-                  ? 'bg-red-500 text-white' 
+              className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'cancelled'
+                  ? 'bg-red-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Canceladas ({stats.cancelled})
             </button>
@@ -160,7 +156,7 @@ export function AdminDashboard() {
                         {getStatusText(booking.status)}
                       </span>
                     </div>
-                    
+
                     <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
                       <div className="flex items-center space-x-2">
                         <Phone className="w-4 h-4" />
@@ -178,7 +174,7 @@ export function AdminDashboard() {
                         <span className="font-medium">{booking.package}</span>
                       </div>
                     </div>
-                    
+
                     {booking.comments && (
                       <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                         <p className="text-gray-700 text-sm">{booking.comments}</p>
@@ -205,7 +201,7 @@ export function AdminDashboard() {
                         </button>
                       </>
                     )}
-                    
+
                     <button
                       onClick={() => deleteBooking(booking.id)}
                       className="bg-gray-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-gray-600 transition-colors duration-200 flex items-center justify-center space-x-2"

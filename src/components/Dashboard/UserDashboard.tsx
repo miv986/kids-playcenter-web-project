@@ -7,8 +7,8 @@ import { Booking } from '../../types/auth';
 export function UserDashboard() {
   const { user } = useAuth();
   const { getUserBookings, updateBookingStatus, deleteBooking } = useBookings();
-  const [editingBooking, setEditingBooking] = useState<string | null>(null);
-  
+  const [, setEditingBooking] = useState<string | null>(null);
+
   const userBookings = user ? getUserBookings(user.id) : [];
 
   const getStatusColor = (status: Booking['status']) => {
@@ -122,7 +122,7 @@ export function UserDashboard() {
                             Reserva #{booking.id.slice(-6)}
                           </span>
                         </div>
-                        
+
                         <div className="grid md:grid-cols-2 gap-4 text-sm">
                           <div className="flex items-center space-x-2 text-gray-600">
                             <Calendar className="w-4 h-4" />
@@ -141,7 +141,7 @@ export function UserDashboard() {
                             <span>{booking.userPhone}</span>
                           </div>
                         </div>
-                        
+
                         {booking.comments && (
                           <div className="mt-3 flex items-start space-x-2">
                             <MessageSquare className="w-4 h-4 text-gray-400 mt-0.5" />
@@ -160,7 +160,7 @@ export function UserDashboard() {
                             <span>Modificar</span>
                           </button>
                         )}
-                        
+
                         {booking.status !== 'cancelled' && (
                           <button
                             onClick={() => handleCancelBooking(booking.id)}
@@ -170,7 +170,7 @@ export function UserDashboard() {
                             <span>Cancelar</span>
                           </button>
                         )}
-                        
+
                         <button
                           onClick={() => handleDeleteBooking(booking.id)}
                           className="bg-red-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-red-600 transition-colors duration-200 flex items-center justify-center space-x-2"
