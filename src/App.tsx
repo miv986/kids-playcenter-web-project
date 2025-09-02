@@ -17,7 +17,15 @@ function AppContent() {
 
   // If user is logged in, show dashboard
   if (user) {
-    return <Dashboard />;
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-pink-50 via-green-50 to-yellow-50">
+        <Header />
+        <main>
+          <Dashboard />
+          <Footer />
+        </main>
+      </div>
+    );
   }
 
   // Otherwise show the main website
