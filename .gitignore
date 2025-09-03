@@ -28,3 +28,4 @@ dist-ssr
 .next
 next-env.d.ts
 dist
+/src/generated/prisma
