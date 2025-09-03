@@ -26,62 +26,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Mock authentication - in real app, this would be an API call
-    if (email === 'admin@ludoteca.com' && password === 'admin123') {
-      const adminUser: User = {
-        id: '1',
-        email: 'admin@ludoteca.com',
-        name: 'Administrador',
-        role: 'admin'
-      };
-      setUser(adminUser);
-      localStorage.setItem('user', JSON.stringify(adminUser));
-      setIsLoading(false);
-      return true;
-    } else if (password === 'user123') {
-      const normalUser: User = {
-        id: '2',
-        email,
-        name: email.split('@')[0],
-        role: 'user'
-      };
-      setUser(normalUser);
-      localStorage.setItem('user', JSON.stringify(normalUser));
-      setIsLoading(false);
-      return true;
-    }
-    
-    setIsLoading(false);
-    return false;
-  };
 
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+      setIsLoading(false);
+
+      if (!res.ok) {
+        console.error(data.error);
+        return false;
+      }
+
+      // Guardar sesión y usuario
+      setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      localStorage.setItem('supabase_session', JSON.stringify(data.session));
+      return true;
+    } catch (error) {
+      console.error(error);
+      setIsLoading(false);
+      return false;
+    }
+  };
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
     setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const newUser: User = {
-      id: Date.now().toString(),
-      email,
-      name,
-      role: 'user'
-    };
-    
-    setUser(newUser);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    setIsLoading(false);
-    return true;
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name }),
+      });
+
+      const data = await res.json();
+      setIsLoading(false);
+
+      if (!res.ok) {
+        console.error(data.error);
+        return false;
+      }
+
+      // Guardar usuario registrado
+      setUser(data.user);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      return true;
+    } catch (error) {
+      console.error(error);
+      setIsLoading(false);
+      return false;
+    }
   };
 
-  const logout = () => {
+
+  const logout = async () => {
+    await fetch('/auth/logout', { method: 'POST' });
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('supabase_session');
   };
+
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
