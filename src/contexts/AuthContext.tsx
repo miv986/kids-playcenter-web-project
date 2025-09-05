@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, AuthContextType } from '../types/auth';
+import { supabase } from '../lib/supabaseClient';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -27,64 +28,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
 
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    setIsLoading(false)
 
-      const data = await res.json();
-      setIsLoading(false);
+    if (error || !data.user) return false;
 
-      if (!res.ok) {
-        console.error(data.error);
-        return false;
-      }
-
-      // Guardar sesión y usuario
-      setUser(data.user);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('supabase_session', JSON.stringify(data.session));
-      return true;
-    } catch (error) {
-      console.error(error);
-      setIsLoading(false);
+    // 👇 Validar si ya confirmó el correo
+    if (!data.user.email_confirmed_at) {
+      alert("Debes confirmar tu correo antes de iniciar sesión.");
       return false;
     }
+    setUser({
+      id: data.user.id,
+      email: data.user.email!,
+      name: data.user.user_metadata?.name || '',
+      role: 'user',
+    })
+    localStorage.setItem('user', JSON.stringify(data.user));
+    return true
+
   };
+
+
   const register = async (email: string, password: string, name: string): Promise<boolean> => {
     setIsLoading(true);
+    const { data, error } = await supabase.auth.signUp({
+      email, password, options: {
+        data: { name },
+        emailRedirectTo: window.location.origin,
+      },
+    })
+    setIsLoading(false)
 
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
-      });
+    if (error || !data.user) return false
 
-      const data = await res.json();
-      setIsLoading(false);
+    alert('Registro exitoso. Revisa tu correo y confirma tu cuenta para poder acceder.');
 
-      if (!res.ok) {
-        console.error(data.error);
-        return false;
-      }
-
-      // Guardar usuario registrado
-      setUser(data.user);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      return true;
-    } catch (error) {
-      console.error(error);
-      setIsLoading(false);
-      return false;
-    }
+    return true
   };
 
 
   const logout = async () => {
-    await fetch('/auth/logout', { method: 'POST' });
+    const { error } = await supabase.auth.signOut({
+
+    })
+
+    if (error) return false
     setUser(null);
     localStorage.removeItem('user');
     localStorage.removeItem('supabase_session');
