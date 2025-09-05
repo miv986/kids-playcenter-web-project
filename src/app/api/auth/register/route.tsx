@@ -9,6 +9,9 @@ export async function POST(req: Request) {
     const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+            data: {name},
+        }
     })
 
     if (authError) return NextResponse.json({ error: authError.message }, { status: 400 })
