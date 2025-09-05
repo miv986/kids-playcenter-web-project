@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useState } from 'react';
 import { AuthProvider } from './contexts/AuthContext';
 import { BookingProvider } from './contexts/BookingContext';
 import { useAuth } from './contexts/AuthContext';
@@ -16,16 +17,17 @@ import { Dashboard } from './components/Dashboard/Dashboard';
 
 function AppContent() {
   const { user } = useAuth();
+  const [currentView, setCurrentView] = useState<'home' | 'dashboard'>('home');
 
-  // If user is logged in, show dashboard
-  if (user) {
+  // If user is logged in and viewing dashboard
+  if (user && currentView === 'dashboard') {
     return (
       <div className="min-h-screen bg-gradient-to-b from-pink-50 via-green-50 to-yellow-50">
-        <Header />
+        <Header currentView={currentView} setCurrentView={setCurrentView} />
         <main>
           <Dashboard />
-          <Footer />
         </main>
+        <Footer />
       </div>
     );
   }
@@ -33,7 +35,7 @@ function AppContent() {
   // Otherwise show the main website
   return (
     <div className="min-h-screen bg-gradient-to-b from-pink-50 via-green-50 to-yellow-50">
-      <Header />
+      <Header currentView={currentView} setCurrentView={setCurrentView} />
       <main>
         <Hero />
         <AboutUs />
