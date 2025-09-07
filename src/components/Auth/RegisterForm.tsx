@@ -11,6 +11,7 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [surname, setSurname] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { register, isLoading } = useAuth();
@@ -18,13 +19,13 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     if (password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
-    
-    const success = await register(email, password, name);
+
+    const success = await register(email, password, name, surname);
     if (success) {
       onClose();
     } else {
@@ -43,9 +44,10 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
+
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            Nombre completo
+            Nombre
           </label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -54,12 +56,28 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-              placeholder="Tu nombre completo"
+              placeholder="Tu nombre"
               required
             />
           </div>
         </div>
-
+        
+        <div>
+          <label className="block text-gray-700 font-medium mb-2">
+            Apellidos
+          </label>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={surname}
+              onChange={(e) => setSurname(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+              placeholder="Tus apellidos"
+              required
+            />
+          </div>
+        </div>
         <div>
           <label className="block text-gray-700 font-medium mb-2">
             Correo electrónico
