@@ -4,11 +4,11 @@ import { AdminDashboard } from './AdminDashboard';
 import { UserDashboard } from './UserDashboard';
 
 export function Dashboard() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   if (!user) {
-    return null;
+    return <p>Debes iniciar sesión</p>;
   }
 
-  return user.role === 'admin' ? <AdminDashboard /> : <UserDashboard />;
+  return isAdmin ? <AdminDashboard /> : <UserDashboard />;
 }

@@ -22,7 +22,7 @@ export function LoginForm({ onSwitchToRegister, onClose }: LoginFormProps) {
     if (success) {
       onClose();
     } else {
-      setError('Credenciales incorrectas. Prueba con admin@ludoteca.com / admin123 o cualquier email / user123');
+      setError('Credenciales incorrectas. Prueba con admin@prueba.com / admin123 o cualquier email / user123');
     }
   };
 
@@ -108,7 +108,7 @@ export function LoginForm({ onSwitchToRegister, onClose }: LoginFormProps) {
       <div className="mt-6 p-4 bg-blue-50 rounded-xl">
         <p className="text-sm text-blue-600 font-medium mb-2">Cuentas de prueba:</p>
         <p className="text-xs text-blue-500">
-          Admin: admin@ludoteca.com / admin123<br />
+          Admin: admin@prueba.com / admin123<br />
           Usuario: cualquier@email.com / user123
         </p>
       </div>

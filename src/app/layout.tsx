@@ -1,23 +1,19 @@
-import type { Metadata } from 'next'
+import type { Metadata } from "next";
+import Providers from "./providers";
+import '../index.css';
 
 export const metadata: Metadata = {
-    title: 'Ludoteca Arcoiris',
-    description: 'Aplicación web para ludoteca',
-    icons:{
-        icon:"/vite.svg",
-    }
-}
+    title: "Ludoteca Arcoiris",
+    description: "Aplicación web para ludoteca",
+    icons: { icon: "/vite.svg" },
+};
 
-export default function RootLayout({
-    children,
-}: {
-    children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="en">
-            <body>
-                <div id="root">{children}</div>
+        <html lang="es">
+            <body className="min-h-screen bg-gradient-to-b from-pink-50 via-green-50 to-yellow-50">
+                <Providers>{children}</Providers>
             </body>
         </html>
-    )
+    );
 }
