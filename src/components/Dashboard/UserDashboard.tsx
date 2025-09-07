@@ -1,15 +1,20 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, Clock, Users, Package, MessageSquare, Edit, Trash2, Phone, XCircle } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { useBookings } from '../../contexts/BookingContext';
 import { Booking } from '../../types/auth';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function UserDashboard() {
   const { user } = useAuth();
-  const { getUserBookings, updateBookingStatus, deleteBooking } = useBookings();
-  const [, setEditingBooking] = useState<string | null>(null);
+  const [bookings, setBookings] = useState([] as Array<Booking>)
+  const { fetchMyBookings, updateBookingStatus, deleteBooking } = useBookings();
+  const [, setEditingBooking] = useState<number | null>(null);
 
-  const userBookings = user ? getUserBookings(user.id) : [];
+  useEffect(() => {
+    if (!!user) {
+      fetchMyBookings().then((bookings) => setBookings(bookings))
+    }
+  }, [user])
 
   const getStatusColor = (status: Booking['status']) => {
     switch (status) {
@@ -29,13 +34,13 @@ export function UserDashboard() {
     }
   };
 
-  const handleCancelBooking = (bookingId: string) => {
+  const handleCancelBooking = (bookingId: number) => {
     if (window.confirm('¿Estás seguro de que quieres cancelar esta reserva?')) {
       updateBookingStatus(bookingId, 'cancelled');
     }
   };
 
-  const handleDeleteBooking = (bookingId: string) => {
+  const handleDeleteBooking = (bookingId: number) => {
     if (window.confirm('¿Estás seguro de que quieres eliminar esta reserva? Esta acción no se puede deshacer.')) {
       deleteBooking(bookingId);
     }
@@ -57,7 +62,7 @@ export function UserDashboard() {
                 <Calendar className="w-6 h-6 text-blue-600" />
               </div>
               <div>
-                <div className="text-2xl font-bold text-gray-800">{userBookings.length}</div>
+                <div className="text-2xl font-bold text-gray-800">{bookings.length}</div>
                 <div className="text-gray-600">Total Reservas</div>
               </div>
             </div>
@@ -70,7 +75,7 @@ export function UserDashboard() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-800">
-                  {userBookings.filter(b => b.status === 'confirmed').length}
+                  {bookings.filter(b => b.status === 'confirmed').length}
                 </div>
                 <div className="text-gray-600">Confirmadas</div>
               </div>
@@ -84,7 +89,7 @@ export function UserDashboard() {
               </div>
               <div>
                 <div className="text-2xl font-bold text-gray-800">
-                  {userBookings.filter(b => b.status === 'pending').length}
+                  {bookings.filter(b => b.status === 'pending').length}
                 </div>
                 <div className="text-gray-600">Pendientes</div>
               </div>
@@ -99,7 +104,7 @@ export function UserDashboard() {
           </div>
 
           <div className="p-6">
-            {userBookings.length === 0 ? (
+            {bookings.length === 0 ? (
               <div className="text-center py-12">
                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-600 mb-2">No tienes reservas</h3>
@@ -110,7 +115,7 @@ export function UserDashboard() {
               </div>
             ) : (
               <div className="space-y-6">
-                {userBookings.map((booking) => (
+                {bookings.map((booking) => (
                   <div key={booking.id} className="border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow duration-300">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                       <div className="flex-1">
@@ -119,26 +124,26 @@ export function UserDashboard() {
                             {getStatusText(booking.status)}
                           </span>
                           <span className="text-gray-500 text-sm">
-                            Reserva #{booking.id.slice(-6)}
+                            Reserva #{booking.id}
                           </span>
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-4 text-sm">
                           <div className="flex items-center space-x-2 text-gray-600">
                             <Calendar className="w-4 h-4" />
-                            <span>{new Date(booking.date).toLocaleDateString('es-ES')} - {booking.time}</span>
+                            <span>{new Date(booking.createdAt!).toLocaleDateString('es-ES')}</span>
                           </div>
                           <div className="flex items-center space-x-2 text-gray-600">
                             <Users className="w-4 h-4" />
-                            <span>{booking.numberOfKids}</span>
+                            <span>{booking.number_of_kids}</span>
                           </div>
                           <div className="flex items-center space-x-2 text-gray-600">
                             <Package className="w-4 h-4" />
-                            <span>{booking.package}</span>
+                            <span>{booking.pack}</span>
                           </div>
                           <div className="flex items-center space-x-2 text-gray-600">
                             <Phone className="w-4 h-4" />
-                            <span>{booking.userPhone}</span>
+                            <span>{booking.phone}</span>
                           </div>
                         </div>
 

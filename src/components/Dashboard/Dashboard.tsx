@@ -1,7 +1,7 @@
 import React from 'react';
-import { useAuth } from '../../contexts/AuthContext';
 import { AdminDashboard } from './AdminDashboard';
 import { UserDashboard } from './UserDashboard';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function Dashboard() {
   const { user, isAdmin } = useAuth();

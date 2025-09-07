@@ -1,12 +1,22 @@
 "use client";
 
-import { AuthProvider } from "../contexts/AuthContext";
+import { TokenProvider } from "../contexts/TokenContext";
 import { BookingProvider } from "../contexts/BookingContext";
+import { HttpProvider } from "../contexts/HttpContext";
+import { AuthProvider } from "../contexts/AuthContext";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+
   return (
-    <AuthProvider>
-      <BookingProvider>{children}</BookingProvider>
-    </AuthProvider>
+    <TokenProvider>
+      <HttpProvider >
+        <AuthProvider>
+          <BookingProvider>
+            {children}
+          </BookingProvider>
+        </AuthProvider>
+      </HttpProvider>
+    </TokenProvider>
+
   );
 }

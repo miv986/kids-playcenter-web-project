@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Booking } from '../types/auth';
+import { useHttp } from './HttpContext';
 
 interface BookingContextType {
-  bookings: Booking[];
   addBooking: (booking: Omit<Booking, 'id' | 'createdAt' | 'status'>) => void;
-  updateBookingStatus: (id: string, status: Booking['status']) => void;
-  deleteBooking: (id: string) => void;
-  getUserBookings: (userId: string) => Booking[];
+  updateBookingStatus: (id: number, status: Booking['status']) => void;
+  deleteBooking: (id: number) => void;
+  fetchBookings: () => Promise<Booking[]>;
+  fetchMyBookings: () => Promise<Booking[]>;
 }
 
 const BookingContext = createContext<BookingContextType | undefined>(undefined);
@@ -20,86 +21,60 @@ export function useBookings() {
 }
 
 export function BookingProvider({ children }: { children: React.ReactNode }) {
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  const http = useHttp();
 
-  useEffect(() => {
-    // Load bookings from localStorage
-    const storedBookings = localStorage.getItem('bookings');
-    if (storedBookings) {
-      setBookings(JSON.parse(storedBookings));
-    } else {
-      // Initialize with some mock data
-      const mockBookings: Booking[] = [
-        {
-          id: '1',
-          userId: '2',
-          userName: 'María García',
-          userPhone: '+34 123 456 789',
-          date: '2024-12-15',
-          time: '16:00',
-          numberOfKids: '6-10 niños',
-          package: 'Pack Fiesta - 25€',
-          comments: 'Cumpleaños de mi hija Sofia',
-          status: 'pending',
-          createdAt: '2024-12-01T10:00:00Z'
-        },
-        {
-          id: '2',
-          userId: '3',
-          userName: 'Carlos López',
-          userPhone: '+34 987 654 321',
-          date: '2024-12-20',
-          time: '18:00',
-          numberOfKids: '11-15 niños',
-          package: 'Pack Especial - 35€',
-          comments: 'Celebración fin de curso',
-          status: 'confirmed',
-          createdAt: '2024-11-28T14:30:00Z'
-        }
-      ];
-      setBookings(mockBookings);
-      localStorage.setItem('bookings', JSON.stringify(mockBookings));
+
+  const fetchBookings = async () => {
+    try {
+      const data = await http.get('/bookings');
+      return data;
+    } catch (err) {
+      console.error("Error cargando reservas:", err);
     }
-  }, []);
-
-  const addBooking = (bookingData: Omit<Booking, 'id' | 'createdAt' | 'status'>) => {
-    const newBooking: Booking = {
-      ...bookingData,
-      id: Date.now().toString(),
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-    
-    const updatedBookings = [...bookings, newBooking];
-    setBookings(updatedBookings);
-    localStorage.setItem('bookings', JSON.stringify(updatedBookings));
   };
 
-  const updateBookingStatus = (id: string, status: Booking['status']) => {
-    const updatedBookings = bookings.map(booking =>
-      booking.id === id ? { ...booking, status } : booking
-    );
-    setBookings(updatedBookings);
-    localStorage.setItem('bookings', JSON.stringify(updatedBookings));
+  const fetchMyBookings = async () => {
+    try {
+      const data = await http.get('/bookings/my');
+      return data;
+    } catch (err) {
+      console.error("Error cargando reservas:", err);
+    }
   };
 
-  const deleteBooking = (id: string) => {
-    const updatedBookings = bookings.filter(booking => booking.id !== id);
-    setBookings(updatedBookings);
-    localStorage.setItem('bookings', JSON.stringify(updatedBookings));
+  const addBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'status'>) => {
+    try {
+      const newBooking = await http.post('/bookings', bookingData);
+      return newBooking;
+    } catch (err) {
+      console.error("Error adding booking:", err);
+      throw err;
+    }
   };
 
-  const getUserBookings = (userId: string) => {
-    return bookings.filter(booking => booking.userId === userId);
+  const updateBookingStatus = async (id: number, status: Booking['status']) => {
+    try {
+      await http.put(`/bookings/${id}`, { status });
+    } catch (err) {
+      console.error("Error updating booking:", err);
+    }
+  };
+
+  const deleteBooking = async (id: number) => {
+    try {
+      await http.delete(`/bookings/${id}`);
+    } catch (err) {
+      console.error("Error deleting booking:", err);
+    }
   };
 
   return (
     <BookingContext.Provider value={{
-      bookings,
       addBooking,
       updateBookingStatus,
       deleteBooking,
-      getUserBookings
+      fetchBookings,
+      fetchMyBookings
     }}>
       {children}
     </BookingContext.Provider>

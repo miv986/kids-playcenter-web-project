@@ -1,11 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Calendar, Users, CheckCircle, XCircle, Trash2, Phone, Clock } from 'lucide-react';
 import { useBookings } from '../../contexts/BookingContext';
 import { Booking } from '../../types/auth';
+import { useAuth } from '../../contexts/AuthContext';
 
 export function AdminDashboard() {
-  const { bookings, updateBookingStatus, deleteBooking } = useBookings();
+  const [bookings, setBookings] = useState([] as Array<Booking>)
+  const { fetchBookings, updateBookingStatus, deleteBooking } = useBookings();
   const [filter, setFilter] = useState<'all' | 'pending' | 'confirmed' | 'cancelled'>('all');
+  const { user } = useAuth();
+
+
+  useEffect(() => {
+    if (!!user) {
+      fetchBookings().then((bookings) => setBookings(bookings))
+    }
+  }, [user])
 
   const filteredBookings = bookings.filter(booking =>
     filter === 'all' || booking.status === filter
@@ -101,8 +111,8 @@ export function AdminDashboard() {
             <button
               onClick={() => setFilter('all')}
               className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'all'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
             >
               Todas ({stats.total})
@@ -110,8 +120,8 @@ export function AdminDashboard() {
             <button
               onClick={() => setFilter('pending')}
               className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'pending'
-                  ? 'bg-yellow-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-yellow-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
             >
               Pendientes ({stats.pending})
@@ -119,8 +129,8 @@ export function AdminDashboard() {
             <button
               onClick={() => setFilter('confirmed')}
               className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'confirmed'
-                  ? 'bg-green-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-green-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
             >
               Confirmadas ({stats.confirmed})
@@ -128,8 +138,8 @@ export function AdminDashboard() {
             <button
               onClick={() => setFilter('cancelled')}
               className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'cancelled'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-red-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
             >
               Canceladas ({stats.cancelled})
@@ -151,7 +161,7 @@ export function AdminDashboard() {
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-4">
-                      <h3 className="text-xl font-bold text-gray-800">{booking.userName}</h3>
+                      <h3 className="text-xl font-bold text-gray-800">{booking.id}</h3>
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}>
                         {getStatusText(booking.status)}
                       </span>
@@ -160,18 +170,15 @@ export function AdminDashboard() {
                     <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
                       <div className="flex items-center space-x-2">
                         <Phone className="w-4 h-4" />
-                        <span>{booking.userPhone}</span>
+                        <span>{booking.phone}</span>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>{new Date(booking.date).toLocaleDateString('es-ES')} - {booking.time}</span>
-                      </div>
+
                       <div className="flex items-center space-x-2">
                         <Users className="w-4 h-4" />
-                        <span>{booking.numberOfKids}</span>
+                        <span>{booking.number_of_kids}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium">{booking.package}</span>
+                        <span className="font-medium">{booking.pack}</span>
                       </div>
                     </div>
 

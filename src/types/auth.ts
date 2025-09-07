@@ -1,31 +1,38 @@
 export interface User {
-  id: string;
+  id: number;
   email: string;
   name: string;
-  role: 'admin' | 'user';
+  surname: string;
+  role: string;
 }
 
 export interface Booking {
-  id: string;
-  userId: string;
-  userName: string;
-  userPhone: string;
-  date: string;
-  time: string;
-  numberOfKids: string;
-  package: string;
+  id: number;
+  phone: string;
+  number_of_kids: number;
+  pack: string;
   comments: string;
+  createdAt?: Date;
+  updatedAt?: Date;
   status: 'pending' | 'confirmed' | 'cancelled';
-  createdAt: string;
 }
 
 export interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
-  logout: () => void;
-  isLoading: boolean;
   isAdmin: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (
+    email: string,
+    password: string,
+    name: string,
+    surname: string
+  ) => Promise<boolean>;
+  logout: () => void;
+}
+
+export interface TokenContextType {
   token: string | null;
-  userId: string | null;
+  setToken: (token: string | null) => void;
+  isLoading: boolean;
 }

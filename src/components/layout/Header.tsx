@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Menu, X, Phone, MapPin, Clock, User, LogOut, LayoutDashboard, Home } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
 import { AuthModal } from '../auth/AuthModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface HeaderProps {
   currentView?: 'home' | 'dashboard';

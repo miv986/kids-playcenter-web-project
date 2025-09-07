@@ -1,20 +1,24 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
+import { useBookings } from '../../contexts/BookingContext';
 import { useAuth } from '../../contexts/AuthContext';
 export function Calendar() {
   0
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
-  const [kids, setKids] = useState("");
-  const [pack, setPack] = useState("");
+  const [kids, setKids] = useState(0);
+  const [pack, setPack] = useState("Alegria");
   const [comments, setComments] = useState("");
   const [loading, setLoading] = useState(false);
   const months = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
     'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
   ];
+
+  useEffect(() => {
+    console.warn(kids)
+  }, [kids])
 
   const daysOfWeek = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
 
@@ -58,44 +62,34 @@ export function Calendar() {
   const availableDays = [3, 7, 14, 21, 24, 30]; // Example available days
 
   // obtenemos al usuario autenticado
-  const { user, userId, token } = useAuth();
+  const { user } = useAuth();
+  //funcion de añadir reserva
+  const { addBooking } = useBookings();
 
-  console.log("USER ID Y NOMBRE: ", userId, " ", user?.name);
+  console.log("USER ID Y NOMBRE: ", user?.id, " ", user?.name);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    if (!userId || !token) {
+    if (!user?.id) {
       alert("Debes iniciar sesión para reservar");
       setLoading(false);
       return;
     }
     try {
-      const res = await fetch("http://localhost:4000/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          number_of_kids: kids,
-          phone: phone,
-          pack,
-          comments: comments,
-        }),
+      addBooking({
+        phone,
+        number_of_kids: kids,
+        pack,
+        comments,
       });
-      if (!res.ok) {
-        const text = await res.text();
-        console.error("Error al crear booking:", text);
-      } else {
-        const data = await res.json();
-        console.log("Booking creado:", data);
-      }
+
+      alert("✅ Reserva creada con éxito");
       // limpiar
       setName("");
       setPhone("");
-      setKids("");
+      setKids(0);
       setPack("");
       setComments("");
     } catch (err: any) {
@@ -229,14 +223,14 @@ export function Calendar() {
                   </label>
                   <select className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
                     value={kids}
-                    onChange={e => setKids(e.target.value)}
+                    onChange={e => setKids(Number(e.target.value))}
                     required
                   >
-                    <option>Selecciona cantidad</option>
-                    <option>1-5 niños</option>
-                    <option>6-10 niños</option>
-                    <option>11-15 niños</option>
-                    <option>Más de 15 niños</option>
+                    <option value={0}>Selecciona cantidad</option>
+                    <option value={5}>1-5 niños</option>
+                    <option value={10}>6-10 niños</option>
+                    <option value={15}>11-15 niños</option>
+                    <option value={20}>Más de 15 niños</option>
                   </select>
                 </div>
 
@@ -248,9 +242,9 @@ export function Calendar() {
                     value={pack}
                     onChange={e => setPack(e.target.value)}
                     required>
-                    <option>Pack Alegría - 15€</option>
-                    <option>Pack Fiesta - 25€</option>
-                    <option>Pack Especial - 35€</option>
+                    <option value={"Alegria"}>Pack Alegría - 15€</option>
+                    <option value={"Fiesta"}>Pack Fiesta - 25€</option>
+                    <option value={"Especial"}>Pack Especial - 35€</option>
                   </select>
                 </div>
 

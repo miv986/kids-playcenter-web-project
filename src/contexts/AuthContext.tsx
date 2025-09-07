@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthContextType } from "../types/auth";
-import { Session } from "@supabase/supabase-js";
-import { useRouter } from "next/navigation";
+import { useHttp } from "./HttpContext";
+import { useToken } from "./TokenContext";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -16,98 +16,83 @@ export function useAuth() {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState(null as User | null);
+  const httpProvider = useHttp();
+  const tokenProvider = useToken();
 
   useEffect(() => {
-    // Recuperar sesión desde localStorage al recargar página
-    const storedUser = localStorage.getItem("user");
-    const storedSession = localStorage.getItem("session");
-
-    if (storedUser && storedSession) {
-      setUser(JSON.parse(storedUser));
-      setSession(JSON.parse(storedSession));
+    if (!!tokenProvider.token) {
+      getMe();
     }
-    setIsLoading(false);
-  }, []);
+  }, [tokenProvider.token])
+
+
+  // 🔹 GET ME
+  const getMe = async (): Promise<boolean> => {
+    setIsLoading(true);
+    try {
+      const user = await httpProvider.get('/auth/me');
+      setUser(user);
+      return true;
+    } catch (error) {
+      console.error("Me error", error);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 🔹 LOGIN
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
+    try {
+      const data = await httpProvider.post('/auth/login', { email, password });
 
-    const res = await fetch("http://localhost:4000/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+      if (!data.user.isEmailVerified) {
+        alert("Debes confirmar tu correo antes de iniciar sesión.");
+        return false;
+      }
+      setUser(data.user);
+      tokenProvider.setToken(data.token);
 
-    const data = await res.json();
-    setIsLoading(false);
-
-    if (data.error) {
-      console.error("Login error", data.error);
+      return true;
+    } catch (error) {
+      console.error("Login error", error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
-
-    if (!data.user.email_confirmed_at) {
-      alert("Debes confirmar tu correo antes de iniciar sesión.");
-      return false;
-    }
-
-    const loggedUser: User = {
-      id: data.user.id,
-      email: data.user.email!,
-      name: data.user.user_metadata?.name || "",
-      role: email === "admin@prueba.com" ? "admin" : "user",
-    };
-
-    setUser(loggedUser);
-    setSession(data.session);
-
-    localStorage.setItem("user", JSON.stringify(loggedUser));
-    localStorage.setItem("session", JSON.stringify(data.session));
-
-    return true;
   };
 
+
   // 🔹 REGISTER
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+  const register = async (email: string, password: string, name: string, surname: string): Promise<boolean> => {
     setIsLoading(true);
-
-    const res = await fetch("http://localhost:4000/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
-    });
-
-    const data = await res.json();
-    setIsLoading(false);
-
-    if (data.error) {
-      console.error("Register error", data.error);
+    try {
+      await httpProvider.post('/auth/register', { email, password, name, surname });
+      alert("Registro exitoso. Revisa tu correo para confirmar tu cuenta.");
+      return true;
+    } catch (error) {
+      console.error("Register error", error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
-
-    alert("Registro exitoso. Revisa tu correo para confirmar tu cuenta.");
-    return true;
   };
 
   // 🔹 LOGOUT
   const logout = async () => {
-    await fetch("http://localhost:4000/api/auth/logout", {
-      method: "POST",
-    });
-
-    setUser(null);
-    setSession(null);
-    localStorage.removeItem("user");
-    localStorage.removeItem("session");
+    try {
+      await httpProvider.post('/auth/logout');
+      setUser(null);
+      tokenProvider.setToken(null);
+    } catch (error) {
+      console.error("Logout error", error);
+    }
   };
 
-  const isAdmin = user?.email === "admin@prueba.com";
-
+  const isAdmin = user?.role === 'ADMIN';
   return (
     <AuthContext.Provider
       value={{
@@ -116,9 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
-        isLoading,
-        token: session?.access_token ?? null,
-        userId: session?.user.id ?? null,
+        isLoading
       }}
     >
       {children}
