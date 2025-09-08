@@ -24,7 +24,7 @@ interface HttpProviderProps {
 }
 
 export function HttpProvider({ children }: HttpProviderProps) {
-  const baseUrl = process.env.API_URL;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   const tokenProvider = useToken();
   const headers = {
     'Content-Type': 'application/json',
