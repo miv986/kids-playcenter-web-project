@@ -135,15 +135,15 @@ export function UserDashboard() {
                           </div>
                           <div className="flex items-center space-x-2 text-gray-600">
                             <Users className="w-4 h-4" />
-                            <span>{booking.number_of_kids}</span>
+                            <span>{booking.number_of_kinds}</span>
                           </div>
                           <div className="flex items-center space-x-2 text-gray-600">
                             <Package className="w-4 h-4" />
-                            <span>{booking.pack}</span>
+                            <span>{booking.type_of_package}</span>
                           </div>
                           <div className="flex items-center space-x-2 text-gray-600">
                             <Phone className="w-4 h-4" />
-                            <span>{booking.phone}</span>
+                            <span>{booking.contact_number}</span>
                           </div>
                         </div>
 

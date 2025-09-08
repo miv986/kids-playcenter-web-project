@@ -170,15 +170,15 @@ export function AdminDashboard() {
                     <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-600">
                       <div className="flex items-center space-x-2">
                         <Phone className="w-4 h-4" />
-                        <span>{booking.phone}</span>
+                        <span>{booking.contact_number}</span>
                       </div>
 
                       <div className="flex items-center space-x-2">
                         <Users className="w-4 h-4" />
-                        <span>{booking.number_of_kids}</span>
+                        <span>{booking.number_of_kinds}</span>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className="font-medium">{booking.pack}</span>
+                        <span className="font-medium">{booking.type_of_package}</span>
                       </div>
                     </div>
 

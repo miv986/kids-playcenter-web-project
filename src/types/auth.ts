@@ -8,9 +8,9 @@ export interface User {
 
 export interface Booking {
   id: number;
-  phone: string;
-  number_of_kids: number;
-  pack: string;
+  contact_number: string;
+  number_of_kinds: number;
+  type_of_package: string;
   comments: string;
   createdAt?: Date;
   updatedAt?: Date;
