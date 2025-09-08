@@ -26,7 +26,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const fetchBookings = async () => {
     try {
-      const data = await http.get('/bookings');
+      const data = await http.get('/api/bookings');
       return data;
     } catch (err) {
       console.error("Error cargando reservas:", err);
@@ -35,7 +35,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const fetchMyBookings = async () => {
     try {
-      const data = await http.get('/bookings/my');
+      const data = await http.get('/api/bookings/my');
       return data;
     } catch (err) {
       console.error("Error cargando reservas:", err);
@@ -44,7 +44,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const addBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'status'>) => {
     try {
-      const newBooking = await http.post('/bookings', bookingData);
+      const newBooking = await http.post('/api/bookings', bookingData);
       return newBooking;
     } catch (err) {
       console.error("Error adding booking:", err);
@@ -54,7 +54,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const updateBookingStatus = async (id: number, status: Booking['status']) => {
     try {
-      await http.put(`/bookings/${id}`, { status });
+      await http.put(`/api/bookings/${id}`, { status });
     } catch (err) {
       console.error("Error updating booking:", err);
     }
@@ -62,7 +62,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const deleteBooking = async (id: number) => {
     try {
-      await http.delete(`/bookings/${id}`);
+      await http.delete(`/api/bookings/${id}`);
     } catch (err) {
       console.error("Error deleting booking:", err);
     }

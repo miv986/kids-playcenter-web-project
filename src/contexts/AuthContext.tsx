@@ -32,7 +32,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const getMe = async (): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const user = await httpProvider.get('/auth/me');
+      const user = await httpProvider.get('/api/auth/me');
       setUser(user);
       return true;
     } catch (error) {
@@ -47,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      const data = await httpProvider.post('/auth/login', { email, password });
+      const data = await httpProvider.post('/api/auth/login', { email, password });
 
       if (!data.user.isEmailVerified) {
         alert("Debes confirmar tu correo antes de iniciar sesión.");
@@ -70,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (email: string, password: string, name: string, surname: string): Promise<boolean> => {
     setIsLoading(true);
     try {
-      await httpProvider.post('/auth/register', { email, password, name, surname });
+      await httpProvider.post('/api/auth/register', { email, password, name, surname });
       alert("Registro exitoso. Revisa tu correo para confirmar tu cuenta.");
       return true;
     } catch (error) {
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // 🔹 LOGOUT
   const logout = async () => {
     try {
-      await httpProvider.post('/auth/logout');
+      await httpProvider.post('/api/auth/logout');
       setUser(null);
       tokenProvider.setToken(null);
     } catch (error) {
