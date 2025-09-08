@@ -6,7 +6,7 @@ export function Calendar() {
   0
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [contact_number, setContactNumber] = useState("");
   const [kids, setKids] = useState(0);
   const [pack, setPack] = useState("Alegria");
   const [comments, setComments] = useState("");
@@ -79,16 +79,16 @@ export function Calendar() {
     }
     try {
       addBooking({
-        phone,
-        number_of_kids: kids,
-        pack,
+        contact_number,
+        number_of_kinds: kids,
+        type_of_package : pack,
         comments,
       });
 
       alert("✅ Reserva creada con éxito");
       // limpiar
       setName("");
-      setPhone("");
+      setContactNumber("");
       setKids(0);
       setPack("");
       setComments("");
@@ -210,8 +210,8 @@ export function Calendar() {
                   </label>
                   <input
                     type="tel"
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                    value={contact_number}
+                    onChange={e => setContactNumber(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
                     placeholder="+34 123 456 789"
                   />
