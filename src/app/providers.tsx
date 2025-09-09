@@ -4,6 +4,7 @@ import { TokenProvider } from "../contexts/TokenContext";
 import { BookingProvider } from "../contexts/BookingContext";
 import { HttpProvider } from "../contexts/HttpContext";
 import { AuthProvider } from "../contexts/AuthContext";
+import { ChildrenProvider } from "../contexts/ChildrenContext";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
 
@@ -11,12 +12,14 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <TokenProvider>
       <HttpProvider >
         <AuthProvider>
-          <BookingProvider>
-            {children}
-          </BookingProvider>
+          <ChildrenProvider>
+            <BookingProvider>
+              {children}
+            </BookingProvider>
+          </ChildrenProvider>
         </AuthProvider>
-      </HttpProvider>
-    </TokenProvider>
+      </HttpProvider >
+    </TokenProvider >
 
   );
 }
