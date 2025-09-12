@@ -11,7 +11,7 @@ Frontend de la aplicación Web Ludoteca, desarrollado con Next.js, React y Tailw
 
 ## Instalación
 ```bash
-git clone <frontend_repo_url>
+git clone frontend_repo_url](https://github.com/miv986/kids-playcenter-web-project.git
 cd frontend
 npm install
 npm run dev
