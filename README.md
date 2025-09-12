@@ -1,25 +1,17 @@
-
----
-
-## **2️⃣ README para el backend (Express.js + Prisma)**
-
-```markdown
-# Web Ludoteca – Backend
+# Web Ludoteca – Frontend
 
 ## Descripción
-Backend de la aplicación Web Ludoteca, desarrollado con Express.js, TypeScript y Prisma. Gestiona usuarios, reservas y actividades, exponiendo API REST consumida por el frontend. Base de datos PostgreSQL gestionada con Prisma, con migraciones para mantener el esquema actualizado.
+Frontend de la aplicación Web Ludoteca, desarrollado con Next.js, React y Tailwind CSS. Proporciona una interfaz responsiva para usuarios y administradores, permitiendo gestionar reservas, juegos y actividades de forma intuitiva. Se comunica con el backend mediante API REST.
 
 ## Tecnologías
-- Express.js, TypeScript  
-- Prisma ORM  
-- PostgreSQL  
-- JWT para autenticación  
-- Despliegue: Railway  
+- Next.js, React, TypeScript  
+- Tailwind CSS  
+- Axios para consumir API REST  
+- Despliegue: Vercel
 
 ## Instalación
 ```bash
-git clone <backend_repo_url>
-cd backend
+git clone <frontend_repo_url>
+cd frontend
 npm install
-# Configurar variables de entorno
 npm run dev
