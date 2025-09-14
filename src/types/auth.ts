@@ -1,10 +1,26 @@
 export interface User {
+  phone: string;
   id: number;
   email: string;
   name: string;
   surname: string;
   role: string;
+  children?: Child[];
 }
+export type Child = {
+  id: number;
+  name: string;
+  surname: string;
+  dateOfBirth: string;
+  notes?: string;
+  medicalNotes?: string;
+  allergies?: string;
+  emergency_contact_name_1?: string;
+  emergency_phone_1?: string;
+  emergency_contact_name_2?: string;
+  emergency_phone_2?: string;
+};
+
 
 export interface Booking {
   id: number;
