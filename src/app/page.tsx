@@ -8,9 +8,10 @@ import { Hero } from "../components/sections/Hero";
 import { AboutUs } from "../components/sections/AboutUs";
 import { Services } from "../components/sections/Services";
 import { PackagesAndPrices } from "../components/sections/PackagesAndPrices";
-import { Calendar } from "../components/sections/Calendar";
+import { CalendarSection } from "../components/sections/CalendarSection";
 import { Gallery } from "../components/sections/Gallery";
 import { Dashboard } from "../components/dashboard/Dashboard";
+import { PacksForm } from "../components/sections/PacksForm";
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -28,7 +29,7 @@ export default function HomePage() {
             <AboutUs />
             <Services />
             <PackagesAndPrices />
-            <Calendar />
+            <CalendarSection />
             <Gallery />
           </>
         )}
