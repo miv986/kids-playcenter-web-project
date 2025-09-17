@@ -2,24 +2,34 @@ import { Calendar, Users, Clock, Package, Phone, MessageSquare, Edit, XCircle, T
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useBookings } from "../../../contexts/BookingContext";
-import { Booking } from "../../../types/auth";
-
+import { Booking, Child } from "../../../types/auth";
+import { BookingModal } from "./BookingModal";
+import { useChildren } from "../../../contexts/ChildrenContext";
 
 
 
 export function UserBookings() {
     const { user } = useAuth();
-    const [bookings, setBookings] = useState([] as Array<Booking>)
     const { fetchMyBookings, updateBookingStatus, deleteBooking } = useBookings();
-    const [, setEditingBooking] = useState<number | null>(null);
-    
-    
+    const { fetchMyChildren, addChild, updateChild, deleteChild } = useChildren();
+
+    const [kids, setKids] = useState([] as Array<Child>);
+    const [bookings, setBookings] = useState([] as Array<Booking>);
+    const [booking, setEditingBooking] = useState<number | null>(null);
+    const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+
+
+    const handleBookingClick = () => {
+        setIsBookingModalOpen(true);
+    };
+
     useEffect(() => {
         if (!!user) {
-            fetchMyBookings().then((bookings) => setBookings(bookings))
+            fetchMyBookings().then((bookings) => setBookings(bookings));
+            fetchMyChildren().then((kids) => setKids(kids));
         }
     }, [user])
-    
+
     const getStatusColor = (status: Booking['status']) => {
         switch (status) {
             case 'pending': return 'bg-yellow-100 text-yellow-800';
@@ -28,7 +38,7 @@ export function UserBookings() {
             default: return 'bg-gray-100 text-gray-800';
         }
     };
-    
+
     const getStatusText = (status: Booking['status']) => {
         switch (status) {
             case 'pending': return 'Pendiente de confirmación';
@@ -37,13 +47,13 @@ export function UserBookings() {
             default: return status;
         }
     };
-    
+
     const handleCancelBooking = (bookingId: number) => {
         if (window.confirm('¿Estás seguro de que quieres cancelar esta reserva?')) {
             updateBookingStatus(bookingId, 'cancelled');
         }
     };
-    
+
     const handleDeleteBooking = (bookingId: number) => {
         if (window.confirm('¿Estás seguro de que quieres eliminar esta reserva? Esta acción no se puede deshacer.')) {
             deleteBooking(bookingId);
@@ -113,7 +123,9 @@ export function UserBookings() {
                                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                 <h3 className="text-xl font-semibold text-gray-600 mb-2">No tienes reservas</h3>
                                 <p className="text-gray-500 mb-6">¡Haz tu primera reserva y comienza la diversión!</p>
-                                <button className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                                <button
+                                    onClick={handleBookingClick}
+                                    className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-300">
                                     Hacer Reserva
                                 </button>
                             </div>
@@ -200,13 +212,20 @@ export function UserBookings() {
                 <div className="mt-8 bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl p-8 shadow-lg">
                     <h3 className="text-2xl font-bold text-gray-800 mb-4">Acciones Rápidas</h3>
                     <div className="flex flex-col sm:flex-row gap-4">
-                        <button className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                        <button
+                            onClick={handleBookingClick}
+                            className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-300">
                             Nueva Reserva
                         </button>
                         <button className="bg-white text-gray-700 px-6 py-3 rounded-xl font-medium border border-gray-200 hover:border-green-300 hover:text-green-600 transition-all duration-300">
                             Contactar Soporte
                         </button>
                     </div>
+
+                    <BookingModal
+                        isOpen={isBookingModalOpen}
+                        onClose={() => setIsBookingModalOpen(false)}
+                    />
                 </div>
             </div>
         </div>

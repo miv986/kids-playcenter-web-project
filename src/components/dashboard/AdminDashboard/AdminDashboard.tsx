@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Users, CheckCircle, XCircle, Trash2, Phone, Clock } from 'lucide-react';
-import { useBookings } from '../../contexts/BookingContext';
-import { Booking } from '../../types/auth';
-import { useAuth } from '../../contexts/AuthContext';
+import { useBookings } from '../../../contexts/BookingContext';
+import { Booking } from '../../../types/auth';
+import { useAuth } from '../../../contexts/AuthContext';
 
 export function AdminDashboard() {
   const [bookings, setBookings] = useState([] as Array<Booking>)
