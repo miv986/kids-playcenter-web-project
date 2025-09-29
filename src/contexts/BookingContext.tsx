@@ -74,7 +74,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const updateBookingStatus = async (id: number, status: BirthdayBooking['status']) => {
     try {
-      await http.put(`/api/bookings/updateBirthdayBookingStatus/${id}`, { status });
+      await http.put(`/api/bookings/updateBirthdayBookingStatus/${id}`,  status );
     } catch (err) {
       console.error("Error updating booking:", err);
     }
