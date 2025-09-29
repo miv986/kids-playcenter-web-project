@@ -2,7 +2,7 @@ import { Calendar, Users, Clock, Package, Phone, MessageSquare, Edit, XCircle, T
 import { useEffect, useState } from "react";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useBookings } from "../../../contexts/BookingContext";
-import { Booking, Child } from "../../../types/auth";
+import { BirthdayBooking, Child } from "../../../types/auth";
 import { BookingModal } from "./BookingModal";
 import { useChildren } from "../../../contexts/ChildrenContext";
 
@@ -14,7 +14,7 @@ export function UserBookings() {
     const { fetchMyChildren, addChild, updateChild, deleteChild } = useChildren();
 
     const [kids, setKids] = useState([] as Array<Child>);
-    const [bookings, setBookings] = useState([] as Array<Booking>);
+    const [bookings, setBookings] = useState([] as Array<BirthdayBooking>);
     const [booking, setEditingBooking] = useState<number | null>(null);
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
@@ -30,27 +30,27 @@ export function UserBookings() {
         }
     }, [user])
 
-    const getStatusColor = (status: Booking['status']) => {
+    const getStatusColor = (status: BirthdayBooking['status']) => {
         switch (status) {
-            case 'pending': return 'bg-yellow-100 text-yellow-800';
-            case 'confirmed': return 'bg-green-100 text-green-800';
-            case 'cancelled': return 'bg-red-100 text-red-800';
+            case 'PENDING': return 'bg-yellow-100 text-yellow-800';
+            case 'CONFIRMED': return 'bg-green-100 text-green-800';
+            case 'CANCELLED': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
 
-    const getStatusText = (status: Booking['status']) => {
+    const getStatusText = (status: BirthdayBooking['status']) => {
         switch (status) {
-            case 'pending': return 'Pendiente de confirmación';
-            case 'confirmed': return 'Confirmada';
-            case 'cancelled': return 'Cancelada';
+            case 'PENDING': return 'Pendiente de confirmación';
+            case 'CONFIRMED': return 'Confirmada';
+            case 'CANCELLED': return 'Cancelada';
             default: return status;
         }
     };
 
     const handleCancelBooking = (bookingId: number) => {
         if (window.confirm('¿Estás seguro de que quieres cancelar esta reserva?')) {
-            updateBookingStatus(bookingId, 'cancelled');
+            updateBookingStatus(bookingId, 'CANCELLED');
         }
     };
 
@@ -89,7 +89,7 @@ export function UserBookings() {
                             </div>
                             <div>
                                 <div className="text-2xl font-bold text-gray-800">
-                                    {bookings.filter(b => b.status === 'confirmed').length}
+                                    {bookings.filter(b => b.status === 'CONFIRMED').length}
                                 </div>
                                 <div className="text-gray-600">Confirmadas</div>
                             </div>
@@ -103,7 +103,7 @@ export function UserBookings() {
                             </div>
                             <div>
                                 <div className="text-2xl font-bold text-gray-800">
-                                    {bookings.filter(b => b.status === 'pending').length}
+                                    {bookings.filter(b => b.status === 'PENDING').length}
                                 </div>
                                 <div className="text-gray-600">Pendientes</div>
                             </div>
@@ -151,11 +151,11 @@ export function UserBookings() {
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Users className="w-4 h-4" />
-                                                        <span>{booking.number_of_kinds}</span>
+                                                        <span>{booking.number_of_kids}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Package className="w-4 h-4" />
-                                                        <span>{booking.type_of_package}</span>
+                                                        <span>{booking.packageType}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Phone className="w-4 h-4" />
@@ -172,7 +172,7 @@ export function UserBookings() {
                                             </div>
 
                                             <div className="flex flex-col space-y-3 lg:w-48">
-                                                {booking.status === 'pending' && (
+                                                {booking.status === 'PENDING' && (
                                                     <button
                                                         onClick={() => setEditingBooking(booking.id)}
                                                         className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center space-x-2"
@@ -182,7 +182,7 @@ export function UserBookings() {
                                                     </button>
                                                 )}
 
-                                                {booking.status !== 'cancelled' && (
+                                                {booking.status !== 'CANCELLED' && (
                                                     <button
                                                         onClick={() => handleCancelBooking(booking.id)}
                                                         className="bg-yellow-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-yellow-600 transition-colors duration-200 flex items-center justify-center space-x-2"
