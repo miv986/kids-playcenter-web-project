@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useBookings } from "../../contexts/BookingContext";
 import { useChildren } from "../../contexts/ChildrenContext";
 import { Child } from "../../types/auth";
-import { Calendar } from "../dashboard/UserDashboard/Calendar";
+import { Calendar } from "../dashboard/Bookings/Calendar";
 
 
 export function Playcenter() {
