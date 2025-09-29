@@ -21,16 +21,34 @@ export type Child = {
   emergency_phone_2?: string;
 };
 
+export type Status = "PENDING" | "CANCELLED" | "CONFIRMED" | "CLOSED" | "OPEN";
 
-export interface Booking {
+export interface BirthdayBooking {
   id: number;
+  guestEmail: string;
+  guest: string;
+  number_of_kids: number;
   contact_number: string;
-  number_of_kinds: number;
-  type_of_package: string;
   comments: string;
+  packageType: string;
+  status: Status;
   createdAt?: Date;
   updatedAt?: Date;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  slotId: number;
+  slot: BirthdaySlot;
+}
+
+
+export interface BirthdaySlot {
+  id: number;
+  date: Date;
+  startTime: Date;
+  endTime: Date;
+  status: Status;
+  booking?: BirthdayBooking;
+  createdAt?: Date;
+  updatedAt?: Date;
+
 }
 
 export interface AuthContextType {

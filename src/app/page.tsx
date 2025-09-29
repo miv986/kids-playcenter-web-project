@@ -10,7 +10,7 @@ import { Services } from "../components/sections/Services";
 import { PackagesAndPrices } from "../components/sections/PackagesAndPrices";
 import { CalendarSection } from "../components/sections/CalendarSection";
 import { Gallery } from "../components/sections/Gallery";
-import { Dashboard } from "../components/dashboard/Dashboard";
+import { Dashboard } from "../components/sections/Dashboard";
 import { PacksForm } from "../components/sections/PacksForm";
 
 export default function HomePage() {

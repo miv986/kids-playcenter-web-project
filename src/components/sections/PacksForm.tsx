@@ -2,6 +2,7 @@ import { CalendarIcon } from "lucide-react"
 import { useState, useEffect } from "react";
 import { useAuth } from '../../contexts/AuthContext';
 import { useBookings } from "../../contexts/BookingContext";
+import { useSlots } from "../../contexts/SlotContext";
 
 
 export function PacksForm() {
@@ -16,6 +17,7 @@ export function PacksForm() {
     const { user } = useAuth();
     //funcion de añadir reserva
     const { addBooking } = useBookings();
+    const { fetchSlotsByDay } = useSlots();
 
     useEffect(() => {
         console.warn(kids)
@@ -30,13 +32,16 @@ export function PacksForm() {
             setLoading(false);
             return;
         }
+
+        const data = await fetchSlotsByDay(new Date());
+
+        if (!data) {
+            alert("Error");
+        }
+
+        data.map(data => data.id)
+
         try {
-            addBooking({
-                contact_number,
-                number_of_kinds: kids,
-                type_of_package: pack,
-                comments,
-            });
 
             alert("✅ Reserva creada con éxito");
             // limpiar

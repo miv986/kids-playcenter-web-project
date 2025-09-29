@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useBookings } from "../../contexts/BookingContext";
 import { useChildren } from "../../contexts/ChildrenContext";
 import { Child } from "../../types/auth";
-import { Calendar } from "../dashboard/UserDashboard/Calendar";
+import { CalendarComponent } from "../dashboard/Bookings/Calendar";
 
 
 export function Playcenter() {
@@ -41,12 +41,7 @@ export function Playcenter() {
             return;
         }
         try {
-            addBooking({
-                contact_number,
-                number_of_kinds: 0,
-                type_of_package: pack,
-                comments,
-            });
+
 
             alert("✅ Reserva creada con éxito");
             // limpiar
@@ -64,7 +59,6 @@ export function Playcenter() {
     return (
 
         <div className="w-full flex flex-col sm:flex-row gap-4">
-            <Calendar></Calendar>
             <form className="w-full p-6 sm:p-8 space-y-6">
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
