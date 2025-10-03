@@ -12,8 +12,8 @@ export function AdminBirthdaySlots() {
     const { user } = useAuth();
     const { fetchSlots, createSlot, updateSlot, deleteSlot, fetchSlotsByDay, } = useSlots();
 
-    const [slots, setSlots] = useState<BirthdaySlot[]>([]);
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [slots, setSlots] = useState([] as Array<BirthdaySlot>);
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [dailySlots, setDailySlots] = useState<BirthdaySlot[]>([]);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedSlot, setSelectedSlot] = useState<BirthdaySlot | null>(null);
@@ -31,10 +31,14 @@ export function AdminBirthdaySlots() {
 
     // Fetch all slots
     useEffect(() => {
-        if (user) {
-            fetchSlots().then((data) => setSlots(data));
+        if (!!user) {
+            fetchSlots().then((slots) => setSlots(slots));
         }
     }, [user]);
+
+    const slotsLength = slots.length;
+
+    console.log(slotsLength);
 
     // Filtrado de slots por día
     const slotsToShow = selectedDate ? (dailySlots || []) : (slots || []);
@@ -50,7 +54,7 @@ export function AdminBirthdaySlots() {
             })
             .filter((d): d is Date => d !== null)
 
-            .map((date) => date.getUTCDate());
+            .map((date) => date.getDate());
     }, [slots, currentMonth]);
 
     // Crear slot (optimista)
@@ -111,6 +115,20 @@ export function AdminBirthdaySlots() {
                         </button>
                     </div>
 
+                    {/* Botón para mostrar todas las reservas */}
+                    {selectedDate && (
+                        <div className="mb-4">
+                            <button
+                                onClick={() => {
+                                    setSelectedDate(undefined);
+                                    setDailySlots([]); // limpio las de ese día
+                                }}
+                                className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
+                            >
+                                Mostrar todos los slots
+                            </button>
+                        </div>
+                    )}
                     {slotsToShow.length === 0 ? (
                         <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
                             <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -169,7 +187,9 @@ export function AdminBirthdaySlots() {
                         bookedDaysDB={bookedDays}
                         currentMonth={currentMonth}
                         setCurrentMonth={setCurrentMonth}
+                        selectedDate={selectedDate}
                         onSelectDate={async (date) => {
+                            console.log("CLICKED DAY", date);
                             setSelectedDate(date);
                             const data = await fetchSlotsByDay(date);
                             setDailySlots(data || []);
