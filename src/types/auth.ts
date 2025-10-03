@@ -11,7 +11,7 @@ export type Child = {
   id: number;
   name: string;
   surname: string;
-  stringOfBirth: string;
+  dateOfBirth: string;
   notes?: string;
   medicalNotes?: string;
   allergies?: string;
