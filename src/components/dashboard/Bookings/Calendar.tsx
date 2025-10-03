@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import clsx from "clsx";
 
 interface CalendarProps {
   selectedDate?: Date;
@@ -19,6 +20,7 @@ export function CalendarComponent({
   onSelectDate,
 }: CalendarProps) {
   const handleDayClick = (day: number) => {
+    console.log("day clicked", day);
     const date = new Date(
       currentMonth.getFullYear(),
       currentMonth.getMonth(),
@@ -26,6 +28,10 @@ export function CalendarComponent({
     );
     onSelectDate(date);
   };
+
+  useEffect(()=> {
+    console.log("mira mi huevo " +selectedDate)
+  },[selectedDate])
 
   const months = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -96,37 +102,40 @@ export function CalendarComponent({
 
       {/* Días */}
       <div className="grid grid-cols-7 gap-2">
-        {days.map((day, idx) => (
-          <div key={idx} className="aspect-square">
-            {day && (
+        {days.map((day, idx) => {
+          if (!day) return <div key={idx} className="aspect-square" />;
+
+          const selected =
+            selectedDate &&
+            selectedDate.getFullYear() === currentMonth.getFullYear() &&
+            selectedDate.getMonth() === currentMonth.getMonth() &&
+            selectedDate.getDate() === day;
+
+          return (
+            <div key={idx} className="aspect-square">
               <button
                 onClick={() => handleDayClick(day)}
-                disabled={
-                  !availableDaysDB.includes(day) && !bookedDaysDB.includes(day)
-                }
+                disabled={!availableDaysDB.includes(day) && !bookedDaysDB.includes(day)}
                 type="button"
-                className={`w-full h-full rounded-lg text-sm font-medium transition
-                  ${
-                    bookedDaysDB.includes(day)
+                className={clsx(
+                  "w-full h-full rounded-lg text-sm font-medium transition",
+                  selected
+                    ? "ring-2 ring-orange-600 font-bold text-green-800 bg-green-400 rounded-full"
+                    : bookedDaysDB.includes(day)
                       ? "bg-red-100 text-red-600 hover:bg-red-200"
                       : availableDaysDB.includes(day)
-                      ? "bg-green-100 text-green-600 hover:bg-green-200"
-                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  }
-                  ${
-                    selectedDate &&
-                    selectedDate.getDate() === day &&
-                    selectedDate.getMonth() === currentMonth.getMonth() &&
-                    "ring-2 ring-blue-500 font-bold"
-                  }
-                `}
+                        ? "bg-green-100 text-green-600 hover:bg-green-200"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                )}
               >
                 {day}
               </button>
-            )}
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
+
+
 
       {/* Leyenda */}
       <div className="mt-6 flex justify-center gap-4 text-xs">

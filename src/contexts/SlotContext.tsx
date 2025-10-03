@@ -26,19 +26,38 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
     const http = useHttp();
 
     const fetchSlots = async () => {
-        const res = await http.get("/api/birthdaySlots");
-        return res.data;
+        try {
+            const data = await http.get("/api/birthdaySlots");
+            return data || [];
+        } catch (err) {
+            console.error("Error cargando slots", err);
+        }
     };
 
     const fetchSlotsByDay = async (date: Date) => {
-        const dateStr = formatDateTime(date);
-        const res = await http.get(`/api/birthdaySlots/getSlotsByDay?date=${dateStr}`);
-        return res.data;
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, "0");
+        const day = date.getDate().toString().padStart(2, "0");
+        const formattedDate = `${year}-${month}-${day}`; // "YYYY-MM-DD"
+        console.log("Fecha formateada pre", formattedDate);
+
+        try {
+            const data = await http.get(`/api/birthdaySlots/getSlotsByDay/${formattedDate}`);
+            return data as BirthdaySlot[] || [];
+        } catch (err) {
+            console.error("Error cargando slots por fecha", err);
+            return [];
+
+        }
     };
 
     const createSlot = async (data: Partial<BirthdaySlot>) => {
-        const res = await http.post("/api/birthdaySlots", data);
-        return res.data;
+        try {
+            const nuevoSlot = await http.post("/api/birthdaySlots", data);
+            return nuevoSlot;
+        } catch (err) {
+            console.error("Error creando slot", err);
+        }
     };
 
     const updateSlot = async (id: number, data: Partial<BirthdaySlot>) => {

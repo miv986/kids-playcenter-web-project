@@ -17,7 +17,7 @@ export function AdminBookings() {
     const { fetchBookings, updateBookingStatus, deleteBooking, updateBooking, fetchBookingByDate } = useBookings();
     const [filter, setFilter] = useState<'all' | 'PENDING' | 'CONFIRMED' | 'CANCELLED'>('all');
     const { user } = useAuth();
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [dailyBookings, setDailyBookings] = useState<BirthdayBooking[]>([]);
 
     const [bookedDaysDB, setBookedDaysDB] = useState<number[]>([]);
@@ -250,12 +250,11 @@ export function AdminBookings() {
                     {/* Bookings List */}
                     <div className="space-y-6">
                         {/* Botón para mostrar todas las reservas */}
-                        {/* Botón para mostrar todas las reservas */}
                         {selectedDate && (
                             <div className="mb-4">
                                 <button
                                     onClick={() => {
-                                        setSelectedDate(null);
+                                        setSelectedDate(undefined);
                                         setDailyBookings([]); // limpio las de ese día
                                     }}
                                     className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
@@ -299,6 +298,7 @@ export function AdminBookings() {
                 <div className="relative">
                     <CalendarComponent
                         availableDaysDB={availableDaysDB}
+                        selectedDate={selectedDate}
                         onSelectDate={async (date) => {
                             setSelectedDate(date);
                             const bookingsForDay = await fetchBookingByDate(date);

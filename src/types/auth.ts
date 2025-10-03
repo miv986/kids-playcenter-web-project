@@ -32,8 +32,8 @@ export interface BirthdayBooking {
   comments: string;
   packageType: string;
   status: Status;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  upstringdAt?: string;
   slotId: number;
   slot: BirthdaySlot;
 }
@@ -41,13 +41,13 @@ export interface BirthdayBooking {
 
 export interface BirthdaySlot {
   id: number;
-  date: Date;
-  startTime: Date;
-  endTime: Date;
+  date: string;
+  startTime: string;
+  endTime: string;
   status: Status;
   booking?: BirthdayBooking;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: string;
+  upstringdAt?: string;
 
 }
 

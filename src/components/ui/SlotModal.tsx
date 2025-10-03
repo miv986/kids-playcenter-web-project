@@ -18,25 +18,25 @@ export function SlotModal({
   updateSlot,
 }: SlotModalProps) {
   const [formData, setFormData] = useState<Partial<BirthdaySlot>>({
-    date: new Date(),
-    startTime: new Date(),
-    endTime: new Date(),
+    date: new Date().toISOString(),
+    startTime: new Date().toISOString(),
+    endTime: new Date().toISOString(),
     status: "OPEN",
   });
 
   useEffect(() => {
     if (slot) {
       setFormData({
-        date: new Date(slot.date),
-        startTime: new Date(slot.startTime),
-        endTime: new Date(slot.endTime),
-        status: slot.status,
+        date: new Date().toISOString(),
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        status: "OPEN",
       });
     } else {
       setFormData({
-        date: new Date(),
-        startTime: new Date(),
-        endTime: new Date(),
+        date: new Date().toISOString(),
+        startTime: new Date().toISOString(),
+        endTime: new Date().toISOString(),
         status: "OPEN",
       });
     }
@@ -46,34 +46,28 @@ export function SlotModal({
 
   const handleChange = (field: keyof BirthdaySlot, value: any) => {
     if (field === "date") {
+      const newDate = value;
       setFormData((prev) => ({
         ...prev,
-        date: new Date(value),
-        // Ajustar startTime y endTime al nuevo día
+        date: new Date(newDate).toISOString(),
         startTime: prev.startTime
           ? new Date(
-            new Date(value).setHours(
-              prev.startTime.getHours(),
-              prev.startTime.getMinutes()
-            )
-          )
-          : new Date(value),
+            `${newDate}T${format(new Date(prev.startTime), "HH:mm")}`
+          ).toISOString()
+          : new Date(newDate).toISOString(),
         endTime: prev.endTime
           ? new Date(
-            new Date(value).setHours(
-              prev.endTime.getHours(),
-              prev.endTime.getMinutes()
-            )
-          )
-          : new Date(value),
+            `${newDate}T${format(new Date(prev.endTime), "HH:mm")}`
+          ).toISOString()
+          : new Date(newDate).toISOString(),
       }));
     } else if (field === "startTime" || field === "endTime") {
       const [hours, minutes] = value.split(":").map(Number);
       setFormData((prev) => ({
         ...prev,
         [field]: new Date(
-          prev.date!.setHours(hours, minutes, 0, 0)
-        ),
+          new Date(prev.date!).setHours(Number(hours), Number(minutes))
+        ).toISOString(),
       }));
     } else {
       setFormData((prev) => ({ ...prev, [field]: value }));
@@ -86,7 +80,7 @@ export function SlotModal({
       return;
     }
 
-    if (formData.endTime <= formData.startTime) {
+    if (new Date(formData.endTime) <= new Date(formData.startTime)) {
       alert("La hora de fin debe ser posterior a la hora de inicio");
       return;
     }
