@@ -71,7 +71,7 @@ export function BirthdayBookingModal({
                 <h3 className="text-2xl font-bold text-gray-800 mb-4">
                     Reserva #{booking.id}
                 </h3>
-                <p className='text-xl font-bold text-gray-600'>Fecha de creación 
+                <p className='text-xl font-bold text-gray-600'>Fecha de creación
                     {formatDateTime(booking.createdAt)}
                 </p>
 
@@ -80,7 +80,7 @@ export function BirthdayBookingModal({
                         <label className="font-medium">Fecha de reserva:</label>
                         <input
                             type='datetime'
-                            value={formatDateTime(formData?.slot?.date, "dd-MM-yyy HH:mm") || ''}
+                            value={formData?.slot?.date ? format(new Date(formData.slot.date), "dd-MM-yyyy HH:mm") : ''}
                             disabled={!isEditing}
                             onChange={e => handleChange('guest', e.target.value)}
                             className="border rounded px-2 py-1 w-full"
@@ -190,7 +190,7 @@ export function BirthdayBookingModal({
                                 );
                             }
 
-                          
+
 
                             return actions.map((action) => (
                                 <button
