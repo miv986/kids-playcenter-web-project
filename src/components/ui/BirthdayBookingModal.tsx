@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { BirthdayBooking } from '../../types/auth';
 import { formatDateTime } from '../../lib/formatDate';
 import { CalendarComponent } from '../dashboard/Bookings/Calendar';
+import { format } from 'date-fns';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -70,7 +71,7 @@ export function BirthdayBookingModal({
                 <h3 className="text-2xl font-bold text-gray-800 mb-4">
                     Reserva #{booking.id}
                 </h3>
-                <p className='text-xl font-bold text-gray-600'>
+                <p className='text-xl font-bold text-gray-600'>Fecha de creación
                     {formatDateTime(booking.createdAt)}
                 </p>
 
@@ -78,8 +79,8 @@ export function BirthdayBookingModal({
                     <div>
                         <label className="font-medium">Fecha de reserva:</label>
                         <input
-                            type='text'
-                            value={formatDateTime(formData.slot?.date) || ''}
+                            type='datetime'
+                            value={formData?.slot?.date ? format(new Date(formData.slot.date), "dd-MM-yyyy HH:mm") : ''}
                             disabled={!isEditing}
                             onChange={e => handleChange('guest', e.target.value)}
                             className="border rounded px-2 py-1 w-full"
@@ -189,7 +190,7 @@ export function BirthdayBookingModal({
                                 );
                             }
 
-                          
+
 
                             return actions.map((action) => (
                                 <button

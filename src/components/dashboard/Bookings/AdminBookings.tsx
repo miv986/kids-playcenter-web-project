@@ -50,8 +50,8 @@ export function AdminBookings() {
         return bookings
             .map(b => new Date(b.slot.startTime))
             .filter(date =>
-                date.getUTCFullYear() === currentMonth.getUTCFullYear() &&
-                date.getUTCMonth() === currentMonth.getUTCMonth()
+                date.getFullYear() === currentMonth.getFullYear() &&
+                date.getMonth() === currentMonth.getMonth()
             )
             .map(date => date.getUTCDate());
     }, [bookings, currentMonth]);

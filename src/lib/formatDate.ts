@@ -1,4 +1,4 @@
-export function formatDateTime(input?: string | number | Date | null): string {
+export function formatDateTime(input?: string | number | Date | null, p0?: string): string {
   if (!input) return '-';
 
   // Convertir todo a Date
