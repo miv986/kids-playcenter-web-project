@@ -19,6 +19,9 @@ export function AdminBirthdaySlots() {
     const [selectedSlot, setSelectedSlot] = useState<BirthdaySlot | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+
+    console.log("CURRENT MONTH", currentMonth);
+
     const openModal = (slot?: BirthdaySlot) => {
         setSelectedSlot(slot || null);
         setIsModalOpen(true);
@@ -52,7 +55,9 @@ export function AdminBirthdaySlots() {
                 const d = new Date(s.date);
                 return isNaN(d.getTime()) ? null : d;
             })
-            .filter((d): d is Date => d !== null)
+            .filter((d): d is Date =>
+                d?.getMonth() === currentMonth.getMonth()
+                && d.getFullYear() === currentMonth.getFullYear())
 
             .map((date) => date.getDate());
     }, [slots, currentMonth]);
