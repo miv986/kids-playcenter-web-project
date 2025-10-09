@@ -64,9 +64,27 @@ export function AdminBirthdaySlots() {
 
     // Crear slot (optimista)
     const handleCreateSlot = async (data: Partial<BirthdaySlot>) => {
-        const newSlot = await createSlot(data);
-        setSlots((prev) => [...prev, newSlot]);
-        alert("Slot creado correctamente");
+        if (!data.date || !data.startTime || !data.endTime) {
+            alert("Debes rellenar fecha, hora de inicio y hora de fin");
+            return;
+        }
+
+        const start = new Date(data.startTime);
+        const end = new Date(data.endTime);
+
+        if (end <= start) {
+            alert("La hora de fin debe ser posterior a la de inicio");
+            return;
+        }
+        try {
+            const newSlot = await createSlot(data);
+            if (!newSlot) return;
+            setSlots((prev) => [...prev, newSlot]);
+            alert("Slot creado correctamente");
+        } catch (err) {
+            console.error("Error manejando la creación del slot", err);
+        }
+
     };
 
     // Actualizar slot (optimista)

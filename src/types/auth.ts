@@ -1,3 +1,5 @@
+import { PAGE_TYPES } from "next/dist/lib/page-types";
+
 export interface User {
   phone: string;
   id: number;
@@ -22,6 +24,7 @@ export type Child = {
 };
 
 export type Status = "PENDING" | "CANCELLED" | "CONFIRMED" | "CLOSED" | "OPEN";
+export type Package = "ALEGRIA" | "FIESTA" | "ESPECIAL";
 
 export interface BirthdayBooking {
   id: number;
@@ -30,12 +33,12 @@ export interface BirthdayBooking {
   number_of_kids: number;
   contact_number: string;
   comments: string;
-  packageType: string;
+  packageType: Package;
   status: Status;
   createdAt?: string;
   upstringdAt?: string;
   slotId: number;
-  slot: BirthdaySlot;
+  slot?: BirthdaySlot;
 }
 
 

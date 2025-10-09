@@ -3,7 +3,7 @@ import { BirthdayBooking } from '../types/auth';
 import { useHttp } from './HttpContext';
 
 interface BookingContextType {
-  addBooking: (booking: Omit<BirthdayBooking, 'id' | 'createdAt' | 'status'>) => void;
+  addBooking: (booking: Omit<BirthdayBooking, 'id' | 'createdAt' | 'status' | 'slot'>) => void;
   updateBookingStatus: (id: number, status: BirthdayBooking['status']) => void;
   updateBooking: (id: number, bookingData: Partial<BirthdayBooking>) => void;
   deleteBooking: (id: number) => void;
@@ -64,7 +64,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const addBooking = async (bookingData: Omit<BirthdayBooking, 'id' | 'createdAt' | 'status'>) => {
     try {
-      const newBooking = await http.post('/api/bookings', bookingData);
+      const newBooking = await http.post('/api/bookings/createBirthdayBooking', bookingData);
       return newBooking;
     } catch (err) {
       console.error("Error adding booking:", err);

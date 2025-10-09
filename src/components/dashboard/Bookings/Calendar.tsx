@@ -19,6 +19,7 @@ export function CalendarComponent({
   bookedDaysDB,
   onSelectDate,
 }: CalendarProps) {
+
   const handleDayClick = (day: number) => {
     console.log("day clicked", day);
     const date = new Date(
@@ -29,9 +30,9 @@ export function CalendarComponent({
     onSelectDate(date);
   };
 
-  useEffect(()=> {
-    console.log("mira mi huevo " +selectedDate)
-  },[selectedDate])
+  useEffect(() => {
+    console.log("mira mi huevo " + selectedDate)
+  }, [selectedDate])
 
   const months = [
     "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",

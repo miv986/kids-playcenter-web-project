@@ -48,7 +48,7 @@ export function AdminBookings() {
 
     const bookedDays = useMemo(() => {
         return bookings
-            .map(b => new Date(b.slot.startTime))
+            .map(b => new Date(b.slot!.startTime))
             .filter(date =>
                 date.getFullYear() === currentMonth.getFullYear() &&
                 date.getMonth() === currentMonth.getMonth()
