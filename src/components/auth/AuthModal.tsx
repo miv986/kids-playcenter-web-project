@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
@@ -6,11 +6,22 @@ import { RegisterForm } from './RegisterForm';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialMode?: 'login' | 'register';
+  initialMode: 'login' | 'register';
 }
 
-export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalProps) {
+
+
+export function AuthModal({ isOpen, onClose, initialMode }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
+
+  useEffect(() => {
+    if (initialMode) setMode(initialMode);
+  }, [initialMode]);
+
+
+  console.log("prop initial mode", initialMode);
+
+
 
   if (!isOpen) return null;
 
