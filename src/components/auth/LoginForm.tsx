@@ -14,10 +14,11 @@ export function LoginForm({ onSwitchToRegister, onClose }: LoginFormProps) {
   const [error, setError] = useState('');
   const { login, isLoading } = useAuth();
 
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     const success = await login(email, password);
     if (success) {
       onClose();

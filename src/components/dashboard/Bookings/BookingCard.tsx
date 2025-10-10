@@ -2,6 +2,7 @@ import React from "react";
 import { BirthdayBooking } from "../../../types/auth";
 import { formatDateTime } from "../../../lib/formatDate";
 import { Phone, Users, Glasses } from "lucide-react";
+import { format } from "date-fns";
 
 interface BookingCardProps {
     booking: BirthdayBooking;
@@ -37,10 +38,12 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, openModal }) 
                             {getStatusText(booking.status)}
                         </span>
                         <p className='text-lg font-bold text-gray-600'>
-                            {formatDateTime(booking.slot.startTime)}
+                            {format(new Date(booking.slot!.startTime), "dd/MM/yyyy")}
                         </p>
-                        <p className='text-lg font-bold text-gray-600'>
-                            {formatDateTime(booking.slot.endTime)}
+                        <p className='text-lg font-bold text-green-600'>[
+                            {format(new Date(booking.slot!.startTime), "HH:mm")} {"-"}
+                            {format(new Date(booking.slot!.endTime), "HH:mm")}
+                        ]
                         </p>
                     </div>
 

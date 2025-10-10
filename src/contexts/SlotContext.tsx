@@ -6,10 +6,12 @@ import { formatDateTime } from "../lib/formatDate";
 
 interface SlotContextType {
     fetchSlots: () => Promise<BirthdaySlot[]>;
+    fetchSlotsAvailable: () => Promise<BirthdaySlot[]>;
     fetchSlotsByDay: (date: Date) => Promise<BirthdaySlot[]>;
     createSlot: (data: Partial<BirthdaySlot>) => Promise<BirthdaySlot>;
     updateSlot: (id: number, data: Partial<BirthdaySlot>) => Promise<BirthdaySlot>;
     deleteSlot: (id: number) => Promise<void>;
+
 }
 
 const SlotContext = createContext<SlotContextType | undefined>(undefined);
@@ -28,6 +30,16 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
     const fetchSlots = async () => {
         try {
             const data = await http.get("/api/birthdaySlots");
+            return data || [];
+        } catch (err) {
+            console.error("Error cargando slots", err);
+        }
+    };
+
+
+    const fetchSlotsAvailable = async () => {
+        try {
+            const data = await http.get("/api/birthdaySlots/availableSlots");
             return data || [];
         } catch (err) {
             console.error("Error cargando slots", err);
@@ -55,14 +67,24 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
         try {
             const nuevoSlot = await http.post("/api/birthdaySlots", data);
             return nuevoSlot;
-        } catch (err) {
-            console.error("Error creando slot", err);
+        } catch (err: any) {
+            const message = err.response?.data?.error || err.message || "Error inesperado al crear slot";
+            alert("❌ " + message);
+            console.error("Error creando slot", err);;
+            return null;
         }
     };
 
-    const updateSlot = async (id: number, data: Partial<BirthdaySlot>) => {
-        const res = await http.put(`/api/birthdaySlots/${id}`, data);
-        return res.data;
+    const updateSlot = async (id: number, dataSlot: Partial<BirthdaySlot>) => {
+
+        try {
+            const data = await http.put(`/api/birthdaySlots/${id}`, dataSlot);
+            return data;
+        } catch (err: any) {
+            const message = err.response?.data?.error || err.message || "Error inesperado al crear slot";
+            alert("❌ " + message);
+            console.error("Error creando slot", err);
+        }
     };
 
     const deleteSlot = async (id: number) => {
@@ -71,7 +93,7 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <SlotContext.Provider
-            value={{ fetchSlots, fetchSlotsByDay, createSlot, updateSlot, deleteSlot }}
+            value={{ fetchSlots, fetchSlotsAvailable, fetchSlotsByDay, createSlot, updateSlot, deleteSlot }}
         >
             {children}
         </SlotContext.Provider>
