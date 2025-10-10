@@ -53,13 +53,6 @@ export function PacksForm({
         }
     }, [data, selectedDay]);
 
-
-    console.log("DATA LENGTH", data)
-    console.log("SLOTS LENGTH", slots)
-
-
-    console.log("SELECTED SLOT", selectedSlot);
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -137,7 +130,9 @@ export function PacksForm({
                         required>
                         <option value="">Selecciona una fecha</option>
                         {(slots) && slots.length > 0 ?
-                            (slots.map(slot => (
+                            (slots
+                                .filter(slot => slot.status === 'OPEN')
+                                .map(slot => (
                                 <option key={slot.id} value={slot.id}>
                                     {format(new Date(slot.date), "dd/MM/yyyy")} -{" "}
                                     {format(new Date(slot.startTime), "HH:mm")} a{" "}

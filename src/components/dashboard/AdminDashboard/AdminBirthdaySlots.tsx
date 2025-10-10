@@ -100,7 +100,8 @@ export function AdminBirthdaySlots() {
         if (selectedSlot?.id === id) {
             setSelectedSlot((prev) => (prev ? { ...prev, ...data } : prev));
         }
-        await updateSlot(id, data);
+        const slotToUpdate = await updateSlot(id, data);
+        if (!slotToUpdate) return;
         alert("Slot actualizado correctamente");
     };
 

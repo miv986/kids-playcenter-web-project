@@ -68,12 +68,9 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
             const nuevoSlot = await http.post("/api/birthdaySlots", data);
             return nuevoSlot;
         } catch (err: any) {
-            if (err?.message) {
-                alert("❌ " + err.message);
-            } else {
-                alert("❌ Error inesperado al crear slot");
-            }
-            console.error("Error creando slot", err);
+            const message = err.response?.data?.error || err.message || "Error inesperado al crear slot";
+            alert("❌ " + message);
+            console.error("Error creando slot", err);;
             return null;
         }
     };
@@ -84,13 +81,9 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
             const data = await http.put(`/api/birthdaySlots/${id}`, dataSlot);
             return data;
         } catch (err: any) {
-            if (err?.message) {
-                alert("❌ " + err.message);
-            } else {
-                alert("❌ Error inesperado al crear slot");
-            }
-            console.error("Error actualizando slot", err);
-            return null;
+            const message = err.response?.data?.error || err.message || "Error inesperado al crear slot";
+            alert("❌ " + message);
+            console.error("Error creando slot", err);
         }
     };
 

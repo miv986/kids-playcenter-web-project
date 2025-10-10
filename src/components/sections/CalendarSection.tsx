@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 export function CalendarSection() {
 
-  const { fetchSlotsAvailable, fetchSlotsByDay } = useSlots();
+  const { fetchSlotsAvailable, fetchSlots, fetchSlotsByDay } = useSlots();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [slots, setSlots] = useState([] as Array<BirthdaySlot>);
@@ -111,7 +111,7 @@ export function CalendarSection() {
       const daySlots = slotsByDay[day];
       if (!daySlots || daySlots.length === 0) {
         statusMap[day] = 'gray'; // No hay slots
-      } else if (daySlots.every(slot => slot.booking)) {
+      } else if (daySlots.every(slot => slot.status === 'CLOSED')) {
         statusMap[day] = 'red'; // Todos ocupados
       } else {
         statusMap[day] = 'green'; // Al menos un slot libre
@@ -149,6 +149,7 @@ export function CalendarSection() {
           <p className="text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed mb-6">
             Aquí también puedes consultar los horarios disponibles de la ludoteca disponible de lunes a jueves.
           </p>
+
           {!user &&
             <><p className="text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed mb-6">
               Selecciona un día de lunes a jueves para ver los horarios disponibles.
