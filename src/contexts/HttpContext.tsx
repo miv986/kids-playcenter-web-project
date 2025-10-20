@@ -5,7 +5,7 @@ interface HttpContextType {
   get: (url: string) => Promise<any>;
   post: (url: string, data?: any) => Promise<any>;
   put: (url: string, data?: any) => Promise<any>;
-  delete: (url: string) => Promise<any>;
+  delete: (url: string, options?: any) => Promise<any>,
 }
 
 const HttpContext = createContext<HttpContextType | undefined>(undefined);
@@ -62,10 +62,11 @@ export function HttpProvider({ children }: HttpProviderProps) {
       body: JSON.stringify(data)
     }).then(handleResponse);
 
-  const delete_ = (url: string) =>
+  const delete_ = (url: string, options?: {data?: any}) =>
     fetch(`${baseUrl}${url}`, {
       method: 'DELETE',
-      headers
+      headers,
+      body: options?.data ? JSON.stringify(options.data) : undefined,
     }).then(handleResponse);
 
   return (
