@@ -40,6 +40,8 @@ export interface DaycareSlot{
   id: number;
   date: string;
   hour: number;
+  openHour: string;
+  closeHour: string;
   capacity: number;
   availableSpots: number;
   status: Status;

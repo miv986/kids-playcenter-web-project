@@ -10,14 +10,13 @@ import { CalendarComponent } from "../Bookings/Calendar";
 export function AdminDaycareSlots() {
     const { user } = useAuth();
     const { fetchSlots, fetchAvailableSlotsByDate, generateSlots, updateSlot, deleteSlot } = useDaycareSlots();
-    const fetchSlotsByDay = fetchAvailableSlotsByDate;
 
 
-    const [slots, setSlots] = useState<DaycareSlot[]>([]);
+    const [slots, setSlots] = useState([] as Array<DaycareSlot>);
     const [dailySlots, setDailySlots] = useState<DaycareSlot[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [selectedSlot, setSelectedSlot] = useState<DaycareSlot | null>(null);
+    const [selectedSlot, setSelectedSlot] = useState<DaycareSlot | undefined>(undefined);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
 
@@ -25,12 +24,12 @@ export function AdminDaycareSlots() {
 
 
     const openModal = (slot?: DaycareSlot) => {
-        setSelectedSlot(slot || null);
+        setSelectedSlot(slot || undefined);
         setIsModalOpen(true);
     };
 
     const closeModal = () => {
-        setSelectedSlot(null);
+        setSelectedSlot(undefined);
         setIsModalOpen(false);
     };
 
@@ -64,16 +63,10 @@ export function AdminDaycareSlots() {
         }
     }, [user]);
 
-    const slotsToShow: DaycareSlot[] = Array.isArray(selectedDate ? dailySlots : slots)
-        ? (selectedDate ? dailySlots : slots)
-        : [];
+    const slotsToShow = selectedDate ? (dailySlots || []) : (slots || []);
 
 
-    useEffect(() => {
-        setDailySlots([]);
-        setSelectedDate(undefined);
-    }, [currentMonth]);
-
+    console.log("SLOTS EN ADMINDAYCARE", slotsToShow);
 
     const bookedDays = useMemo(() => {
         return slots
@@ -86,7 +79,7 @@ export function AdminDaycareSlots() {
     }, [slots, currentMonth]);
 
     // Crear slot
-    const handleCreateSlot = async (data: Partial<DaycareSlot> & { openHour?: number; closeHour?: number }) => {
+    const handleCreateSlot = async (data: Partial<DaycareSlot> & { openHour?: string; closeHour?: string }) => {
         console.log("🟢 DATA EN HANDLECREATESLOT:", data);
 
         if (!data.date || data.openHour === undefined || data.closeHour === undefined || !data.capacity) {
@@ -225,7 +218,9 @@ export function AdminDaycareSlots() {
                         selectedDate={selectedDate}
                         onSelectDate={async (date) => {
                             setSelectedDate(date);
-                            const data = await fetchSlotsByDay(date);
+                            console.log("DATE", date);
+                            const data = await fetchAvailableSlotsByDate(date);
+                            console.log("Data desde slots", data);
                             setDailySlots(data || []);
                         }}
                     />

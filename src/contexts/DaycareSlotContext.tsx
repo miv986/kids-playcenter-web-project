@@ -4,20 +4,20 @@ import { DaycareSlot } from "../types/auth";
 
 interface DaycareSlotContextType {
     fetchSlots: () => Promise<DaycareSlot[]>;
-    generateSlots: (params: { openHour: number; closeHour: number; capacity: number }) => Promise<void>;
+    generateSlots: (params: { openHour: string; closeHour: string; capacity: number }) => Promise<void>;
     updateSlot: (id: number, data: Partial<DaycareSlot>) => Promise<void>;
     updateMultipleSlots: (params: {
         date: string;
-        startHour: number;
-        endHour: number;
+        startHour: string;
+        endHour: string;
         capacity?: number;
         status?: string;
     }) => Promise<void>;
     deleteSlot: (id: number) => Promise<void>;
     deleteMultipleSlots: (params: {
         date: string;
-        startHour?: number;
-        endHour?: number;
+        startHour?: string;
+        endHour?: string;
     }) => Promise<void>;
     fetchAvailableSlotsByDate: (date: Date) => Promise<DaycareSlot[]>;
 }
@@ -41,8 +41,8 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
         closeHour,
         capacity,
     }: {
-        openHour: number;
-        closeHour: number;
+        openHour: string;
+        closeHour: string;
         capacity: number;
     }) => {
         try {
@@ -70,8 +70,8 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
     // 🧩 Actualizar varios slots a la vez (por fecha y rango horario)
     const updateMultipleSlots = async (params: {
         date: string;
-        startHour: number;
-        endHour: number;
+        startHour: string;
+        endHour: string;
         capacity?: number;
         status?: string;
     }) => {
@@ -96,8 +96,8 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
     // 🗑️ Eliminar varios slots (por fecha o rango)
     const deleteMultipleSlots = async (params: {
         date: string;
-        startHour?: number;
-        endHour?: number;
+        startHour?: string;
+        endHour?: string;
     }) => {
         try {
             await http.delete("/api/daycareSlots/daycare-slots", { data: params });
@@ -113,12 +113,10 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
         const month = (date.getMonth() + 1).toString().padStart(2, "0");
         const day = date.getDate().toString().padStart(2, "0");
         const formattedDate = `${year}-${month}-${day}`;
-        console.log("FETCH SLOTS BY DAY", formattedDate);
-
         try {
-            const data = await http.get(`/api/daycareSlots/available/date/${formattedDate}`);
-            console.log("DATA BY DATE", data);
-            return data as DaycareSlot[] || [];
+            const res = await http.get(`/api/daycareSlots/available/date/${formattedDate}`);
+            console.log("DATA BY DATE", res.availableSlots);
+            return res.availableSlots || [];
         } catch (err) {
             console.error("❌ Error obteniendo slots disponibles:", err);
             return [];

@@ -9,8 +9,8 @@ export interface GenericSlot {
   startTime?: string;          // ISO
   endTime?: string;            // ISO
   hour?: number;               // para Daycare
-  openHour?: number;           // opcional si generas rangos
-  closeHour?: number;          // opcional si generas rangos
+  openHour?: string;           // opcional si generas rangos
+  closeHour?: string;          // opcional si generas rangos
   capacity?: number;           // solo daycare
   availableSpots?: number;     // solo daycare
   status?: "OPEN" | "CLOSED" | string; // admitir string por compatibilidad
@@ -40,32 +40,54 @@ export function SlotModal<T extends GenericSlot>({
     endTime: new Date().toISOString(),
     status: "OPEN",
     capacity: 0,
-    openHour: 0,
-    closeHour: 0,
+    openHour: new Date().toISOString(),
+    closeHour: new Date().toISOString(),
   } as Partial<T>
   );
 
   useEffect(() => {
     if (slot) {
-      setFormData({
-        ...slot,
-        capacity: slot.capacity ?? 0
-      }
+      // Detectamos qué tipo de slot tenemos
+      const isDaycare = "openHour" in slot || "capacity" in slot;
 
-      );
+      if (isDaycare) {
+        // 🧩 DaycareSlot
+        setFormData({
+          ...slot,
+          date: slot.date,
+          openHour: slot.openHour,
+          closeHour: slot.closeHour,
+          capacity: slot.capacity ?? 0,
+          status: slot.status ?? "OPEN",
+        } as any);
+      } else {
+        // 🎉 BirthdaySlot
+        setFormData({
+          ...slot,
+          date: slot.date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          status: slot.status ?? "OPEN",
+        } as any);
+      }
     } else {
+      // 🆕 Si no hay slot (modo crear nuevo)
       setFormData({
         date: new Date().toISOString(),
         startTime: new Date().toISOString(),
         endTime: new Date().toISOString(),
-        status: "OPEN",
+        openHour: new Date().toISOString(),
+        closeHour: new Date().toISOString(),
         capacity: 0,
-      } as any
-      );
+        status: "OPEN",
+      } as any);
     }
   }, [slot]);
 
+
   if (!isOpen) return null;
+
+  console.log(slot);
 
   const handleChange = (field: keyof T, value: any) => {
     if (field === "date") {
@@ -80,7 +102,7 @@ export function SlotModal<T extends GenericSlot>({
           ? new Date(`${newDate}T${format(new Date(prev.endTime), "HH:mm")}`).toISOString()
           : new Date(newDate).toISOString(),
       }));
-    } else if (field === "startTime" || field === "endTime") {
+    } else if (field === "startTime" || field === "endTime" || field === "openHour" || field === "closeHour") {
       const [hours, minutes] = value.split(":").map(Number);
       setFormData((prev) => ({
         ...prev,
@@ -104,17 +126,30 @@ export function SlotModal<T extends GenericSlot>({
         return;
       }
 
-      const openHour = new Date(formData.startTime).getHours();
-      const closeHour = new Date(formData.endTime).getHours();
+      const openHourStr = formData.openHour
+        ? format(new Date(formData.openHour), "HH:mm")
+        : "00:00";
+      const closeHourStr = formData.closeHour
+        ? format(new Date(formData.closeHour), "HH:mm")
+        : "00:00";
 
-      if (closeHour <= openHour) {
+      // Validar que la hora de cierre sea posterior
+      const [openH, openM] = openHourStr.split(":").map(Number);
+      const [closeH, closeM] = closeHourStr.split(":").map(Number);
+
+      const openDate = new Date();
+      openDate.setHours(openH, openM, 0, 0);
+      const closeDate = new Date();
+      closeDate.setHours(closeH, closeM, 0, 0);
+
+      if (closeDate <= openDate) {
         alert("La hora de fin debe ser posterior a la de inicio");
         return;
       }
 
-      // Asignar los valores que espera el backend
-      formData.openHour = openHour as any;
-      formData.closeHour = closeHour as any;
+      // ✅ Asignar los valores que espera el backend
+      formData.openHour = openHourStr as any;
+      formData.closeHour = closeHourStr as any;
       formData.capacity = formData.capacity ?? 20;
 
     } else {
@@ -151,42 +186,52 @@ export function SlotModal<T extends GenericSlot>({
             <label className="font-medium">Fecha:</label>
             <input
               type="date"
-              value={format(new Date(formData.date!), "yyyy-MM-dd")}
+              value={format(new Date(formData.date ?? new Date()), "yyyy-MM-dd")}
               onChange={(e) => handleChange("date" as keyof T, e.target.value)}
-              className="border rounded px-2 py-1 w-full"
-            />
+              className="border rounded px-2 py-1 w-full" />
           </div>
+          {!isDaycare ? (
+            <>
+              <div>
+                <label className="font-medium">Hora inicio:</label>
+                <input
+                  type="time"
+                  value={formData.startTime ? format(new Date(formData.startTime ?? new Date()), "HH:mm") : ""}
+                  onChange={(e) => handleChange("startTime" as keyof T, e.target.value)}
+                  className="border rounded px-2 py-1 w-full" />
+              </div><div>
+                <label className="font-medium">Hora fin:</label>
+                <input
+                  type="time"
+                  value={formData.endTime ? format(new Date(formData.endTime ?? new Date()), "HH:mm") : ""}
+                  onChange={(e) => handleChange("endTime" as keyof T, e.target.value)}
+                  className="border rounded px-2 py-1 w-full" />
+              </div>
 
-          <div>
-            <label className="font-medium">Hora inicio:</label>
-            <input
-              type="time"
-              value={formData.startTime ? format(new Date(formData.startTime), "HH:mm") : ""}
-              onChange={(e) => handleChange("startTime" as keyof T, e.target.value)}
-              className="border rounded px-2 py-1 w-full"
-            />
-          </div>
-
-          <div>
-            <label className="font-medium">Hora fin:</label>
-            <input
-              type="time"
-              value={formData.endTime ? format(new Date(formData.endTime), "HH:mm") : ""}
-              onChange={(e) => handleChange("endTime" as keyof T, e.target.value)}
-              className="border rounded px-2 py-1 w-full"
-            />
-          </div>
-
-          {isDaycare && (
-            <div>
-              <label className="font-medium">Capacidad:</label>
+            </>
+          ) : (
+            <><div>
+              <label className="font-medium">Hora inicio:</label>
               <input
-                type="number"
-                value={formData.capacity || 0}
-                onChange={(e) => handleChange("capacity" as keyof T, Number(e.target.value))}
-                className="border rounded px-2 py-1 w-full"
-              />
-            </div>
+                type="time"
+                value={formData.openHour ? format(new Date(formData.openHour ?? new Date()), "HH:mm") : ""}
+                onChange={(e) => handleChange("openHour" as keyof T, e.target.value)}
+                className="border rounded px-2 py-1 w-full" />
+            </div><div>
+                <label className="font-medium">Hora fin:</label>
+                <input
+                  type="time"
+                  value={formData.closeHour ? format(new Date(formData.closeHour ?? new Date()), "HH:mm") : ""}
+                  onChange={(e) => handleChange("closeHour" as keyof T, e.target.value)}
+                  className="border rounded px-2 py-1 w-full" />
+              </div><div>
+                <label className="font-medium">Capacidad:</label>
+                <input
+                  type="number"
+                  value={formData.capacity || 0}
+                  onChange={(e) => handleChange("capacity" as keyof T, Number(e.target.value))}
+                  className="border rounded px-2 py-1 w-full" />
+              </div></>
           )}
 
           <div>
