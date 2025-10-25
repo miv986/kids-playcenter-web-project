@@ -31,7 +31,6 @@ export function CalendarComponent({
   };
 
   useEffect(() => {
-    console.log("mira mi huevo " + selectedDate)
   }, [selectedDate])
 
   const months = [
@@ -146,8 +145,9 @@ export function CalendarComponent({
         <div className="flex items-center gap-1">
           <span className="w-3 h-3 bg-red-100 rounded"></span> Ocupado
         </div>
-        <div className="flex items-center gap-1">
-          <span className="w-3 h-3 bg-gray-100 rounded"></span> No disponible
+        <div className="flex items-center gap-2">
+          <span className="w-3 h-3 bg-gray-100 rounded"></span> 
+          <span className="text-gray-600">No disponible</span>
         </div>
       </div>
     </div>

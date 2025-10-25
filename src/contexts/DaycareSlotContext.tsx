@@ -4,8 +4,8 @@ import { DaycareSlot } from "../types/auth";
 
 interface DaycareSlotContextType {
     fetchSlots: () => Promise<DaycareSlot[]>;
-    generateSlots: (params: { openHour: string; closeHour: string; capacity: number }) => Promise<void>;
-    updateSlot: (id: number, data: Partial<DaycareSlot>) => Promise<void>;
+    generateSlots: (params: { startDate: string; openHour: string; closeHour: string; capacity: number }) => Promise<void>;
+    updateSlot: (id: number, data: Partial<DaycareSlot>) => Promise<DaycareSlot | undefined>;
     updateMultipleSlots: (params: {
         date: string;
         startHour: string;
@@ -37,16 +37,19 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
 
     // 🟢 Generar slots automáticamente (admin)
     const generateSlots = async ({
+        startDate,
         openHour,
         closeHour,
         capacity,
     }: {
+        startDate: string;
         openHour: string;
         closeHour: string;
         capacity: number;
     }) => {
         try {
             await http.post("/api/daycareSlots/generate-daycare-slots", {
+                startDate,
                 openHour,
                 closeHour,
                 capacity,
@@ -60,7 +63,8 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
     // ✏️ Actualizar un slot individual
     const updateSlot = async (id: number, data: Partial<DaycareSlot>) => {
         try {
-            await http.put(`/api/daycareSlots/daycare-slots/${id}`, data);
+            const response = await http.put(`/api/daycareSlots/daycare-slots/${id}`, data);
+            return response.data?.slot; // Devolver el slot actualizado
         } catch (err) {
             console.error("❌ Error actualizando slot:", err);
             throw err;
@@ -115,7 +119,6 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
         const formattedDate = `${year}-${month}-${day}`;
         try {
             const res = await http.get(`/api/daycareSlots/available/date/${formattedDate}`);
-            console.log("DATA BY DATE", res.availableSlots);
             return res.availableSlots || [];
         } catch (err) {
             console.error("❌ Error obteniendo slots disponibles:", err);

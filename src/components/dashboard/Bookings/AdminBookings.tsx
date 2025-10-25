@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Users, CheckCircle, XCircle, Trash2, Phone, Clock, Glasses } from 'lucide-react';
+import { Calendar, Users, CheckCircle, XCircle, Trash2, Phone, Clock, Glasses, CalendarDays, Filter, Settings } from 'lucide-react';
 import { useBookings } from '../../../contexts/BookingContext';
 import { BirthdayBooking } from '../../../types/auth';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -19,6 +19,8 @@ export function AdminBookings() {
     const { user } = useAuth();
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [dailyBookings, setDailyBookings] = useState<BirthdayBooking[]>([]);
+    const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+    const [showFilters, setShowFilters] = useState(false);
 
     const [bookedDaysDB, setBookedDaysDB] = useState<number[]>([]);
 
@@ -56,7 +58,6 @@ export function AdminBookings() {
             .map(date => date.getUTCDate());
     }, [bookings, currentMonth]);
 
-    console.log("SELECTED DAY", selectedDate);
 
     const totalDaysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const allDays = Array.from({ length: totalDaysInMonth }, (_, i) => i + 1);
@@ -146,155 +147,239 @@ export function AdminBookings() {
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">Panel de Administración</h1>
+                <h1 className="text-4xl font-bold text-gray-800 mb-2">Panel de Reservas</h1>
                 <p className="text-gray-600">Gestiona todas las reservas de cumpleaños</p>
             </div>
+
+            {/* Controles superiores */}
+            <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setViewMode("calendar")}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
+                            viewMode === "calendar" 
+                                ? "bg-blue-500 text-white" 
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        }`}
+                    >
+                        <CalendarDays className="w-4 h-4" />
+                        Vista Calendario
+                    </button>
+                    <button
+                        onClick={() => setViewMode("list")}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
+                            viewMode === "list" 
+                                ? "bg-blue-500 text-white" 
+                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                        }`}
+                    >
+                        <Calendar className="w-4 h-4" />
+                        Vista Lista
+                    </button>
+                </div>
+
+                <div className="flex gap-2">
+                    <button
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-xl hover:bg-purple-600"
+                    >
+                        <Filter className="w-4 h-4" />
+                        Filtros
+                    </button>
+                </div>
+            </div>
+
+            {/* Panel de filtros */}
+            {showFilters && (
+                <div className="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-4">
+                    <h3 className="text-lg font-semibold text-purple-800 mb-3">Filtrar por Estado</h3>
+                    <div className="flex flex-wrap gap-4">
+                        <button
+                            onClick={() => setFilter('all')}
+                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'all'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                        >
+                            Todas ({stats.total})
+                        </button>
+                        <button
+                            onClick={() => setFilter('PENDING')}
+                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'PENDING'
+                                ? 'bg-yellow-500 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                        >
+                            Pendientes ({stats.PENDING})
+                        </button>
+                        <button
+                            onClick={() => setFilter('CONFIRMED')}
+                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'CONFIRMED'
+                                ? 'bg-green-500 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                        >
+                            Confirmadas ({stats.CONFIRMED})
+                        </button>
+                        <button
+                            onClick={() => setFilter('CANCELLED')}
+                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'CANCELLED'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                }`}
+                        >
+                            Canceladas ({stats.CANCELLED})
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 items-start">
+                {/* Panel principal */}
                 <div className="min-h-auto bg-gray-50 py-8">
 
 
-                    {/* Stats Cards */}
-                    <div className="grid md:grid-cols-4 gap-6 mb-8">
-                        <div className="bg-white p-6 rounded-2xl shadow-lg">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                                    <Calendar className="w-6 h-6 text-blue-600" />
+                    {viewMode === "calendar" ? (
+                        <div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-2xl font-semibold">Vista Calendario</h2>
+                                {selectedDate && (
+                                    <button
+                                        onClick={() => {
+                                            setSelectedDate(undefined);
+                                            setDailyBookings([]);
+                                        }}
+                                        className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
+                                    >
+                                        Ver todas las reservas
+                                    </button>
+                                )}
+                            </div>
+
+                            {selectedDate ? (
+                                <div className="bg-white rounded-xl shadow-lg p-6">
+                                    <h3 className="text-xl font-semibold mb-4">
+                                        Reservas del {selectedDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                    </h3>
+                                    {dailyBookings.length === 0 ? (
+                                        <div className="text-center py-8">
+                                            <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                            <p className="text-gray-500">No hay reservas para este día</p>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            {dailyBookings.map((booking) => (
+                                                <BookingCard key={booking.id} booking={booking} openModal={openModal} />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                <div>
-                                    <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
-                                    <div className="text-gray-600">Total Reservas</div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                                        Selecciona un día del calendario
+                                    </h3>
+                                    <p className="text-gray-500">
+                                        Haz clic en cualquier día para ver sus reservas
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-2xl font-semibold">Todas las Reservas</h2>
+                                <div className="text-sm text-gray-500">
+                                    {bookingsToShow.length} reservas {filter !== 'all' ? 'filtradas' : 'totales'}
                                 </div>
                             </div>
-                        </div>
 
-                        <div className="bg-white p-6 rounded-2xl shadow-lg">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                                    <Clock className="w-6 h-6 text-yellow-600" />
+                            {/* Stats Cards */}
+                            <div className="grid md:grid-cols-4 gap-6 mb-8">
+                                <div className="bg-white p-6 rounded-2xl shadow-lg">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                            <Calendar className="w-6 h-6 text-blue-600" />
+                                        </div>
+                                        <div>
+                                            <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
+                                            <div className="text-gray-600">Total Reservas</div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="text-2xl font-bold text-gray-800">{stats.PENDING}</div>
-                                    <div className="text-gray-600">Pendientes</div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div className="bg-white p-6 rounded-2xl shadow-lg">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                                    <CheckCircle className="w-6 h-6 text-green-600" />
+                                <div className="bg-white p-6 rounded-2xl shadow-lg">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
+                                            <Clock className="w-6 h-6 text-yellow-600" />
+                                        </div>
+                                        <div>
+                                            <div className="text-2xl font-bold text-gray-800">{stats.PENDING}</div>
+                                            <div className="text-gray-600">Pendientes</div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="text-2xl font-bold text-gray-800">{stats.CONFIRMED}</div>
-                                    <div className="text-gray-600">Confirmadas</div>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div className="bg-white p-6 rounded-2xl shadow-lg">
-                            <div className="flex items-center space-x-3">
-                                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                                    <XCircle className="w-6 h-6 text-red-600" />
+                                <div className="bg-white p-6 rounded-2xl shadow-lg">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                                            <CheckCircle className="w-6 h-6 text-green-600" />
+                                        </div>
+                                        <div>
+                                            <div className="text-2xl font-bold text-gray-800">{stats.CONFIRMED}</div>
+                                            <div className="text-gray-600">Confirmadas</div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <div className="text-2xl font-bold text-gray-800">{stats.CANCELLED}</div>
-                                    <div className="text-gray-600">Canceladas</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Filters */}
-                    {!selectedDate && (
-                        <div className="bg-white p-6 rounded-2xl shadow-lg mb-8">
-                            <div className="flex flex-wrap gap-4">
-                                <button
-                                    onClick={() => setFilter('all')}
-                                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'all'
-                                        ? 'bg-blue-500 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                >
-                                    Todas ({stats.total})
-                                </button>
-                                <button
-                                    onClick={() => setFilter('PENDING')}
-                                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'PENDING'
-                                        ? 'bg-yellow-500 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                >
-                                    Pendientes ({stats.PENDING})
-                                </button>
-                                <button
-                                    onClick={() => setFilter('CONFIRMED')}
-                                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'CONFIRMED'
-                                        ? 'bg-green-500 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                >
-                                    Confirmadas ({stats.CONFIRMED})
-                                </button>
-                                <button
-                                    onClick={() => setFilter('CANCELLED')}
-                                    className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'CANCELLED'
-                                        ? 'bg-red-500 text-white'
-                                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                >
-                                    Canceladas ({stats.CANCELLED})
-                                </button>
+                                <div className="bg-white p-6 rounded-2xl shadow-lg">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                                            <XCircle className="w-6 h-6 text-red-600" />
+                                        </div>
+                                        <div>
+                                            <div className="text-2xl font-bold text-gray-800">{stats.CANCELLED}</div>
+                                            <div className="text-gray-600">Canceladas</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}
-                    {/* Bookings List */}
-                    <div className="space-y-6">
-                        {/* Botón para mostrar todas las reservas */}
-                        {selectedDate && (
-                            <div className="mb-4">
-                                <button
-                                    onClick={() => {
-                                        setSelectedDate(undefined);
-                                        setDailyBookings([]); // limpio las de ese día
-                                    }}
-                                    className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
-                                >
-                                    Mostrar todas
-                                </button>
-                            </div>
-                        )}
+                    {/* Lista de reservas para vista lista */}
+                    {viewMode === "list" && (
+                        <div className="space-y-6">
+                            {bookingsToShow.length === 0 ? (
+                                <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
+                                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                                        No hay reservas
+                                    </h3>
+                                    <p className="text-gray-500">
+                                        {filter !== 'all' 
+                                            ? "No se encontraron reservas con el filtro seleccionado"
+                                            : "No hay reservas registradas"}
+                                    </p>
+                                </div>
+                            ) : (
+                                bookingsToShow.map((booking) => (
+                                    <BookingCard key={booking.id} booking={booking} openModal={openModal} />
+                                ))
+                            )}
+                        </div>
+                    )}
 
-                        {/* Lista de reservas */}
-                        {bookingsToShow.length === 0 ? (
-                            <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
-                                <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                    {selectedDate ? "No hay reservas para este día" : "No hay reservas"}
-                                </h3>
-                                <p className="text-gray-500">
-                                    {selectedDate
-                                        ? "Selecciona otro día o vuelve a mostrar todas las reservas"
-                                        : "No se encontraron reservas con el filtro seleccionado"}
-                                </p>
-                            </div>
-                        ) : (
-                            bookingsToShow.map((booking) => (
-                                <BookingCard key={booking.id} booking={booking} openModal={openModal} />
-                            ))
-                        )}
-
-                        <BirthdayBookingModal
-                            isOpen={isModalOpen}
-                            onClose={closeModal}
-                            booking={selectedBooking}
-                            updateBooking={handleUpdateBooking}
-                            updateBookingStatus={handleUpdateBookingStatus}
-                            deleteBooking={handleDeleteBooking}
-
-                        />
-                    </div>
+                    <BirthdayBookingModal
+                        isOpen={isModalOpen}
+                        onClose={closeModal}
+                        booking={selectedBooking}
+                        updateBooking={handleUpdateBooking}
+                        updateBookingStatus={handleUpdateBookingStatus}
+                        deleteBooking={handleDeleteBooking}
+                    />
                 </div>
-                {/* Columna Calendario */}
+                {/* Calendario mejorado */}
                 <div className="relative">
                     <CalendarComponent
                         availableDaysDB={availableDaysDB}
@@ -307,8 +392,30 @@ export function AdminBookings() {
                         bookedDaysDB={bookedDays}
                         currentMonth={currentMonth}
                         setCurrentMonth={setCurrentMonth}
-
-                    ></CalendarComponent>
+                    />
+                    
+                    {/* Estadísticas del mes */}
+                    <div className="mt-4 bg-white rounded-xl shadow-lg p-4">
+                        <h4 className="font-semibold text-gray-800 mb-3">Estadísticas del Mes</h4>
+                        <div className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">Días con reservas:</span>
+                                <span className="font-medium">{bookedDays.length}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">Total reservas:</span>
+                                <span className="font-medium">{bookings.length}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">Pendientes:</span>
+                                <span className="font-medium text-yellow-600">{stats.PENDING}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span className="text-gray-600">Confirmadas:</span>
+                                <span className="font-medium text-green-600">{stats.CONFIRMED}</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

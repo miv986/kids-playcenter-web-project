@@ -39,7 +39,6 @@ export function CalendarSection() {
       currentMonth.getMonth(),
       day
     );
-    console.log("SELECTED DAY", date);
     setSelectedDay(date);
   };
 

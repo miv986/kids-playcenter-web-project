@@ -40,8 +40,8 @@ export function SlotModal<T extends GenericSlot>({
     endTime: new Date().toISOString(),
     status: "OPEN",
     capacity: 0,
-    openHour: new Date().toISOString(),
-    closeHour: new Date().toISOString(),
+    openHour: "00:00",
+    closeHour: "01:00",
   } as Partial<T>
   );
 
@@ -55,8 +55,8 @@ export function SlotModal<T extends GenericSlot>({
         setFormData({
           ...slot,
           date: slot.date,
-          openHour: slot.openHour,
-          closeHour: slot.closeHour,
+          openHour: slot.openHour || "00:00",
+          closeHour: slot.closeHour || "01:00",
           capacity: slot.capacity ?? 0,
           status: slot.status ?? "OPEN",
         } as any);
@@ -76,8 +76,8 @@ export function SlotModal<T extends GenericSlot>({
         date: new Date().toISOString(),
         startTime: new Date().toISOString(),
         endTime: new Date().toISOString(),
-        openHour: new Date().toISOString(),
-        closeHour: new Date().toISOString(),
+        openHour: "00:00",
+        closeHour: "01:00",
         capacity: 0,
         status: "OPEN",
       } as any);
@@ -102,18 +102,24 @@ export function SlotModal<T extends GenericSlot>({
           ? new Date(`${newDate}T${format(new Date(prev.endTime), "HH:mm")}`).toISOString()
           : new Date(newDate).toISOString(),
       }));
-    } else if (field === "startTime" || field === "endTime" || field === "openHour" || field === "closeHour") {
+    } else if (field === "startTime" || field === "endTime") {
       const [hours, minutes] = value.split(":").map(Number);
       setFormData((prev) => ({
         ...prev,
         [field]: new Date(new Date(prev.date!).setHours(hours, minutes)).toISOString(),
+      }));
+    } else if (field === "openHour" || field === "closeHour") {
+      // Para daycare slots, mantener como string "HH:mm"
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
       }));
     } else {
       setFormData((prev) => ({ ...prev, [field]: value }));
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.date) {
       alert("La fecha es obligatoria");
       return;
@@ -121,35 +127,24 @@ export function SlotModal<T extends GenericSlot>({
 
     // Validación específica para daycare o cumpleaños
     if (isDaycare) {
-      if (!formData.startTime || !formData.endTime || !formData.capacity) {
+      if (!formData.openHour || !formData.closeHour || !formData.capacity) {
         alert("Debes rellenar fecha, hora de inicio, hora de fin y capacidad");
         return;
       }
 
-      const openHourStr = formData.openHour
-        ? format(new Date(formData.openHour), "HH:mm")
-        : "00:00";
-      const closeHourStr = formData.closeHour
-        ? format(new Date(formData.closeHour), "HH:mm")
-        : "00:00";
-
       // Validar que la hora de cierre sea posterior
-      const [openH, openM] = openHourStr.split(":").map(Number);
-      const [closeH, closeM] = closeHourStr.split(":").map(Number);
+      const [openH, openM] = formData.openHour.split(":").map(Number);
+      const [closeH, closeM] = formData.closeHour.split(":").map(Number);
 
-      const openDate = new Date();
-      openDate.setHours(openH, openM, 0, 0);
-      const closeDate = new Date();
-      closeDate.setHours(closeH, closeM, 0, 0);
+      const openMinutes = openH * 60 + openM;
+      const closeMinutes = closeH * 60 + closeM;
 
-      if (closeDate <= openDate) {
+      if (closeMinutes <= openMinutes) {
         alert("La hora de fin debe ser posterior a la de inicio");
         return;
       }
 
-      // ✅ Asignar los valores que espera el backend
-      formData.openHour = openHourStr as any;
-      formData.closeHour = closeHourStr as any;
+      // ✅ Los valores ya están en formato correcto
       formData.capacity = formData.capacity ?? 20;
 
     } else {
@@ -165,14 +160,20 @@ export function SlotModal<T extends GenericSlot>({
       }
     }
 
-    // Guardar o actualizar
-    if (slot?.id) {
-      updateSlot(slot.id, formData);
-    } else {
-      createSlot(formData);
-    }
+    try {
+      // Guardar o actualizar
+      if (slot?.id) {
+        const updatedSlot = await updateSlot(slot.id, formData);
+        console.log("✅ Slot actualizado en modal:", updatedSlot);
+      } else {
+        await createSlot(formData);
+      }
 
-    onClose();
+      onClose();
+    } catch (error) {
+      console.error("Error guardando slot:", error);
+      alert("Error al guardar el slot");
+    }
   };
 
 
@@ -210,18 +211,18 @@ export function SlotModal<T extends GenericSlot>({
 
             </>
           ) : (
-            <><div>
+            <>            <div>
               <label className="font-medium">Hora inicio:</label>
               <input
                 type="time"
-                value={formData.openHour ? format(new Date(formData.openHour ?? new Date()), "HH:mm") : ""}
+                value={formData.openHour || ""}
                 onChange={(e) => handleChange("openHour" as keyof T, e.target.value)}
                 className="border rounded px-2 py-1 w-full" />
             </div><div>
                 <label className="font-medium">Hora fin:</label>
                 <input
                   type="time"
-                  value={formData.closeHour ? format(new Date(formData.closeHour ?? new Date()), "HH:mm") : ""}
+                  value={formData.closeHour || ""}
                   onChange={(e) => handleChange("closeHour" as keyof T, e.target.value)}
                   className="border rounded px-2 py-1 w-full" />
               </div><div>
