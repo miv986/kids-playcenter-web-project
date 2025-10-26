@@ -17,7 +17,7 @@ export function AdminDaycareSlots() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedSlot, setSelectedSlot] = useState<DaycareSlot | undefined>(undefined);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+    const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
     const [showBulkActions, setShowBulkActions] = useState(false);
     const [selectedSlots, setSelectedSlots] = useState<Set<number>>(new Set());
     const [dateFilter, setDateFilter] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
@@ -560,7 +560,7 @@ export function AdminDaycareSlots() {
                                                         {slot.openHour} - {slot.closeHour}
                                                     </p>
                                                     <p className="text-sm text-gray-500">
-                                                        {format(new Date(slot.date), "EEEE, dd/MM/yyyy")}
+                                                        {new Date(slot.date).toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "2-digit", day: "2-digit" })}
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2">

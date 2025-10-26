@@ -7,6 +7,7 @@ import TabComponent from '../TabComponent/TabComponent';
 import { AdminBookings } from '../Bookings/AdminBookings';
 import { AdminBirthdaySlots } from './AdminBirthdaySlots';
 import { AdminDaycareSlots } from './AdminDaycareSlots';
+import { AdminDaycareBookings } from './AdminDaycareBookings';
 
 export function AdminDashboard() {
   const { user } = useAuth();
@@ -25,6 +26,8 @@ export function AdminDashboard() {
     { id: "birthdayBookings", label: "Reservas Cumpleaños", content: <AdminBookings /> },
     { id: "birthdaySlots", label: "Slots Cumpleaños", content: <AdminBirthdaySlots /> },
     { id: "daycareSlots", label: "Slots Ludoteca", content: <AdminDaycareSlots /> },
+    { id: "daycareBookings", label: "Reservas Ludoteca", content: <AdminDaycareBookings /> },
+
   ];
 
   return (

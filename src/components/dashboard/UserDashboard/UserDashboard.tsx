@@ -4,8 +4,8 @@ import { useBookings } from '../../../contexts/BookingContext';
 import { BirthdayBooking, Child } from '../../../types/auth';
 import { useAuth } from '../../../contexts/AuthContext';
 import TabComponent from '../TabComponent/TabComponent';
-import { UserBookings } from '../Bookings/UserBookings';
 import { UserProfile } from '../Bookings/UserProfile';
+import { UserDaycareBookings } from '../Bookings/UserDaycareBookings';
 import { useChildren } from '../../../contexts/ChildrenContext';
 
 export function UserDashboard() {
@@ -25,13 +25,13 @@ export function UserDashboard() {
 
 
   const tabs = [
-    { id: "bookings", label: "Reservas", content: <UserBookings /> },
+    { id: "daycareBookings", label: "Mis Reservas", content: <UserDaycareBookings /> },
     { id: "userProfile", label: "Perfil", content: <UserProfile /> },
   ];
 
   return (
     <div>
-      <TabComponent tabs={tabs} defaultTab="bookings"></TabComponent>
+      <TabComponent tabs={tabs} defaultTab="daycareBookings"></TabComponent>
     </div>
   );
 }

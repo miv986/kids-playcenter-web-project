@@ -7,6 +7,7 @@ import { AuthProvider } from "../contexts/AuthContext";
 import { ChildrenProvider } from "../contexts/ChildrenContext";
 import { SlotProvider } from "../contexts/SlotContext";
 import { DaycareSlotProvider } from "../contexts/DaycareSlotContext";
+import { DaycareBookingProvider } from "../contexts/DaycareBookingContext";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
 
@@ -16,13 +17,16 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         <AuthProvider>
           <ChildrenProvider>
             <BookingProvider>
-              {/* Birthday slots context */}
-              <SlotProvider>
-                {/* Daycare slots context */}
-                <DaycareSlotProvider>
-                  {children}
-                </DaycareSlotProvider>
-              </SlotProvider>
+              {/* Daycare bookings context */}
+              <DaycareBookingProvider>
+                {/* Birthday slots context */}
+                <SlotProvider>
+                  {/* Daycare slots context */}
+                  <DaycareSlotProvider>
+                    {children}
+                  </DaycareSlotProvider>
+                </SlotProvider>
+              </DaycareBookingProvider>
             </BookingProvider>
           </ChildrenProvider>
         </AuthProvider>

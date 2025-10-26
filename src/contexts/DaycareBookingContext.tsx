@@ -2,9 +2,19 @@ import React, { createContext, useContext } from "react";
 import { useHttp } from "./HttpContext";
 import { DaycareBooking } from "../types/auth";
 
+interface CreateDaycareBookingData {
+    userId: number;
+    slotId: number;
+    childrenIds: number[]; // IDs de los hijos seleccionados
+    startTime: string;
+    endTime: string;
+    comments?: string;
+}
+
 interface DaycareBookingContextType {
-    addBooking: (bookingData: Omit<DaycareBooking, "id" | "status">) => Promise<DaycareBooking>;
-    updateBooking: (id: number, bookingData: Partial<DaycareBooking>) => Promise<void>;
+    addBooking: (bookingData: CreateDaycareBookingData) => Promise<DaycareBooking>;
+    updateBooking: (id: number, bookingData: Partial<DaycareBooking> & { childrenIds?: number[] }) => Promise<void>;
+    cancelBooking: (id: number) => Promise<void>;
     deleteBooking: (id: number) => Promise<void>;
     fetchBookings: () => Promise<DaycareBooking[]>;      // Admin → todas
     fetchMyBookings: () => Promise<DaycareBooking[]>;    // Usuario → solo las suyas
@@ -25,7 +35,7 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
     // 🟢 Obtener todas las reservas (admin)
     const fetchBookings = async () => {
         try {
-            const data = await http.get("/api/daycare-bookings");
+            const data = await http.get("/api/daycareBookings");
             return data as DaycareBooking[];
         } catch (err) {
             console.error("❌ Error cargando todas las reservas de daycare:", err);
@@ -36,7 +46,7 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
     // 🧍 Obtener solo las reservas del usuario actual
     const fetchMyBookings = async () => {
         try {
-            const data = await http.get("/api/daycare-bookings");
+            const data = await http.get("/api/daycareBookings");
             return data as DaycareBooking[];
         } catch (err) {
             console.error("❌ Error cargando reservas del usuario:", err);
@@ -61,10 +71,10 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
     };
 
     // ➕ Crear reserva de daycare
-    const addBooking = async (bookingData: Omit<DaycareBooking, "id" | "status">) => {
+    const addBooking = async (bookingData: CreateDaycareBookingData) => {
         try {
-            const newBooking = await http.post("/api/daycare-bookings", bookingData);
-            return newBooking;
+            const response = await http.post("/api/daycareBookings", bookingData);
+            return response.data || response;
         } catch (err) {
             console.error("❌ Error creando reserva daycare:", err);
             throw err;
@@ -74,17 +84,27 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
     // ✏️ Modificar reserva existente
     const updateBooking = async (id: number, bookingData: Partial<DaycareBooking>) => {
         try {
-            await http.put(`/api/daycare-bookings/${id}`, bookingData);
+            await http.put(`/api/daycareBookings/${id}`, bookingData);
         } catch (err) {
             console.error("❌ Error actualizando reserva daycare:", err);
             throw err;
         }
     };
 
-    // ❌ Eliminar reserva
+    // 🚫 Cancelar reserva (libera plazas, mantiene en BD con status CANCEL)
+    const cancelBooking = async (id: number) => {
+        try {
+            await http.put(`/api/daycareBookings/${id}/cancel`);
+        } catch (err) {
+            console.error("❌ Error cancelando reserva daycare:", err);
+            throw err;
+        }
+    };
+
+    // ❌ Eliminar reserva (solo ADMIN, borrado físico)
     const deleteBooking = async (id: number) => {
         try {
-            await http.delete(`/api/daycare-bookings/deletedDaycareBooking/${id}`);
+            await http.delete(`/api/daycareBookings/deletedDaycareBooking/${id}`);
         } catch (err) {
             console.error("❌ Error eliminando reserva daycare:", err);
             throw err;
@@ -96,6 +116,7 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
             value={{
                 addBooking,
                 updateBooking,
+                cancelBooking,
                 deleteBooking,
                 fetchBookings,
                 fetchMyBookings,
