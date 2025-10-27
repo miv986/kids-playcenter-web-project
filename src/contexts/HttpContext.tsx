@@ -1,11 +1,12 @@
-import React, { createContext, useContext } from 'react';
+"use client";
+import React, { createContext, useContext, useRef, useEffect } from 'react';
 import { useToken } from './TokenContext';
 
 interface HttpContextType {
   get: (url: string) => Promise<any>;
   post: (url: string, data?: any) => Promise<any>;
   put: (url: string, data?: any) => Promise<any>;
-  delete: (url: string) => Promise<any>;
+  delete: (url: string, options?: any) => Promise<any>,
 }
 
 const HttpContext = createContext<HttpContextType | undefined>(undefined);
@@ -26,47 +27,140 @@ interface HttpProviderProps {
 export function HttpProvider({ children }: HttpProviderProps) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   const tokenProvider = useToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(tokenProvider.token ? { Authorization: `Bearer ${tokenProvider.token}` } : {})
+  const isRefreshingRef = useRef(false);
+  const sessionExpiredRef = useRef(false);
+
+  // Resetear el flag cuando se establece un nuevo token
+  useEffect(() => {
+    if (tokenProvider.token) {
+      sessionExpiredRef.current = false;
+    }
+  }, [tokenProvider.token]);
+
+  const refreshToken = async (): Promise<boolean> => {
+    if (isRefreshingRef.current) return false;
+    if (sessionExpiredRef.current) return false;
+    
+    isRefreshingRef.current = true;
+    
+    try {
+      const response = await fetch(`${baseUrl}/api/auth/refresh`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        tokenProvider.setToken(data.accessToken);
+        isRefreshingRef.current = false;
+        return true;
+      }
+      
+      // Si falla el refresh, marcar como expirado
+      sessionExpiredRef.current = true;
+      tokenProvider.setToken(null);
+      window.dispatchEvent(new CustomEvent('sessionExpired'));
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      sessionExpiredRef.current = true;
+      tokenProvider.setToken(null);
+    }
+    
+    isRefreshingRef.current = false;
+    return false;
+  };
+
+  const makeRequest = async (
+    url: string,
+    options: RequestInit = {}
+  ): Promise<any> => {
+    // Si hay token, resetear el flag de sesión expirada
+    if (tokenProvider.token) {
+      sessionExpiredRef.current = false;
+    }
+    
+    // Si la sesión expiró, no hacer más peticiones (excepto login/register)
+    if (sessionExpiredRef.current && !tokenProvider.token && !url.includes('/auth/login') && !url.includes('/auth/register')) {
+      throw new Error('Session expired');
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(tokenProvider.token ? { Authorization: `Bearer ${tokenProvider.token}` } : {}),
+      ...options.headers
+    };
+
+    const response = await fetch(`${baseUrl}${url}`, {
+      ...options,
+      headers,
+      credentials: 'include',
+    });
+
+    if (response.status === 401 && tokenProvider.token) {
+      const refreshed = await refreshToken();
+      if (refreshed && tokenProvider.token) {
+        sessionExpiredRef.current = false; // Reset si el refresh fue exitoso
+        const newHeaders = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${tokenProvider.token}`,
+          ...options.headers
+        };
+        const retryResponse = await fetch(`${baseUrl}${url}`, {
+          ...options,
+          headers: newHeaders,
+          credentials: 'include',
+        });
+        return handleResponse(retryResponse);
+      } else {
+        // Si el refresh falló, marcar como expirado
+        sessionExpiredRef.current = true;
+      }
+    }
+
+    // Si recibimos 401 y no hay token, también marcar como expirado (solo si no es login/register)
+    if (response.status === 401 && !tokenProvider.token && !url.includes('/auth/login') && !url.includes('/auth/register')) {
+      sessionExpiredRef.current = true;
+    }
+
+    return handleResponse(response);
   };
 
   const handleResponse = async <T = any>(response: Response): Promise<T> => {
     const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Error en la petición');
+    if (!response.ok) {
+      // Si no hay token y es 401, lanzar error especial
+      if (response.status === 401 && !tokenProvider.token) {
+        throw new Error('No token provided');
+      }
+      throw new Error(data.error || 'Error en la petición');
+    }
     return data;
   };
 
   const get = async <T = any>(url: string): Promise<T> => {
-    const headers = {
-      'Content-Type': 'application/json',
-      ...(tokenProvider.token ? { Authorization: `Bearer ${tokenProvider.token}` } : {})
-    };
-    const response = await fetch(`${baseUrl}${url}`, { headers });
-    return handleResponse<T>(response);
+    return makeRequest(url, { method: 'GET' });
   };
 
   const post = async <T = any>(url: string, data?: any): Promise<T> => {
-    const response = await fetch(`${baseUrl}${url}`, {
+    return makeRequest(url, {
       method: 'POST',
-      headers,
       body: JSON.stringify(data)
     });
-    return handleResponse<T>(response);
   };
 
-  const put = (url: string, data?: any) =>
-    fetch(`${baseUrl}${url}`, {
+  const put = (url: string, data?: any) => {
+    return makeRequest(url, {
       method: 'PUT',
-      headers,
       body: JSON.stringify(data)
-    }).then(handleResponse);
+    });
+  };
 
-  const delete_ = (url: string) =>
-    fetch(`${baseUrl}${url}`, {
+  const delete_ = (url: string, options?: {data?: any}) => {
+    return makeRequest(url, {
       method: 'DELETE',
-      headers
-    }).then(handleResponse);
+      body: options?.data ? JSON.stringify(options.data) : undefined,
+    });
+  };
 
   return (
     <HttpContext.Provider value={{

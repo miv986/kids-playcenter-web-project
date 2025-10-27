@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { Menu, X, Phone, MapPin, Clock, User, LogOut, LayoutDashboard, Home } from 'lucide-react';
 import { AuthModal } from '../auth/AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,12 +13,25 @@ export function Header({ currentView = 'home', setCurrentView }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null);
   const { user, logout } = useAuth();
 
   const handleAuthClick = (mode: 'login' | 'register') => {
     setAuthMode(mode);
     setIsAuthModalOpen(true);
   };
+
+  // Escuchar cuando la sesión expira
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setSessionExpiredMessage('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      setAuthMode('login');
+      setIsAuthModalOpen(true);
+    };
+
+    window.addEventListener('sessionExpired', handleSessionExpired);
+    return () => window.removeEventListener('sessionExpired', handleSessionExpired);
+  }, []);
 
   return (
     <>
@@ -44,11 +58,11 @@ export function Header({ currentView = 'home', setCurrentView }: HeaderProps) {
         {/* Main navigation */}
         <div className="flex justify-between items-center py-4">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <span className="text-white font-bold text-xl">🎪</span>
+            <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
+              <Image src="/logo.png" alt="Logo" width={80} height={80} />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-800">Ludoteca Arcoíris</h1>
+              <h1 className="text-2xl font-bold text-gray-800">Somriures & Colors</h1>
               <p className="text-sm text-gray-600">Diversión y aprendizaje</p>
             </div>
           </div>
@@ -255,8 +269,12 @@ export function Header({ currentView = 'home', setCurrentView }: HeaderProps) {
 
       <AuthModal
         isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setSessionExpiredMessage(null);
+        }}
         initialMode={authMode}
+        sessionExpiredMessage={sessionExpiredMessage}
       />
     </>
   );

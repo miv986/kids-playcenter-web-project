@@ -1,4 +1,5 @@
 // contexts/ChildrenContext.tsx
+"use client";
 import React, { createContext, useContext } from "react";
 import { Child } from "../types/auth";
 import { useHttp } from "./HttpContext";
@@ -30,8 +31,10 @@ export function ChildrenProvider({ children }: { children: React.ReactNode }) {
     try {
       const res = await http.get("/api/children");
       return res.children; // el backend responde con { children }
-    } catch (err) {
-      console.error("Error fetching children:", err);
+    } catch (err: any) {
+      if (err.message !== 'No token provided') {
+        console.error("Error fetching children:", err);
+      }
       return [];
     }
   };

@@ -1,5 +1,4 @@
 "use client";
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { User, AuthContextType } from "../types/auth";
 import { useHttp } from "./HttpContext";
@@ -22,10 +21,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const tokenProvider = useToken();
 
   useEffect(() => {
-    if (!!tokenProvider.token) {
-      getMe();
-    }
-  }, [tokenProvider.token])
+    const initAuth = async () => {
+      if (tokenProvider.token) {
+        await getMe();
+      } else {
+        setUser(null);
+      }
+    };
+    initAuth();
+  }, [tokenProvider.token]);
 
 
   // 🔹 GET ME
@@ -37,6 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return true;
     } catch (error) {
       console.error("Me error", error);
+      setUser(null);
+      tokenProvider.setToken(null);
       return false;
     } finally {
       setIsLoading(false);
@@ -54,7 +60,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false;
       }
       setUser(data.user);
-      tokenProvider.setToken(data.token);
+      const token = data.accessToken || data.token;
+      tokenProvider.setToken(token);
 
       return true;
     } catch (error) {

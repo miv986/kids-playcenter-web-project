@@ -1,3 +1,4 @@
+"use client";
 import React, { createContext, useContext } from "react";
 import { BirthdaySlot } from "../types/auth";
 import { useHttp } from './HttpContext';
@@ -31,8 +32,11 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
         try {
             const data = await http.get("/api/birthdaySlots");
             return data || [];
-        } catch (err) {
-            console.error("Error cargando slots", err);
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("Error cargando slots", err);
+            }
+            return [];
         }
     };
 
@@ -41,8 +45,11 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
         try {
             const data = await http.get("/api/birthdaySlots/availableSlots");
             return data || [];
-        } catch (err) {
-            console.error("Error cargando slots", err);
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("Error cargando slots", err);
+            }
+            return [];
         }
     };
 
@@ -56,8 +63,10 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
         try {
             const data = await http.get(`/api/birthdaySlots/getSlotsByDay/${formattedDate}`);
             return data as BirthdaySlot[] || [];
-        } catch (err) {
-            console.error("Error cargando slots por fecha", err);
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("Error cargando slots por fecha", err);
+            }
             return [];
 
         }

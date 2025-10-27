@@ -1,6 +1,6 @@
 import React from 'react';
-import { AdminDashboard } from '../dashboard/AdminDashboard/AdminDashboard';
-import { UserDashboard } from '../dashboard/UserDashboard/UserDashboard';
+import { AdminDashboard } from '../admin/AdminDashboard';
+import {UserDashboard} from '../user/UserDashboard';
 import { useAuth } from '../../contexts/AuthContext';
 
 export function Dashboard() {

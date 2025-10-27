@@ -53,6 +53,12 @@ export function PacksForm({
         }
     }, [data, selectedDay]);
 
+    useEffect(() => {
+        if (user?.email) {
+            setFormData(prev => ({ ...prev, email: user.email || '' }));
+        }
+    }, [user?.email]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -181,7 +187,8 @@ export function PacksForm({
                         type="email"
                         value={formData.email}
                         onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                        disabled={!!user?.email}
+                        className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200 ${user?.email ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                         placeholder="email@here.com" />
                 </div>
                 <div>

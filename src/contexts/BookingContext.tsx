@@ -1,3 +1,4 @@
+"use client";
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { BirthdayBooking } from '../types/auth';
 import { useHttp } from './HttpContext';
@@ -30,8 +31,11 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await http.get('/api/bookings/getBirthdayBookings');
       return data;
-    } catch (err) {
-      console.error("Error cargando reservas:", err);
+    } catch (err: any) {
+      if (err.message !== 'No token provided') {
+        console.error("Error cargando reservas:", err);
+      }
+      return [];
     }
   };
 
@@ -39,8 +43,11 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await http.get('/api/bookings/my');
       return data;
-    } catch (err) {
-      console.error("Error cargando reservas:", err);
+    } catch (err: any) {
+      if (err.message !== 'No token provided') {
+        console.error("Error cargando reservas:", err);
+      }
+      return [];
     }
   };
 

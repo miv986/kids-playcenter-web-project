@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "../contexts/AuthContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Header } from "../components/layout/Header";
 import { Footer } from "../components/layout/Footer";
 import { Hero } from "../components/sections/Hero";
@@ -16,6 +16,12 @@ import { PacksForm } from "../components/sections/PacksForm";
 export default function HomePage() {
   const { user } = useAuth();
   const [currentView, setCurrentView] = useState<"home" | "dashboard">("home");
+
+  useEffect(() => {
+    if (localStorage.getItem('shouldOpenDaycareBooking')) {
+      setCurrentView("dashboard");
+    }
+  }, []);
 
   return (
     <div>

@@ -7,21 +7,17 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialMode: 'login' | 'register';
+  sessionExpiredMessage?: string | null;
 }
 
 
 
-export function AuthModal({ isOpen, onClose, initialMode }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, initialMode, sessionExpiredMessage }: AuthModalProps) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
 
   useEffect(() => {
     if (initialMode) setMode(initialMode);
   }, [initialMode]);
-
-
-  console.log("prop initial mode", initialMode);
-
-
 
   if (!isOpen) return null;
 
@@ -40,6 +36,7 @@ export function AuthModal({ isOpen, onClose, initialMode }: AuthModalProps) {
             <LoginForm
               onSwitchToRegister={() => setMode('register')}
               onClose={onClose}
+              sessionExpiredMessage={sessionExpiredMessage}
             />
           ) : (
             <RegisterForm

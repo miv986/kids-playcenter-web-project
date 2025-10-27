@@ -1,7 +1,7 @@
 import { PAGE_TYPES } from "next/dist/lib/page-types";
 
 export interface User {
-  phone: string;
+  phone_number: string;
   id: number;
   email: string;
   name: string;
@@ -25,6 +25,33 @@ export type Child = {
 
 export type Status = "PENDING" | "CANCELLED" | "CONFIRMED" | "CLOSED" | "OPEN";
 export type Package = "ALEGRIA" | "FIESTA" | "ESPECIAL";
+
+export interface DaycareBooking{
+  id: number;
+  comments?: string;
+  startTime: string;
+  endTime: string;
+  createdAt?: string;
+  upstringdAt: string;
+  status: Status;
+  user: User;
+  children: User[]; // Los hijos son usuarios (User con role CHILD)
+  slots: DaycareSlot[];
+}
+
+export interface DaycareSlot{
+  id: number;
+  date: string;
+  hour: number;
+  openHour: string;
+  closeHour: string;
+  capacity: number;
+  availableSpots: number;
+  status: Status;
+  createdAt: string;
+  upstringdAt?: string;
+  bookings: DaycareBooking[];
+}
 
 export interface BirthdayBooking {
   id: number;
