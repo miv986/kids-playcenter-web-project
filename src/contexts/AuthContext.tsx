@@ -21,12 +21,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const tokenProvider = useToken();
 
   useEffect(() => {
-    if (!!tokenProvider.token) {
-      getMe();
-    } else {
-      setUser(null);
-    }
-  }, [tokenProvider.token])
+    const initAuth = async () => {
+      if (tokenProvider.token) {
+        await getMe();
+      } else {
+        setUser(null);
+      }
+    };
+    initAuth();
+  }, [tokenProvider.token]);
 
 
   // 🔹 GET ME

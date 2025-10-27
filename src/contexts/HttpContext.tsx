@@ -38,7 +38,9 @@ export function HttpProvider({ children }: HttpProviderProps) {
   }, [tokenProvider.token]);
 
   const refreshToken = async (): Promise<boolean> => {
-    if (isRefreshingRef.current || sessionExpiredRef.current) return false;
+    if (isRefreshingRef.current) return false;
+    if (sessionExpiredRef.current) return false;
+    
     isRefreshingRef.current = true;
     
     try {
@@ -53,17 +55,18 @@ export function HttpProvider({ children }: HttpProviderProps) {
         isRefreshingRef.current = false;
         return true;
       }
+      
+      // Si falla el refresh, marcar como expirado
+      sessionExpiredRef.current = true;
+      tokenProvider.setToken(null);
+      window.dispatchEvent(new CustomEvent('sessionExpired'));
     } catch (error) {
       console.error('Error refreshing token:', error);
+      sessionExpiredRef.current = true;
+      tokenProvider.setToken(null);
     }
     
     isRefreshingRef.current = false;
-    sessionExpiredRef.current = true;
-    tokenProvider.setToken(null);
-    
-    // Notificar que la sesión expiró
-    window.dispatchEvent(new CustomEvent('sessionExpired'));
-    
     return false;
   };
 

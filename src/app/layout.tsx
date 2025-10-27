@@ -5,7 +5,7 @@ import "../index.css";
 export const metadata: Metadata = {
     title: "Ludoteca Arcoiris",
     description: "Aplicación web para ludoteca",
-    icons: { icon: "/vite.svg" },
+    icons: { icon: "/logo.png" },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
