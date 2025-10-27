@@ -3,7 +3,7 @@ import Providers from "./providers";
 import "../index.css";
 
 export const metadata: Metadata = {
-    title: "Ludoteca Arcoiris",
+    title: "Ludoteca Somriures & Colors",
     description: "Aplicación web para ludoteca",
     icons: { icon: "/logo.png" },
 };
