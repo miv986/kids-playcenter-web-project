@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Menu, X, Phone, MapPin, Clock, User, LogOut, LayoutDashboard, Home } from 'lucide-react';
 import { AuthModal } from '../auth/AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -12,12 +12,25 @@ export function Header({ currentView = 'home', setCurrentView }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [sessionExpiredMessage, setSessionExpiredMessage] = useState<string | null>(null);
   const { user, logout } = useAuth();
 
   const handleAuthClick = (mode: 'login' | 'register') => {
     setAuthMode(mode);
     setIsAuthModalOpen(true);
   };
+
+  // Escuchar cuando la sesión expira
+  useEffect(() => {
+    const handleSessionExpired = () => {
+      setSessionExpiredMessage('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      setAuthMode('login');
+      setIsAuthModalOpen(true);
+    };
+
+    window.addEventListener('sessionExpired', handleSessionExpired);
+    return () => window.removeEventListener('sessionExpired', handleSessionExpired);
+  }, []);
 
   return (
     <>
@@ -255,8 +268,12 @@ export function Header({ currentView = 'home', setCurrentView }: HeaderProps) {
 
       <AuthModal
         isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
+        onClose={() => {
+          setIsAuthModalOpen(false);
+          setSessionExpiredMessage(null);
+        }}
         initialMode={authMode}
+        sessionExpiredMessage={sessionExpiredMessage}
       />
     </>
   );

@@ -1,11 +1,11 @@
 import { Calendar, X, Clock } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useDaycareSlots } from '../../../contexts/DaycareSlotContext';
-import { useDaycareBookings } from '../../../contexts/DaycareBookingContext';
-import { useChildren } from '../../../contexts/ChildrenContext';
-import { DaycareSlot, Child, DaycareBooking } from '../../../types/auth';
+import { useDaycareSlots } from '../../contexts/DaycareSlotContext';
+import { useDaycareBookings } from '../../contexts/DaycareBookingContext';
+import { useChildren } from '../../contexts/ChildrenContext';
+import { DaycareSlot, Child, DaycareBooking } from '../../types/auth';
 import { CalendarComponent } from './Calendar';
-import { useAuth } from '../../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface NewDaycareBookingModalProps {
     isOpen: boolean;

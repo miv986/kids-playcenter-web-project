@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Calendar, Plus, Trash2, Edit3, CalendarDays, Clock } from "lucide-react";
-import { BirthdaySlot } from "../../../types/auth";
-import { useAuth } from "../../../contexts/AuthContext";
-import { useSlots } from "../../../contexts/SlotContext";
+import { BirthdaySlot } from "../../types/auth";
+import { useAuth } from "../../contexts/AuthContext";
+import { useSlots } from "../../contexts/SlotContext";
 import { format } from "date-fns";
-import { SlotModal } from "../../ui/SlotModal";
-import { CalendarComponent } from "../Bookings/Calendar";
+import { es } from "date-fns/locale";
+import { SlotModal } from "../modals/SlotModal";
+import { CalendarComponent } from "../shared/Calendar";
 
 
 export function AdminBirthdaySlots() {
@@ -50,29 +51,29 @@ export function AdminBirthdaySlots() {
     // Calcular días con slots para el calendario con información detallada
     const calendarData = useMemo(() => {
         if (!slots) return { bookedDays: [], dayStats: {} };
-        
+
         const bookedDays: number[] = [];
         const dayStats: Record<number, { total: number; available: number; status: string }> = {};
-        
+
         slots.forEach((slot) => {
             const d = new Date(slot.date);
             if (isNaN(d.getTime())) return;
-            
+
             if (d.getMonth() === currentMonth.getMonth() && d.getFullYear() === currentMonth.getFullYear()) {
                 const day = d.getDate();
                 if (!bookedDays.includes(day)) {
                     bookedDays.push(day);
                 }
-                
+
                 if (!dayStats[day]) {
                     dayStats[day] = { total: 0, available: 0, status: 'empty' };
                 }
-                
+
                 dayStats[day].total++;
                 if (slot.status === 'OPEN') {
                     dayStats[day].available++;
                 }
-                
+
                 // Determinar estado del día
                 if (dayStats[day].total > 0) {
                     if (dayStats[day].available === 0) {
@@ -85,7 +86,7 @@ export function AdminBirthdaySlots() {
                 }
             }
         });
-        
+
         return { bookedDays, dayStats };
     }, [slots, currentMonth]);
 
@@ -159,22 +160,20 @@ export function AdminBirthdaySlots() {
                 <div className="flex gap-2">
                     <button
                         onClick={() => setViewMode("calendar")}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
-                            viewMode === "calendar" 
-                                ? "bg-blue-500 text-white" 
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${viewMode === "calendar"
+                                ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        }`}
+                            }`}
                     >
                         <CalendarDays className="w-4 h-4" />
                         Vista Calendario
                     </button>
                     <button
                         onClick={() => setViewMode("list")}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
-                            viewMode === "list" 
-                                ? "bg-blue-500 text-white" 
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${viewMode === "list"
+                                ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                        }`}
+                            }`}
                     >
                         <Calendar className="w-4 h-4" />
                         Vista Lista
@@ -216,7 +215,7 @@ export function AdminBirthdaySlots() {
                             {selectedDate ? (
                                 <div className="bg-white rounded-xl shadow-lg p-6">
                                     <h3 className="text-xl font-semibold mb-4">
-                                        Slots del {format(selectedDate, "dd/MM/yyyy")}
+                                        Slots del {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: es })}
                                     </h3>
                                     {dailySlots.length === 0 ? (
                                         <div className="text-center py-8">
@@ -301,7 +300,7 @@ export function AdminBirthdaySlots() {
                                                         {format(new Date(slot.date), "dd")}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
-                                                        {format(new Date(slot.date), "MMM")}
+                                                        {format(new Date(slot.date), "MMM", { locale: es })}
                                                     </div>
                                                 </div>
                                                 <div>
@@ -309,14 +308,13 @@ export function AdminBirthdaySlots() {
                                                         {format(new Date(slot.startTime), "HH:mm")} - {format(new Date(slot.endTime), "HH:mm")}
                                                     </p>
                                                     <p className="text-sm text-gray-500">
-                                                        {format(new Date(slot.date), "EEEE, dd/MM/yyyy")}
+                                                        {format(new Date(slot.date), "EEEE, dd/MM/yyyy", { locale: es })}
                                                     </p>
                                                 </div>
-                                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                    slot.status === 'OPEN' 
-                                                        ? 'bg-green-100 text-green-800' 
+                                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${slot.status === 'OPEN'
+                                                        ? 'bg-green-100 text-green-800'
                                                         : 'bg-red-100 text-red-800'
-                                                }`}>
+                                                    }`}>
                                                     {slot.status}
                                                 </div>
                                             </div>
@@ -367,7 +365,7 @@ export function AdminBirthdaySlots() {
                             setDailySlots(data || []);
                         }}
                     />
-                    
+
                     {/* Estadísticas del mes */}
                     <div className="mt-4 bg-white rounded-xl shadow-lg p-4">
                         <h4 className="font-semibold text-gray-800 mb-3">Estadísticas del Mes</h4>

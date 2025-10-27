@@ -1,5 +1,3 @@
-"use client";
-
 import { TokenProvider } from "../contexts/TokenContext";
 import { BookingProvider } from "../contexts/BookingContext";
 import { HttpProvider } from "../contexts/HttpContext";

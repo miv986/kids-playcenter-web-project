@@ -1,6 +1,6 @@
 import React from "react";
-import { BirthdayBooking } from "../../../types/auth";
-import { formatDateTime } from "../../../lib/formatDate";
+import { BirthdayBooking } from "../../types/auth";
+import { formatDateTime } from "../../lib/formatDate";
 import { Phone, Users, Glasses, Calendar, Clock, Package, MessageSquare } from "lucide-react";
 import { format } from "date-fns";
 

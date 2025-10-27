@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Users, CheckCircle, XCircle, Trash2, Phone, Clock, Glasses, CalendarDays, Filter, Settings } from 'lucide-react';
-import { useBookings } from '../../../contexts/BookingContext';
-import { BirthdayBooking } from '../../../types/auth';
-import { useAuth } from '../../../contexts/AuthContext';
-import { BirthdayBookingModal } from '../../ui/BirthdayBookingModal';
-import { formatDateTime } from '../../../lib/formatDate';
-import { CalendarComponent } from './Calendar';
+import { useBookings } from '../../contexts/BookingContext';
+import { BirthdayBooking } from '../../types/auth';
+import { useAuth } from '../../contexts/AuthContext';
+import { BirthdayBookingModal } from '../modals/BirthdayBookingModal';
+import { formatDateTime } from '../../lib/formatDate';
+import { CalendarComponent } from '../shared/Calendar';
 import { useMemo } from "react";
-import { BookingCard } from './BookingCard';
+import { BookingCard } from '../shared/BookingCard';
 
 export function AdminBookings() {
     const [currentMonth, setCurrentMonth] = useState(new Date()); // empieza en mes actual
@@ -39,7 +39,7 @@ export function AdminBookings() {
 
     useEffect(() => {
         if (!!user) {
-            fetchBookings().then((bookings) => setBookings(bookings))
+            fetchBookings().then((bookings) => setBookings(bookings || []))
         }
     }, [user])
 

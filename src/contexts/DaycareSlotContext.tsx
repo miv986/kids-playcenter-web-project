@@ -1,3 +1,4 @@
+"use client";
 import React, { createContext, useContext } from "react";
 import { useHttp } from "./HttpContext";
 import { DaycareSlot } from "../types/auth";
@@ -120,8 +121,10 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
         try {
             const res = await http.get(`/api/daycareSlots/available/date/${formattedDate}`);
             return res.availableSlots || [];
-        } catch (err) {
-            console.error("❌ Error obteniendo slots disponibles:", err);
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("❌ Error obteniendo slots disponibles:", err);
+            }
             return [];
         }
     };
@@ -131,8 +134,10 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
         try {
             const data = await http.get("/api/daycareSlots/");
             return data || [];
-        } catch (err) {
-            console.error("❌ Error obteniendo slots disponibles:", err);
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("❌ Error obteniendo slots disponibles:", err);
+            }
             return [];
         }
     };

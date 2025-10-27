@@ -5,9 +5,10 @@ import { useAuth } from '../../contexts/AuthContext';
 interface LoginFormProps {
   onSwitchToRegister: () => void;
   onClose: () => void;
+  sessionExpiredMessage?: string | null;
 }
 
-export function LoginForm({ onSwitchToRegister, onClose }: LoginFormProps) {
+export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +37,12 @@ export function LoginForm({ onSwitchToRegister, onClose }: LoginFormProps) {
         <h2 className="text-3xl font-bold text-gray-800 mb-2">Iniciar Sesión</h2>
         <p className="text-gray-600">Accede a tu cuenta para gestionar tus reservas</p>
       </div>
+
+      {sessionExpiredMessage && (
+        <div className="mb-6 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-lg">
+          <p className="text-amber-700 font-medium">{sessionExpiredMessage}</p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>

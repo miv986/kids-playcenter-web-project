@@ -41,7 +41,7 @@ export function CalendarSection() {
   const fetchDaycareSlotsForMonth = async () => {
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
     const slotsMap = new Map<number, DaycareSlot[]>();
-    
+
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
       const slots = await fetchAvailableSlotsByDate(date);
@@ -61,11 +61,11 @@ export function CalendarSection() {
       day
     );
     setSelectedDay(date);
-    
+
     // Determinar tipo de día
     const status = dayStatus[day];
     setSelectedDayType(status.type === 'birthday' ? 'birthday' : status.type === 'daycare' ? 'daycare' : status.type === 'both' ? 'both' : null);
-    
+
     // Si hay slots de daycare, cargarlos
     if (status.type === 'daycare' || status.type === 'both') {
       const slots = await fetchAvailableSlotsByDate(date);
@@ -156,13 +156,13 @@ export function CalendarSection() {
       const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
       const dayOfWeek = date.getDay();
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      
+
       const birthdayDaySlots = birthdaySlotsByDay[day] || [];
       const daycareDaySlots = daycareSlotsByDay[day] || [];
-      
+
       const hasBirthdaySlots = birthdayDaySlots.length > 0 && !birthdayDaySlots.every(slot => slot.status === 'CLOSED');
       const hasDaycareSlots = !isWeekend && daycareDaySlots.length > 0 && daycareDaySlots.some(slot => slot.availableSpots > 0);
-      
+
       if (hasBirthdaySlots && hasDaycareSlots) {
         statusMap[day] = { type: 'both', available: true };
       } else if (hasBirthdaySlots) {
@@ -198,35 +198,42 @@ export function CalendarSection() {
       <div className="container mx-auto px-4">
         {/* Encabezado */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
+          <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-4">
             Calendario y Reservas
           </h2>
 
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Consulta nuestra disponibilidad y reserva el día perfecto para tu celebración.
-            ¡No esperes más para asegurar tu fecha!
-          </p>
-          {/* Nuevo texto informativo */}
-          <p className="text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed mb-6">
-            <span className="inline-block w-3 h-3 bg-green-100 border border-green-300 rounded mr-2 align-middle"></span>
-            Solo Cumpleaños (Viernes-Domingo) | 
-            <span className="inline-block w-3 h-3 bg-blue-100 border border-blue-300 rounded ml-3 mr-2 align-middle"></span>
-            Solo Ludoteca (Lunes-Jueves) | 
-            <span className="inline-block w-3 h-3 bg-gradient-to-br from-orange-100 to-orange-200 border border-orange-300 rounded ml-3 mr-2 align-middle"></span>
-            Ambos servicios
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
+            Elige tu fecha ideal
           </p>
 
-          {!user &&
-            <><p className="text-lg text-gray-700 max-w-3xl mx-auto leading-relaxed mb-6">
-              Selecciona un día de lunes a jueves para ver los horarios disponibles.
-              ¿Quieres reservar? Crea tu cuenta o inicia sesión.
-            </p><button
-              onClick={() => handleAuthClick('login')} // función que abre el modal
-              className="mt-4 inline-block bg-pink-400 text-white px-6 py-3 rounded-xl font-semibold hover:bg-pink-500 transition-colors"
-            >
-                Iniciar sesión / Crear cuenta
-              </button></>
-          }
+          {/* Leyenda minimalista */}
+          <div className="flex flex-wrap items-center justify-center gap-6 text-sm mb-8">
+            <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-full border border-green-200">
+              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+              <span className="text-gray-700 font-medium">Cumpleaños</span>
+              <span className="text-gray-500">(Viernes-Domingo)</span>
+            </div>
+            <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full border border-blue-200">
+              <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
+              <span className="text-gray-700 font-medium">Ludoteca</span>
+              <span className="text-gray-500">(Lunes-Jueves)</span>
+            </div>
+            <div className="flex items-center space-x-2 bg-orange-50 px-4 py-2 rounded-full border border-orange-200">
+              <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
+              <span className="text-gray-700 font-medium">Ambos</span>
+            </div>
+          </div>
+
+          {!user && (
+            <div className="mt-8 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 max-w-md mx-auto">
+                <p className="text-sm text-gray-700">
+                  💡 <span className="font-semibold">Reserva cumpleaños sin cuenta</span> |
+                  <span className="text-blue-600 font-semibold"> Login solo para ludoteca</span>
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="max-w-4xl mx-auto">
@@ -266,15 +273,22 @@ export function CalendarSection() {
                 {days.map((day, index) => {
                   if (!day) return <div key={index} className="aspect-square" />;
                   const status = dayStatus[day];
-                  const bgClass = 
-                    status.type === 'both' ? 'bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700 hover:from-orange-200 hover:to-orange-300' :
-                    status.type === 'birthday' ? 'bg-gradient-to-br from-green-100 to-green-200 text-green-700 hover:from-green-200 hover:to-green-300' :
-                    status.type === 'daycare' ? 'bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300' :
-                    'bg-gray-100 text-gray-400 cursor-not-allowed';
-                  
+                  const isSelected = selectedDay && 
+                    day === selectedDay.getDate() &&
+                    currentMonth.getMonth() === selectedDay.getMonth() &&
+                    currentMonth.getFullYear() === selectedDay.getFullYear();
+                  const bgClass = isSelected 
+                    ? 'w-full h-full rounded-lg text-sm font-medium transition ring-2 ring-orange-600 font-bold text-green-800 bg-green-400 rounded-full' 
+                    : status.type === 'both' ? 'bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700 hover:from-orange-200 hover:to-orange-300' :
+                      status.type === 'birthday' ? 'bg-gradient-to-br from-green-100 to-green-200 text-green-700 hover:from-green-200 hover:to-green-300' :
+                        status.type === 'daycare' ? 'bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300' :
+                          'bg-gray-100 text-gray-400 cursor-not-allowed';
+
                   return (
                     <div key={index}
-                      onClick={() => handleDayClick(day)}
+                      onClick={() => {
+                        handleDayClick(day)
+                      }}
                       className="aspect-square">
                       {day && (
                         <button
@@ -289,22 +303,26 @@ export function CalendarSection() {
                 })}
               </div>
 
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-sm">
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-                  <span className="text-gray-600">Solo Cumpleaños</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></div>
-                  <span className="text-gray-600">Solo Ludoteca</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-gradient-to-br from-orange-100 to-orange-200 border border-orange-300 rounded"></div>
-                  <span className="text-gray-600">Ambos</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <div className="w-4 h-4 bg-gray-100 rounded"></div>
-                  <span className="text-gray-600">No disponible</span>
+              {/* Leyenda del calendario */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <p className="text-xs text-gray-500 text-center mb-3">Leyenda:</p>
+                <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
+                  <div className="flex items-center space-x-1.5">
+                    <div className="w-2.5 h-2.5 bg-green-100 border border-green-300 rounded"></div>
+                    <span className="text-gray-600">Cumpleaños</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <div className="w-2.5 h-2.5 bg-blue-100 border border-blue-300 rounded"></div>
+                    <span className="text-gray-600">Ludoteca</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <div className="w-2.5 h-2.5 bg-orange-100 border border-orange-300 rounded"></div>
+                    <span className="text-gray-600">Ambos</span>
+                  </div>
+                  <div className="flex items-center space-x-1.5">
+                    <div className="w-2.5 h-2.5 bg-gray-100 rounded"></div>
+                    <span className="text-gray-600">No disponible</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -313,10 +331,17 @@ export function CalendarSection() {
               {/* Formulario de cumpleaños */}
               {selectedDayType === 'birthday' && birthdaySlots &&
                 <div className="bg-white rounded-3xl shadow-xl p-8">
+                  {!user && (
+                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm text-green-700">
+                        ✓ Puedes reservar sin iniciar sesión
+                      </p>
+                    </div>
+                  )}
                   <PacksForm data={birthdaySlots} selectedDay={selectedDay} onBookingCreated={reloadSlots} />
                 </div>
               }
-              
+
               {/* Horarios de ludoteca */}
               {(selectedDayType === 'daycare' || selectedDayType === 'both') && selectedDay && (
                 <div className="bg-white rounded-3xl shadow-xl p-8">
@@ -332,19 +357,22 @@ export function CalendarSection() {
                             <p className="text-sm text-gray-500">{slot.availableSpots} plazas disponibles</p>
                           </div>
                           {user ? (
-                            <button 
+                            <button
                               onClick={() => {
                                 localStorage.setItem('openDaycareBooking', selectedDay.toISOString());
                                 localStorage.setItem('shouldOpenDaycareBooking', 'true');
                                 window.location.href = '/';
                               }}
-                              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm font-medium"
+                              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm font-medium transition-all"
                             >
-                              Reservar en Perfil
+                              Reservar
                             </button>
                           ) : (
-                            <button onClick={() => handleAuthClick('login')} className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 text-sm font-medium">
-                              Iniciar Sesión
+                            <button
+                              onClick={() => handleAuthClick('login')}
+                              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2 rounded-lg hover:shadow-md text-sm font-medium transition-all"
+                            >
+                              Login para reservar
                             </button>
                           )}
                         </div>
@@ -355,11 +383,18 @@ export function CalendarSection() {
                   )}
                 </div>
               )}
-              
+
               {/* Mostrar ambos si es 'both' */}
               {selectedDayType === 'both' && birthdaySlots &&
                 <div className="bg-white rounded-3xl shadow-xl p-8">
                   <h3 className="text-2xl font-bold text-gray-800 mb-4">Cumpleaños</h3>
+                  {!user && (
+                    <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <p className="text-sm text-green-700">
+                        ✓ Reserva cumpleaños sin login
+                      </p>
+                    </div>
+                  )}
                   <PacksForm data={birthdaySlots} selectedDay={selectedDay} onBookingCreated={reloadSlots} />
                 </div>
               }

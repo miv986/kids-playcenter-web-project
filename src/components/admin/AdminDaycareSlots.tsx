@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Calendar, Plus, Trash2, Edit3, CalendarDays, Clock, Settings, Filter, CheckSquare, Square } from "lucide-react";
 import { format } from "date-fns";
-import { useAuth } from "../../../contexts/AuthContext";
-import { useDaycareSlots } from "../../../contexts/DaycareSlotContext";
-import { DaycareSlot } from "../../../types/auth";
-import { SlotModal } from "../../ui/SlotModal";
-import { CalendarComponent } from "../Bookings/Calendar";
+import { useAuth } from "../../contexts/AuthContext";
+import { useDaycareSlots } from "../../contexts/DaycareSlotContext";
+import { DaycareSlot } from "../../types/auth";
+import {SlotModal} from "../modals/SlotModal";
+import { CalendarComponent } from "../shared/Calendar";
 
 export function AdminDaycareSlots() {
     const { user } = useAuth();

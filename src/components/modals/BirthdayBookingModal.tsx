@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BirthdayBooking } from '../../types/auth';
 import { formatDateTime } from '../../lib/formatDate';
-import { CalendarComponent } from '../dashboard/Bookings/Calendar';
+import { CalendarComponent } from '../shared/Calendar';	
 import { format } from 'date-fns';
 import { Calendar, X, Clock, User, Mail, Phone, Users, Package, MessageSquare, Edit, Save, Trash2 } from 'lucide-react';
 

@@ -1,3 +1,4 @@
+"use client";
 import React, { createContext, useContext } from "react";
 import { useHttp } from "./HttpContext";
 import { DaycareBooking } from "../types/auth";
@@ -37,8 +38,10 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
         try {
             const data = await http.get("/api/daycareBookings");
             return data as DaycareBooking[];
-        } catch (err) {
-            console.error("❌ Error cargando todas las reservas de daycare:", err);
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("❌ Error cargando todas las reservas de daycare:", err);
+            }
             return [];
         }
     };
@@ -48,8 +51,10 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
         try {
             const data = await http.get("/api/daycareBookings");
             return data as DaycareBooking[];
-        } catch (err) {
-            console.error("❌ Error cargando reservas del usuario:", err);
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("❌ Error cargando reservas del usuario:", err);
+            }
             return [];
         }
     };

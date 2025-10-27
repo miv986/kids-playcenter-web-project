@@ -1,8 +1,8 @@
 import { User, Mail, Phone, Users, Baby, Calendar, Edit, FileText, Trash2, Plus } from "lucide-react";
-import { useAuth } from "../../../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { useEffect, useState } from "react";
-import { useChildren } from "../../../contexts/ChildrenContext";
-import { Child } from "../../../types/auth";
+import { useChildren } from "../../contexts/ChildrenContext";
+import { Child } from "../../types/auth";
 
 export function UserProfile() {
     const { user } = useAuth();

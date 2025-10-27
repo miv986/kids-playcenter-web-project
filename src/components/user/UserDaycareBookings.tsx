@@ -1,9 +1,9 @@
-import { Calendar, Users, Clock, Package, Phone, MessageSquare, Plus } from "lucide-react";
+import { Calendar, Users, Clock, Package, Phone, MessageSquare, Plus, Copy, Check } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useAuth } from "../../../contexts/AuthContext";
-import { useDaycareBookings } from "../../../contexts/DaycareBookingContext";
-import { DaycareBooking } from "../../../types/auth";
-import { NewDaycareBookingModal } from "./NewDaycareBookingModal";
+import { useAuth } from "../../contexts/AuthContext";
+import { useDaycareBookings } from "../../contexts/DaycareBookingContext";
+import { DaycareBooking } from "../../types/auth";
+import {NewDaycareBookingModal} from "../shared/NewDaycareBookingModal";
 
 export function UserDaycareBookings() {
     const { user } = useAuth();
