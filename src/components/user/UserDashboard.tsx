@@ -7,10 +7,12 @@ import TabComponent from '../shared/TabComponent';
 import { UserProfile } from './UserProfile';
 import { UserDaycareBookings } from './UserDaycareBookings';
 import { useChildren } from '../../contexts/ChildrenContext';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 export function UserDashboard() {
   const { user } = useAuth();
   const { fetchMyBookings, updateBookingStatus, deleteBooking } = useBookings();
+  const t = useTranslation('Dashboard');
 
   const [bookings, setBookings] = useState([] as Array<BirthdayBooking>)
   const [kids, setKids] = useState<Child[]>([]);
@@ -25,8 +27,8 @@ export function UserDashboard() {
 
 
   const tabs = [
-    { id: "daycareBookings", label: "Mis Reservas", content: <UserDaycareBookings /> },
-    { id: "userProfile", label: "Perfil", content: <UserProfile /> },
+    { id: "daycareBookings", label: t.t('user.myReservations'), content: <UserDaycareBookings /> },
+    { id: "userProfile", label: t.t('user.profile'), content: <UserProfile /> },
   ];
 
   return (

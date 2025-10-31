@@ -8,10 +8,12 @@ import { formatDateTime } from '../../lib/formatDate';
 import { CalendarComponent } from '../shared/Calendar';
 import { useMemo } from "react";
 import { BookingCard } from '../shared/BookingCard';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 export function AdminBookings() {
     const [currentMonth, setCurrentMonth] = useState(new Date()); // empieza en mes actual
-
+    const t = useTranslation('AdminBookings');
+    const locale = t.locale;
 
     const [bookings, setBookings] = useState([] as Array<BirthdayBooking>)
     const { fetchBookings, updateBookingStatus, deleteBooking, updateBooking, fetchBookingByDate } = useBookings();
@@ -85,15 +87,15 @@ export function AdminBookings() {
             updateBookingStatus(id, status);
 
             // Notificación opcional
-            alert(`Reserva ${id} actualizada a ${status}`);
+            alert(`${t.t('updateSuccess')} ${status}`);
         } catch (err) {
             console.error(err);
-            alert("Error al actualizar la reserva");
+            alert(t.t('updateError'));
         }
     };
 
     const handleDeleteBooking = async (id: number) => {
-        if (!window.confirm("¿Seguro que quieres eliminar esta reserva?")) return;
+        if (!window.confirm(t.t('confirmDelete'))) return;
 
         try {
             setBookings(prev => prev.filter(b => b.id !== id));
@@ -103,10 +105,10 @@ export function AdminBookings() {
             }
 
             deleteBooking(id);
-            alert(`Reserva ${id} eliminada`);
+            alert(`${t.t('deleteSuccess')} ${id}`);
         } catch (err) {
             console.error(err);
-            alert("Error al eliminar la reserva");
+            alert(t.t('deleteError'));
         }
     };
 
@@ -127,10 +129,10 @@ export function AdminBookings() {
 
         try {
             updateBooking(id, data); // Llamada al backend
-            alert("Reserva actualizada correctamente");
+            alert(t.t('updateSuccess').replace(' a', ''));
         } catch (err) {
             console.error(err);
-            alert("Error al actualizar la reserva");
+            alert(t.t('updateError'));
         }
     };
 
@@ -147,8 +149,8 @@ export function AdminBookings() {
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">Panel de Reservas</h1>
-                <p className="text-gray-600">Gestiona todas las reservas de cumpleaños</p>
+                <h1 className="text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
+                <p className="text-gray-600">{t.t('subtitle')}</p>
             </div>
 
             {/* Controles superiores */}
@@ -163,7 +165,7 @@ export function AdminBookings() {
                         }`}
                     >
                         <CalendarDays className="w-4 h-4" />
-                        Vista Calendario
+                        {t.t('calendarView')}
                     </button>
                     <button
                         onClick={() => setViewMode("list")}
@@ -174,7 +176,7 @@ export function AdminBookings() {
                         }`}
                     >
                         <Calendar className="w-4 h-4" />
-                        Vista Lista
+                        {t.t('listView')}
                     </button>
                 </div>
 
@@ -184,7 +186,7 @@ export function AdminBookings() {
                         className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-xl hover:bg-purple-600"
                     >
                         <Filter className="w-4 h-4" />
-                        Filtros
+                        {t.t('filters')}
                     </button>
                 </div>
             </div>
@@ -192,7 +194,7 @@ export function AdminBookings() {
             {/* Panel de filtros */}
             {showFilters && (
                 <div className="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-4">
-                    <h3 className="text-lg font-semibold text-purple-800 mb-3">Filtrar por Estado</h3>
+                    <h3 className="text-lg font-semibold text-purple-800 mb-3">{t.t('filterByStatus')}</h3>
                     <div className="flex flex-wrap gap-4">
                         <button
                             onClick={() => setFilter('all')}
@@ -201,7 +203,7 @@ export function AdminBookings() {
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
-                            Todas ({stats.total})
+                            {t.t('all')} ({stats.total})
                         </button>
                         <button
                             onClick={() => setFilter('PENDING')}
@@ -210,7 +212,7 @@ export function AdminBookings() {
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
-                            Pendientes ({stats.PENDING})
+                            {t.t('pending')} ({stats.PENDING})
                         </button>
                         <button
                             onClick={() => setFilter('CONFIRMED')}
@@ -219,7 +221,7 @@ export function AdminBookings() {
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
-                            Confirmadas ({stats.CONFIRMED})
+                            {t.t('confirmed')} ({stats.CONFIRMED})
                         </button>
                         <button
                             onClick={() => setFilter('CANCELLED')}
@@ -228,7 +230,7 @@ export function AdminBookings() {
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
-                            Canceladas ({stats.CANCELLED})
+                            {t.t('cancelled')} ({stats.CANCELLED})
                         </button>
                     </div>
                 </div>
@@ -242,7 +244,7 @@ export function AdminBookings() {
                     {viewMode === "calendar" ? (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">Vista Calendario</h2>
+                                <h2 className="text-2xl font-semibold">{t.t('calendarView')}</h2>
                                 {selectedDate && (
                                     <button
                                         onClick={() => {
@@ -251,7 +253,7 @@ export function AdminBookings() {
                                         }}
                                         className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
                                     >
-                                        Ver todas las reservas
+                                        {t.t('viewAll')}
                                     </button>
                                 )}
                             </div>
@@ -259,12 +261,12 @@ export function AdminBookings() {
                             {selectedDate ? (
                                 <div className="bg-white rounded-xl shadow-lg p-6">
                                     <h3 className="text-xl font-semibold mb-4">
-                                        Reservas del {selectedDate.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                        {t.t('reservationsOf')} {selectedDate.toLocaleDateString(locale === 'ca' ? 'ca-ES' : 'es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
                                     </h3>
                                     {dailyBookings.length === 0 ? (
                                         <div className="text-center py-8">
                                             <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                                            <p className="text-gray-500">No hay reservas para este día</p>
+                                            <p className="text-gray-500">{t.t('noReservationsDay')}</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
@@ -278,10 +280,10 @@ export function AdminBookings() {
                                 <div className="text-center py-12">
                                     <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        Selecciona un día del calendario
+                                        {t.t('selectDay')}
                                     </h3>
                                     <p className="text-gray-500">
-                                        Haz clic en cualquier día para ver sus reservas
+                                        {t.t('clickDay')}
                                     </p>
                                 </div>
                             )}
@@ -289,9 +291,9 @@ export function AdminBookings() {
                     ) : (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">Todas las Reservas</h2>
+                                <h2 className="text-2xl font-semibold">{t.t('allReservations')}</h2>
                                 <div className="text-sm text-gray-500">
-                                    {bookingsToShow.length} reservas {filter !== 'all' ? 'filtradas' : 'totales'}
+                                    {bookingsToShow.length} {t.t('reservations')} {filter !== 'all' ? t.t('filtered') : t.t('total')}
                                 </div>
                             </div>
 
@@ -304,7 +306,7 @@ export function AdminBookings() {
                                         </div>
                                         <div>
                                             <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
-                                            <div className="text-gray-600">Total Reservas</div>
+                                            <div className="text-gray-600">{t.t('totalReservations')}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -316,7 +318,7 @@ export function AdminBookings() {
                                         </div>
                                         <div>
                                             <div className="text-2xl font-bold text-gray-800">{stats.PENDING}</div>
-                                            <div className="text-gray-600">Pendientes</div>
+                                            <div className="text-gray-600">{t.t('pending')}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -328,7 +330,7 @@ export function AdminBookings() {
                                         </div>
                                         <div>
                                             <div className="text-2xl font-bold text-gray-800">{stats.CONFIRMED}</div>
-                                            <div className="text-gray-600">Confirmadas</div>
+                                            <div className="text-gray-600">{t.t('confirmed')}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -340,7 +342,7 @@ export function AdminBookings() {
                                         </div>
                                         <div>
                                             <div className="text-2xl font-bold text-gray-800">{stats.CANCELLED}</div>
-                                            <div className="text-gray-600">Canceladas</div>
+                                            <div className="text-gray-600">{t.t('cancelled')}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -354,12 +356,12 @@ export function AdminBookings() {
                                 <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
                                     <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        No hay reservas
+                                        {t.t('noReservations')}
                                     </h3>
                                     <p className="text-gray-500">
                                         {filter !== 'all' 
-                                            ? "No se encontraron reservas con el filtro seleccionado"
-                                            : "No hay reservas registradas"}
+                                            ? t.t('noReservationsFilter')
+                                            : t.t('noReservationsRegistered')}
                                     </p>
                                 </div>
                             ) : (
@@ -396,22 +398,22 @@ export function AdminBookings() {
                     
                     {/* Estadísticas del mes */}
                     <div className="mt-4 bg-white rounded-xl shadow-lg p-4">
-                        <h4 className="font-semibold text-gray-800 mb-3">Estadísticas del Mes</h4>
+                        <h4 className="font-semibold text-gray-800 mb-3">{t.t('monthStats')}</h4>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Días con reservas:</span>
+                                <span className="text-gray-600">{t.t('daysWithReservations')}</span>
                                 <span className="font-medium">{bookedDays.length}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Total reservas:</span>
+                                <span className="text-gray-600">{t.t('totalReservationsMonth')}</span>
                                 <span className="font-medium">{bookings.length}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Pendientes:</span>
+                                <span className="text-gray-600">{t.t('pending')}:</span>
                                 <span className="font-medium text-yellow-600">{stats.PENDING}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Confirmadas:</span>
+                                <span className="text-gray-600">{t.t('confirmed')}:</span>
                                 <span className="font-medium text-green-600">{stats.CONFIRMED}</span>
                             </div>
                         </div>

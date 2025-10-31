@@ -5,6 +5,7 @@ import { useBookings } from "../../contexts/BookingContext";
 import { useSlots } from "../../contexts/SlotContext";
 import { BirthdayBooking, BirthdaySlot } from "../../types/auth";
 import { format } from "date-fns";
+import { useTranslation } from '../../contexts/TranslationContext';
 
 
 export function PacksForm({
@@ -17,8 +18,9 @@ export function PacksForm({
         selectedDay: Date | undefined;
         onBookingCreated?: () => void;
     }) {
-
-
+    const t = useTranslation('PacksForm');
+    const tAuth = useTranslation('Auth');
+    const tForm = useTranslation('Form');
     const { addBooking } = useBookings();
     const [formData, setFormData] = useState({
         selectedSlot: "",
@@ -79,7 +81,7 @@ export function PacksForm({
         try {
 
             if (!selectedSlot) {
-                alert("Selecciona un horario antes de reservar");
+                alert(t.t('selectSlotError'));
                 setLoading(false);
                 return;
             }
@@ -102,7 +104,7 @@ export function PacksForm({
                 setSlots(updatedSlots);
             }
 
-            alert("✅ Reserva creada con éxito. En breve recibirás un correo con los datos.");
+            alert(t.t('successMessage'));
             // limpiar
             setFormData({
                 selectedSlot: "",
@@ -125,7 +127,7 @@ export function PacksForm({
             <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl flex items-center justify-center">
                 <CalendarIcon className="w-6 h-6 text-white" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-800">Hacer Reserva</h3>
+            <h3 className="text-2xl font-bold text-gray-800">{t.t('title')}</h3>
         </div>
             <form className="space-y-6"
                 onSubmit={handleSubmit}>
@@ -134,7 +136,7 @@ export function PacksForm({
                         value={selectedSlot}
                         onChange={e => setSelectedSlot(e.target.value)}
                         required>
-                        <option value="">Selecciona una fecha</option>
+                        <option value="">{t.t('selectDate')}</option>
                         {(slots) && slots.length > 0 ?
                             (slots
                                 .filter(slot => slot.status === 'OPEN')
@@ -146,7 +148,7 @@ export function PacksForm({
                                 </option>
                             ))
                             ) : (
-                                <option disabled>No hay horarios disponibles</option>
+                                <option disabled>{t.t('noSlots')}</option>
                             )
 
                         }
@@ -155,7 +157,7 @@ export function PacksForm({
                 </div>
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
-                        Nombre del responsable
+                        {t.t('responsibleName')}
                     </label>
                     <input
                         name="name"
@@ -163,12 +165,12 @@ export function PacksForm({
                         value={formData.name}
                         onChange={handleChange}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                        placeholder="Tu nombre completo" />
+                        placeholder={t.t('namePlaceholder')} />
                 </div>
 
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
-                        Teléfono de contacto
+                        {t.t('contactPhone')}
                     </label>
                     <input
                         name="contact_number"
@@ -176,11 +178,11 @@ export function PacksForm({
                         value={formData.contact_number}
                         onChange={handleChange}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                        placeholder="+34 123 456 789" />
+                        placeholder={t.t('phonePlaceholder')} />
                 </div>
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
-                        Correo electrónico
+                        {tAuth.t('email')}
                     </label>
                     <input
                         name="email"
@@ -189,11 +191,11 @@ export function PacksForm({
                         onChange={handleChange}
                         disabled={!!user?.email}
                         className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200 ${user?.email ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                        placeholder="email@here.com" />
+                        placeholder={tAuth.t('emailPlaceholder')} />
                 </div>
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
-                        Número de niños
+                        {t.t('numberOfKids')}
                     </label>
                     <input
                         name="kids"
@@ -201,28 +203,28 @@ export function PacksForm({
                         value={formData.kids}
                         onChange={handleChange}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                        placeholder="Indica cantidad">
+                        placeholder={t.t('kidsPlaceholder')}>
                     </input>
                 </div>
 
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
-                        Pack elegido
+                        {tForm.t('selectedPack')}
                     </label>
                     <select className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
                         value={formData.pack}
                         name="pack"
                         onChange={handleChange}
                         required>
-                        <option value={"ALEGRIA"}>Pack Alegría - 15€</option>
-                        <option value={"FIESTA"}>Pack Fiesta - 25€</option>
-                        <option value={"ESPECIAL"}>Pack Especial - 35€</option>
+                        <option value={"ALEGRIA"}>{tForm.t('packAlegria')}</option>
+                        <option value={"FIESTA"}>{tForm.t('packFiesta')}</option>
+                        <option value={"ESPECIAL"}>{tForm.t('packEspecial')}</option>
                     </select>
                 </div>
 
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
-                        Comentarios adicionales
+                        {tForm.t('additionalComments')}
                     </label>
                     <textarea
                         name="comments"
@@ -230,7 +232,7 @@ export function PacksForm({
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
                         value={formData.comments}
                         onChange={handleChange}
-                        placeholder="Cuéntanos sobre la celebración..."
+                        placeholder={tForm.t('celebrationComments')}
                     ></textarea>
                 </div>
 
@@ -238,7 +240,7 @@ export function PacksForm({
                     type="submit"
                     className="w-full bg-gradient-to-r from-pink-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300"
                 >
-                    {loading ? "Procesando..." : "Confirmar Reserva"}
+                    {loading ? tForm.t('processing') : tForm.t('confirmBooking')}
                 </button>
             </form></>
 

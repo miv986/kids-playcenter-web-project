@@ -1,39 +1,42 @@
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 export function Gallery() {
+  const t = useTranslation('Gallery');
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   
   const images = [
     {
       src: 'https://images.pexels.com/photos/8613089/pexels-photo-8613089.jpeg?auto=compress&cs=tinysrgb&w=800',
       alt: 'Niños jugando en la ludoteca',
-      category: 'Juegos'
+      category: t.t('games')
     },
     {
       src: 'https://images.pexels.com/photos/8613090/pexels-photo-8613090.jpeg?auto=compress&cs=tinysrgb&w=800',
       alt: 'Taller de manualidades',
-      category: 'Talleres'
+      category: t.t('workshops')
     },
     {
       src: 'https://images.pexels.com/photos/8613091/pexels-photo-8613091.jpeg?auto=compress&cs=tinysrgb&w=800',
       alt: 'Fiesta de cumpleaños',
-      category: 'Fiestas'
+      category: t.t('parties')
     },
     {
       src: 'https://images.pexels.com/photos/8613092/pexels-photo-8613092.jpeg?auto=compress&cs=tinysrgb&w=800',
       alt: 'Actividades grupales',
-      category: 'Actividades'
+      category: t.t('activities')
     },
     {
       src: 'https://images.pexels.com/photos/8613093/pexels-photo-8613093.jpeg?auto=compress&cs=tinysrgb&w=800',
       alt: 'Zona de lectura',
-      category: 'Lectura'
+      category: t.t('reading')
     },
     {
       src: 'https://images.pexels.com/photos/8613094/pexels-photo-8613094.jpeg?auto=compress&cs=tinysrgb&w=800',
       alt: 'Espacio de juegos',
-      category: 'Instalaciones'
+      category: t.t('facilities')
     }
   ];
 
@@ -54,11 +57,10 @@ export function Gallery() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
-            Galería
+            {t.t('title')}
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Descubre nuestras instalaciones y revive los momentos más divertidos. 
-            Cada imagen cuenta una historia de alegría, creatividad y diversión.
+            {t.t('description')}
           </p>
         </div>
 
@@ -130,15 +132,14 @@ export function Gallery() {
         <div className="mt-16 text-center">
           <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-3xl p-8 shadow-lg max-w-4xl mx-auto">
             <h3 className="text-3xl font-bold text-gray-800 mb-4">
-              ¡Ven a Conocernos!
+              {t.t('visitTitle')}
             </h3>
             <p className="text-gray-600 mb-6 text-lg">
-              Te invitamos a visitar nuestras instalaciones y descubrir todo lo que tenemos 
-              preparado para hacer de cada día una aventura especial.
+              {t.t('visitDescription')}
             </p>
-            <button className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-              Agendar Visita
-            </button>
+            <Link href="/calendario" className="inline-block bg-gradient-to-r from-pink-400 to-purple-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+              {t.t('scheduleVisit')}
+            </Link>
           </div>
         </div>
       </div>

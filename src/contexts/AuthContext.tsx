@@ -54,18 +54,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       const data = await httpProvider.post('/api/auth/login', { email, password });
-
-      if (!data.user.isEmailVerified) {
-        alert("Debes confirmar tu correo antes de iniciar sesión.");
-        return false;
-      }
       setUser(data.user);
       const token = data.accessToken || data.token;
       tokenProvider.setToken(token);
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error", error);
+      // Si el error viene del backend, mostrar el mensaje específico
+      if (error?.message) {
+        alert(error.message);
+      }
       return false;
     } finally {
       setIsLoading(false);

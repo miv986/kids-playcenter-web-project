@@ -3,10 +3,13 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useChildren } from "../../contexts/ChildrenContext";
 import { Child } from "../../types/auth";
+import { useTranslation } from "../../contexts/TranslationContext";
 
 export function UserProfile() {
     const { user } = useAuth();
     const { fetchMyChildren, updateChild, addChild, deleteChild } = useChildren();
+    const t = useTranslation('UserProfile');
+    const locale = t.locale;
     const [children, setChildren] = useState([] as Array<Child>)
 
     const [editingChild, setEditingChild] = useState<Child | null>(null);
@@ -16,7 +19,7 @@ export function UserProfile() {
     if (!user) {
         return (
             <div className="min-h-screen flex items-center justify-center text-gray-500">
-                Cargando información del usuario...
+                {t.t('loading')}
             </div>
         );
     }
@@ -43,7 +46,7 @@ export function UserProfile() {
         try {
             // Validar que los campos requeridos estén presentes
             if (!formData.name || !formData.surname || !formData.dateOfBirth) {
-                alert("Por favor, completa todos los campos requeridos (Nombre, Apellidos, Fecha de Nacimiento)");
+                alert(t.t('fillRequired'));
                 return;
             }
 
@@ -61,18 +64,18 @@ export function UserProfile() {
             setFormData({});
         } catch (err) {
             console.error("Error guardando hijo:", err);
-            alert("Error al guardar el hijo. Por favor, inténtalo de nuevo.");
+            alert(t.t('errorSaving'));
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (window.confirm('¿Estás seguro de que quieres eliminar este hijo?')) {
+        if (window.confirm(t.t('confirmDelete'))) {
             try {
                 await deleteChild(id);
                 setChildren(prev => prev.filter(c => c.id !== id));
             } catch (err) {
                 console.error("Error eliminando hijo:", err);
-                alert("Error al eliminar el hijo.");
+                alert(t.t('errorDeleting'));
             }
         }
     };
@@ -89,10 +92,10 @@ export function UserProfile() {
             <div className="container mx-auto px-4">
                 <div className="mb-8">
                     <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                        Mis Datos
+                        {t.t('title')}
                     </h1>
                     <p className="text-gray-600">
-                        Aquí puedes ver tu información personal y la de tus hijos.
+                        {t.t('subtitle')}
                     </p>
                 </div>
 
@@ -100,7 +103,7 @@ export function UserProfile() {
                 <div className="bg-white p-8 rounded-2xl shadow-lg mb-8">
                     <div className="mb-6 border-b border-gray-200 pb-4">
                         <h2 className="text-2xl font-bold text-gray-800">
-                            Información del Usuario
+                            {t.t('userInfo')}
                         </h2>
                     </div>
                     <div className="grid md:grid-cols-2 gap-6">
@@ -109,7 +112,7 @@ export function UserProfile() {
                                 <User className="w-6 h-6 text-blue-600" />
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500">Nombre</p>
+                                <p className="text-sm text-gray-500">{t.t('name')}</p>
                                 <p className="font-semibold text-gray-800">{user.name}</p>
                             </div>
                         </div>
@@ -118,7 +121,7 @@ export function UserProfile() {
                                 <Mail className="w-6 h-6 text-green-600" />
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500">Correo</p>
+                                <p className="text-sm text-gray-500">{t.t('email')}</p>
                                 <p className="font-semibold text-gray-800">{user.email}</p>
                             </div>
                         </div>
@@ -127,8 +130,8 @@ export function UserProfile() {
                                 <Phone className="w-6 h-6 text-yellow-600" />
                             </div>
                             <div>
-                                <p className="text-sm text-gray-500">Teléfono</p>
-                                <p className="font-semibold text-gray-800">{user.phone_number || "No registrado"}</p>
+                                <p className="text-sm text-gray-500">{t.t('phone')}</p>
+                                <p className="font-semibold text-gray-800">{user.phone_number || t.t('notRegistered')}</p>
                             </div>
                         </div>
                     </div>
@@ -138,7 +141,7 @@ export function UserProfile() {
                 <div className="bg-white p-6 rounded-2xl shadow-lg">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-800">
-                            Hijos Registrados
+                            {t.t('children')}
                         </h2>
                         {!isAddingNew && !editingChild && (
                             <button
@@ -146,18 +149,18 @@ export function UserProfile() {
                                 className="bg-green-500 text-white px-4 py-2 rounded-xl hover:bg-green-600 transition-all shadow-md hover:shadow-lg flex items-center space-x-2 font-medium"
                             >
                                 <Plus className="w-5 h-5" />
-                                <span>Añadir Hijo</span>
+                                <span>{t.t('addChild')}</span>
                             </button>
                         )}
                     </div>
 
                     {isAddingNew && (
                         <div className="mb-6 bg-gradient-to-br from-white to-green-50 border-2 border-green-200 rounded-xl p-6">
-                            <h3 className="text-lg font-bold text-gray-800 mb-4">Nuevo Hijo</h3>
+                            <h3 className="text-lg font-bold text-gray-800 mb-4">{t.t('newChild')}</h3>
                             <div className="space-y-4">
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('name')}</label>
                                             <input
                                                 type="text"
                                                 value={formData.name || ""}
@@ -167,7 +170,7 @@ export function UserProfile() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Apellidos</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('surname')}</label>
                                             <input
                                                 type="text"
                                                 value={formData.surname || ""}
@@ -178,7 +181,7 @@ export function UserProfile() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Fecha de Nacimiento</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('dateOfBirth')}</label>
                                         <input
                                             type="date"
                                             value={formData.dateOfBirth || ""}
@@ -188,7 +191,7 @@ export function UserProfile() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Alergias</label>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('allergies')}</label>
                                         <textarea
                                             value={formData.allergies || ""}
                                             onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
@@ -198,7 +201,7 @@ export function UserProfile() {
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Contacto Emergencia 1 - Nombre</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('emergencyContact1Name')}</label>
                                             <input
                                                 type="text"
                                                 value={formData.emergency_contact_name_1 || ""}
@@ -207,7 +210,7 @@ export function UserProfile() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono Emergencia 1</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('emergencyPhone1')}</label>
                                             <input
                                                 type="tel"
                                                 value={formData.emergency_phone_1 || ""}
@@ -218,7 +221,7 @@ export function UserProfile() {
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Contacto Emergencia 2 - Nombre</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('emergencyContact2Name')}</label>
                                             <input
                                                 type="text"
                                                 value={formData.emergency_contact_name_2 || ""}
@@ -227,7 +230,7 @@ export function UserProfile() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono Emergencia 2</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('emergencyPhone2')}</label>
                                             <input
                                                 type="tel"
                                                 value={formData.emergency_phone_2 || ""}
@@ -238,7 +241,7 @@ export function UserProfile() {
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-4">
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('notes')}</label>
                                             <textarea
                                                 value={formData.notes || ""}
                                                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -247,7 +250,7 @@ export function UserProfile() {
                                             />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">Notas médicas</label>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('medicalNotes')}</label>
                                             <textarea
                                                 value={formData.medicalNotes || ""}
                                                 onChange={(e) => setFormData({ ...formData, medicalNotes: e.target.value })}
@@ -261,13 +264,13 @@ export function UserProfile() {
                                             onClick={handleSave}
                                             className="bg-green-500 text-white px-6 py-3 rounded-xl hover:bg-green-600 transition-all shadow-md hover:shadow-lg font-medium"
                                         >
-                                            Guardar
+                                            {t.t('save')}
                                         </button>
                                         <button
                                             onClick={handleCancel}
                                             className="bg-gray-300 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-400 transition-all shadow-md hover:shadow-lg font-medium"
                                         >
-                                            Cancelar
+                                            {t.t('cancel')}
                                         </button>
                                     </div>
                             </div>
@@ -286,7 +289,7 @@ export function UserProfile() {
                                         <div className="space-y-4">
                                             <div className="grid md:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Nombre</label>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('name')}</label>
                                                     <input
                                                         type="text"
                                                         value={formData.name || ""}
@@ -295,7 +298,7 @@ export function UserProfile() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Apellidos</label>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('surname')}</label>
                                                     <input
                                                         type="text"
                                                         value={formData.surname || ""}
@@ -305,7 +308,7 @@ export function UserProfile() {
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">Alergias</label>
+                                                <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('allergies')}</label>
                                                 <textarea
                                                     value={formData.allergies || ""}
                                                     onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
@@ -316,7 +319,7 @@ export function UserProfile() {
                                             {/* TELEFONOS DE EMERGENCIA*/}
                                             <div className="grid md:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Contacto Emergencia 1 - Nombre</label>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('emergencyContact1Name')}</label>
                                                     <input
                                                         type="text"
                                                         value={formData.emergency_contact_name_1 || ""}
@@ -325,7 +328,7 @@ export function UserProfile() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono Emergencia 1</label>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('emergencyPhone1')}</label>
                                                     <input
                                                         type="tel"
                                                         value={formData.emergency_phone_1 || ""}
@@ -334,7 +337,7 @@ export function UserProfile() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Contacto Emergencia 2 - Nombre</label>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('emergencyContact2Name')}</label>
                                                     <input
                                                         type="text"
                                                         value={formData.emergency_contact_name_2 || ""}
@@ -343,7 +346,7 @@ export function UserProfile() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Teléfono Emergencia 2</label>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('emergencyPhone2')}</label>
                                                     <input
                                                         type="tel"
                                                         value={formData.emergency_phone_2 || ""}
@@ -354,7 +357,7 @@ export function UserProfile() {
                                             </div>
                                             <div className="grid md:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Notas</label>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('notes')}</label>
                                                     <textarea
                                                         value={formData.notes || ""}
                                                         onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -363,7 +366,7 @@ export function UserProfile() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-sm font-medium text-gray-700 mb-2">Notas médicas</label>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">{t.t('medicalNotes')}</label>
                                                     <textarea
                                                         value={formData.medicalNotes || ""}
                                                         onChange={(e) => setFormData({ ...formData, medicalNotes: e.target.value })}
@@ -377,13 +380,13 @@ export function UserProfile() {
                                                     onClick={handleSave}
                                                     className="bg-green-500 text-white px-6 py-3 rounded-xl hover:bg-green-600 transition-all shadow-md hover:shadow-lg font-medium"
                                                 >
-                                                    Guardar
+                                                    {t.t('save')}
                                                 </button>
                                                 <button
                                                     onClick={() => setEditingChild(null)}
                                                     className="bg-gray-300 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-400 transition-all shadow-md hover:shadow-lg font-medium"
                                                 >
-                                                    Cancelar
+                                                    {t.t('cancel')}
                                                 </button>
                                             </div>
                                         </div>
@@ -396,7 +399,7 @@ export function UserProfile() {
                                                         <Baby className="w-5 h-5 text-pink-600" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-xs text-gray-500 mb-1">Nombre</p>
+                                                        <p className="text-xs text-gray-500 mb-1">{t.t('name')}</p>
                                                         <p className="font-semibold text-gray-800">
                                                             {child.name} {child.surname}
                                                         </p>
@@ -407,9 +410,9 @@ export function UserProfile() {
                                                         <Calendar className="w-5 h-5 text-blue-600" />
                                                     </div>
                                                     <div>
-                                                        <p className="text-xs text-gray-500 mb-1">Fecha Nac.</p>
+                                                        <p className="text-xs text-gray-500 mb-1">{t.t('dateOfBirthShort')}</p>
                                                         <p className="font-semibold text-gray-800">
-                                                            {new Date(child.dateOfBirth).toLocaleDateString("es-ES")}
+                                                            {new Date(child.dateOfBirth).toLocaleDateString(locale === 'ca' ? 'ca-ES' : 'es-ES')}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -419,7 +422,7 @@ export function UserProfile() {
                                                             <FileText className="w-5 h-5 text-red-600" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-xs text-gray-500 mb-1">Alergias</p>
+                                                            <p className="text-xs text-gray-500 mb-1">{t.t('allergies')}</p>
                                                             <p className="font-semibold text-red-700">{child.allergies}</p>
                                                         </div>
                                                     </div>
@@ -430,7 +433,7 @@ export function UserProfile() {
                                                             <Phone className="w-5 h-5 text-green-600" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-xs text-gray-500 mb-1">Emergencia 1</p>
+                                                            <p className="text-xs text-gray-500 mb-1">{t.t('emergency1')}</p>
                                                             <p className="font-semibold text-gray-800">
                                                                 {child.emergency_contact_name_1} ({child.emergency_phone_1})
                                                             </p>
@@ -443,7 +446,7 @@ export function UserProfile() {
                                                             <Phone className="w-5 h-5 text-yellow-600" />
                                                         </div>
                                                         <div>
-                                                            <p className="text-xs text-gray-500 mb-1">Emergencia 2</p>
+                                                            <p className="text-xs text-gray-500 mb-1">{t.t('emergency2')}</p>
                                                             <p className="font-semibold text-gray-800">
                                                                 {child.emergency_contact_name_2} ({child.emergency_phone_2})
                                                             </p>
@@ -458,7 +461,7 @@ export function UserProfile() {
                                                     className="bg-blue-500 text-white px-6 py-3 rounded-xl hover:bg-blue-600 transition-all shadow-md hover:shadow-lg flex items-center justify-center space-x-2 font-medium"
                                                 >
                                                     <Edit className="w-4 h-4" />
-                                                    <span>Editar</span>
+                                                    <span>{t.t('edit')}</span>
                                                 </button>
 
                                                 <button
@@ -466,7 +469,7 @@ export function UserProfile() {
                                                     className="bg-red-500 text-white px-6 py-3 rounded-xl hover:bg-red-600 transition-all shadow-md hover:shadow-lg flex items-center justify-center space-x-2 font-medium"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
-                                                    <span>Eliminar</span>
+                                                    <span>{t.t('delete')}</span>
                                                 </button>
                                             </div>
                                         </div>
@@ -478,13 +481,13 @@ export function UserProfile() {
                         <div className="text-center py-12">
                             <Baby className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                             <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                No tienes hijos registrados
+                                {t.t('noChildren')}
                             </h3>
                             <p className="text-gray-500 mb-6">
-                                Puedes añadirlos en el área de configuración de tu cuenta.
+                                {t.t('canAddChildren')}
                             </p>
-                            <button className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-                                Añadir Hijo
+                            <button onClick={handleAddNew} className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-300">
+                                {t.t('addChild')}
                             </button>
                         </div>
                     )}
