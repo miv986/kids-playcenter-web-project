@@ -1,7 +1,11 @@
 import React from 'react';
 import { Star, Heart, Sparkles } from 'lucide-react';
+import { useTranslation } from '../../contexts/TranslationContext';
+import Link from 'next/link';
 
 export function Hero() {
+  const t = useTranslation('Hero');
+
   return (
     <section id="inicio" className="relative py-20 overflow-hidden">
       {/* Background decorations */}
@@ -17,58 +21,63 @@ export function Hero() {
           <div className="text-center lg:text-left">
             <div className="flex items-center justify-center lg:justify-start space-x-2 mb-4">
               <Star className="w-6 h-6 text-yellow-400 fill-current" />
-              <span className="text-lg font-medium text-gray-600">¡Bienvenidos a la diversión!</span>
+              <span className="text-lg font-medium text-gray-600">{t.t('welcome')}</span>
               <Star className="w-6 h-6 text-yellow-400 fill-current" />
             </div>
-            
+
             <h1 className="text-5xl lg:text-6xl font-bold text-gray-800 mb-6 leading-tight">
-              Donde los
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500"> sueños </span>
-              cobran vida
+              {t.t('title', { dreams: t.t('dreams') }).split(t.t('dreams')).map((part, i) =>
+                i === 0 ? (
+                  <React.Fragment key={i}>
+                    {part}
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-blue-500">{t.t('dreams')}</span>
+                  </React.Fragment>
+                ) : part
+              )}
             </h1>
-            
+
             <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-              Un espacio mágico lleno de aventuras, aprendizaje y diversión para niños de todas las edades. 
-              Creamos momentos inolvidables mientras los pequeños exploran, juegan y crecen.
+              {t.t('description')}
             </p>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
               <button className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center justify-center space-x-2">
                 <Heart className="w-5 h-5" />
-                <span>Reservar Visita</span>
+                <Link href={'/calendario'}>{t.t('bookVisit')}</Link>
               </button>
               <button className="bg-white text-gray-700 px-8 py-4 rounded-2xl font-bold text-lg border-2 border-gray-200 hover:border-pink-300 hover:text-pink-500 transition-all duration-300 flex items-center justify-center space-x-2">
                 <Sparkles className="w-5 h-5" />
-                <span>Ver Actividades</span>
+                <Link href={'/servicios'}>{t.t('viewActivities')}</Link>
               </button>
             </div>
-            
-            <div className="mt-12 grid grid-cols-3 gap-8 text-center">
+
+            {    /*        <div className="mt-12 grid grid-cols-3 gap-8 text-center">
               <div>
                 <div className="text-3xl font-bold text-green-500 mb-2">500+</div>
-                <div className="text-gray-600">Niños Felices</div>
+                <div className="text-gray-600">{t.t('happyKids')}</div>
               </div>
               <div>
                 <div className="text-3xl font-bold text-pink-500 mb-2">15+</div>
-                <div className="text-gray-600">Actividades</div>
+                <div className="text-gray-600">{t.t('activities')}</div>
               </div>
               <div>
                 <div className="text-3xl font-bold text-yellow-500 mb-2">5</div>
-                <div className="text-gray-600">Años Experiencia</div>
+                <div className="text-gray-600">{t.t('yearsExperience')}</div>
               </div>
             </div>
+            */}
           </div>
-          
+
           <div className="relative">
             <div className="relative bg-gradient-to-br from-pink-200 via-purple-200 to-blue-200 rounded-3xl p-8 shadow-2xl">
               <div className="aspect-square bg-white rounded-2xl shadow-lg flex items-center justify-center">
                 <div className="text-center">
                   <div className="text-8xl mb-4">🎨</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">¡Creatividad sin límites!</h3>
-                  <p className="text-gray-600">Talleres de arte, manualidades y mucho más</p>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{t.t('creativity')}</h3>
+                  <p className="text-gray-600">{t.t('workshops')}</p>
                 </div>
               </div>
-              
+
               {/* Floating elements */}
               <div className="absolute -top-4 -right-4 w-16 h-16 bg-yellow-400 rounded-full flex items-center justify-center shadow-lg animate-bounce">
                 <span className="text-2xl">⭐</span>

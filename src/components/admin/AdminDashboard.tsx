@@ -9,10 +9,12 @@ import { AdminBirthdaySlots } from './AdminBirthdaySlots';
 import { AdminDaycareSlots } from './AdminDaycareSlots';
 import { AdminDaycareBookings } from './AdminDaycareBookings';
 import { AdminTutors } from './AdminTutors';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 export function AdminDashboard() {
   const { user } = useAuth();
   const { fetchBookings, updateBookingStatus, deleteBooking } = useBookings();
+  const t = useTranslation('Dashboard');
 
   const [bookings, setBookings] = useState([] as Array<BirthdayBooking>)
 
@@ -24,11 +26,11 @@ export function AdminDashboard() {
 
 
   const tabs = [
-    { id: "birthdayBookings", label: "Reservas Cumpleaños", content: <AdminBookings /> },
-    { id: "birthdaySlots", label: "Slots Cumpleaños", content: <AdminBirthdaySlots /> },
-    { id: "daycareSlots", label: "Slots Ludoteca", content: <AdminDaycareSlots /> },
-    { id: "daycareBookings", label: "Reservas Ludoteca", content: <AdminDaycareBookings /> },
-    { id: "tutors", label: "Tutores e Hijos", content: <AdminTutors /> },
+    { id: "birthdayBookings", label: t.t('admin.birthdayBookings'), content: <AdminBookings /> },
+    { id: "birthdaySlots", label: t.t('admin.birthdaySlots'), content: <AdminBirthdaySlots /> },
+    { id: "daycareSlots", label: t.t('admin.daycareSlots'), content: <AdminDaycareSlots /> },
+    { id: "daycareBookings", label: t.t('admin.daycareBookings'), content: <AdminDaycareBookings /> },
+    { id: "tutors", label: t.t('admin.tutors'), content: <AdminTutors /> },
   ];
 
   return (

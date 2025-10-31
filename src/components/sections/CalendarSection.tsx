@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import { useSlots } from '../../contexts/SlotContext';
 import { useDaycareSlots } from '../../contexts/DaycareSlotContext';
@@ -6,16 +7,20 @@ import { PacksForm } from './PacksForm';
 import { BirthdayBooking, BirthdaySlot, DaycareSlot } from '../../types/auth';
 import { AuthModal } from '../auth/AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 
 export function CalendarSection() {
-
-  const { fetchSlotsAvailable, fetchSlots, fetchSlotsByDay } = useSlots();
-  const { fetchAvailableSlotsByDate } = useDaycareSlots();
+  const router = useRouter();
+  const tHook = useTranslation('Calendar');
+  const t = tHook.t;
+  const locale = tHook.locale;
+  const { fetchSlotsAvailable } = useSlots();
+  const { fetchSlots } = useDaycareSlots();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [birthdaySlots, setBirthdaySlots] = useState([] as Array<BirthdaySlot>);
-  const [daycareSlots, setDaycareSlots] = useState([] as Array<DaycareSlot>);
+  const [allDaycareSlots, setAllDaycareSlots] = useState([] as Array<DaycareSlot>); // Todos los slots cargados
   const [selectedDay, setSelectedDay] = useState<Date | undefined | undefined>(undefined);
   const [selectedDaySlots, setSelectedDaySlots] = useState<DaycareSlot[]>([]);
   const [selectedDayType, setSelectedDayType] = useState<'birthday' | 'daycare' | 'both' | null>(null);
@@ -30,31 +35,33 @@ export function CalendarSection() {
     setIsAuthModalOpen(true);
   };
 
-
-
-  // Fetch all slots
+  // Fetch all slots - UNA SOLA PETICIÓN
   useEffect(() => {
-    fetchSlotsAvailable().then((slots) => setBirthdaySlots(slots));
-    fetchDaycareSlotsForMonth();
+    const loadAllSlots = async () => {
+      const [birthdayData, daycareData] = await Promise.all([
+        fetchSlotsAvailable(),
+        fetchSlots()
+      ]);
+      setBirthdaySlots(birthdayData);
+      setAllDaycareSlots(daycareData || []);
+    };
+    loadAllSlots();
   }, []);
 
-  const fetchDaycareSlotsForMonth = async () => {
-    const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
-    const slotsMap = new Map<number, DaycareSlot[]>();
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-      const slots = await fetchAvailableSlotsByDate(date);
-      slotsMap.set(day, slots);
-    }
-    // Convert map to flat array for now
-    const allDaycareSlots: DaycareSlot[] = [];
-    slotsMap.forEach(slots => allDaycareSlots.push(...slots));
-    setDaycareSlots(allDaycareSlots);
-  };
+  // Filtrar slots del mes actual desde todos los slots cargados
+  const daycareSlots = useMemo(() => {
+    return allDaycareSlots.filter(slot => {
+      // El campo date viene como string ISO desde el backend
+      const slotDate = new Date(slot.date);
+      return slotDate.getFullYear() === currentMonth.getFullYear() &&
+        slotDate.getMonth() === currentMonth.getMonth() &&
+        slot.status === 'OPEN' &&
+        slot.availableSpots > 0;
+    });
+  }, [allDaycareSlots, currentMonth]);
 
 
-  const handleDayClick = async (day: number) => {
+  const handleDayClick = (day: number) => {
     const date = new Date(
       currentMonth.getFullYear(),
       currentMonth.getMonth(),
@@ -66,22 +73,32 @@ export function CalendarSection() {
     const status = dayStatus[day];
     setSelectedDayType(status.type === 'birthday' ? 'birthday' : status.type === 'daycare' ? 'daycare' : status.type === 'both' ? 'both' : null);
 
-    // Si hay slots de daycare, cargarlos
+    // Filtrar slots del día seleccionado desde los slots ya cargados
     if (status.type === 'daycare' || status.type === 'both') {
-      const slots = await fetchAvailableSlotsByDate(date);
-      setSelectedDaySlots(slots);
+      const daySlots = allDaycareSlots.filter(slot => {
+        const slotDate = new Date(slot.date);
+        return slotDate.getFullYear() === date.getFullYear() &&
+          slotDate.getMonth() === date.getMonth() &&
+          slotDate.getDate() === date.getDate() &&
+          slot.status === 'OPEN' &&
+          slot.availableSpots > 0;
+      });
+      setSelectedDaySlots(daySlots);
     } else {
       setSelectedDaySlots([]);
     }
   };
 
   const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    t('months.0'), t('months.1'), t('months.2'), t('months.3'),
+    t('months.4'), t('months.5'), t('months.6'), t('months.7'),
+    t('months.8'), t('months.9'), t('months.10'), t('months.11')
   ];
 
-
-  const daysOfWeek = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+  const daysOfWeek = [
+    t('daysOfWeek.0'), t('daysOfWeek.1'), t('daysOfWeek.2'),
+    t('daysOfWeek.3'), t('daysOfWeek.4'), t('daysOfWeek.5'), t('daysOfWeek.6')
+  ];
 
   const getDaysInMonth = (date: Date) => {
     const year = date.getFullYear();
@@ -136,16 +153,10 @@ export function CalendarSection() {
       birthdaySlotsByDay[day].push(slot);
     });
 
-    // Filtra daycare slots del mes actual
-    const daycareSlotsInMonth = daycareSlots.filter(slot => {
-      const date = new Date(slot.date);
-      return date.getFullYear() === currentMonth.getFullYear() &&
-        date.getMonth() === currentMonth.getMonth();
-    });
-
+    // daycareSlots ya está filtrado por mes en useMemo, así que usamos directamente
     // Agrupa daycare slots por día
     const daycareSlotsByDay: Record<number, DaycareSlot[]> = {};
-    daycareSlotsInMonth.forEach(slot => {
+    daycareSlots.forEach(slot => {
       const day = new Date(slot.date).getDate();
       if (!daycareSlotsByDay[day]) daycareSlotsByDay[day] = [];
       daycareSlotsByDay[day].push(slot);
@@ -177,16 +188,15 @@ export function CalendarSection() {
     return statusMap;
   }, [birthdaySlots, daycareSlots, currentMonth]);
 
-  // dentro de CalendarSection
+  // Recargar todos los slots después de crear una reserva
   const reloadSlots = async () => {
-    const updated = await fetchSlotsAvailable();
-    setBirthdaySlots(updated);
-    await fetchDaycareSlotsForMonth();
+    const [birthdayData, daycareData] = await Promise.all([
+      fetchSlotsAvailable(),
+      fetchSlots()
+    ]);
+    setBirthdaySlots(birthdayData);
+    setAllDaycareSlots(daycareData || []);
   };
-
-  useEffect(() => {
-    fetchDaycareSlotsForMonth();
-  }, [currentMonth]);
 
 
   const days = getDaysInMonth(currentMonth);
@@ -199,28 +209,28 @@ export function CalendarSection() {
         {/* Encabezado */}
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-4">
-            Calendario y Reservas
+            {t('title')}
           </h2>
 
           <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-            Elige tu fecha ideal
+            {t('subtitle')}
           </p>
 
           {/* Leyenda minimalista */}
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm mb-8">
             <div className="flex items-center space-x-2 bg-green-50 px-4 py-2 rounded-full border border-green-200">
               <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-              <span className="text-gray-700 font-medium">Cumpleaños</span>
-              <span className="text-gray-500">(Viernes-Domingo)</span>
+              <span className="text-gray-700 font-medium">{t('birthday')}</span>
+              <span className="text-gray-500">{t('birthdayDays')}</span>
             </div>
             <div className="flex items-center space-x-2 bg-blue-50 px-4 py-2 rounded-full border border-blue-200">
               <div className="w-3 h-3 bg-blue-400 rounded-full"></div>
-              <span className="text-gray-700 font-medium">Ludoteca</span>
-              <span className="text-gray-500">(Lunes-Jueves)</span>
+              <span className="text-gray-700 font-medium">{t('daycare')}</span>
+              <span className="text-gray-500">{t('daycareDays')}</span>
             </div>
             <div className="flex items-center space-x-2 bg-orange-50 px-4 py-2 rounded-full border border-orange-200">
               <div className="w-3 h-3 bg-orange-400 rounded-full"></div>
-              <span className="text-gray-700 font-medium">Ambos</span>
+              <span className="text-gray-700 font-medium">{t('both')}</span>
             </div>
           </div>
 
@@ -228,8 +238,8 @@ export function CalendarSection() {
             <div className="mt-8 space-y-4">
               <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 max-w-md mx-auto">
                 <p className="text-sm text-gray-700">
-                  💡 <span className="font-semibold">Reserva cumpleaños sin cuenta</span> |
-                  <span className="text-blue-600 font-semibold"> Login solo para ludoteca</span>
+                  💡 <span className="font-semibold">{t('reserveBirthdayNoAccount')}</span> |
+                  <span className="text-blue-600 font-semibold"> {t('loginOnlyDaycare')}</span>
                 </p>
               </div>
             </div>
@@ -305,23 +315,23 @@ export function CalendarSection() {
 
               {/* Leyenda del calendario */}
               <div className="mt-6 pt-6 border-t border-gray-200">
-                <p className="text-xs text-gray-500 text-center mb-3">Leyenda:</p>
+                <p className="text-xs text-gray-500 text-center mb-3">{t('legend')}</p>
                 <div className="flex flex-wrap items-center justify-center gap-3 text-xs">
                   <div className="flex items-center space-x-1.5">
                     <div className="w-2.5 h-2.5 bg-green-100 border border-green-300 rounded"></div>
-                    <span className="text-gray-600">Cumpleaños</span>
+                    <span className="text-gray-600">{t('birthday')}</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
                     <div className="w-2.5 h-2.5 bg-blue-100 border border-blue-300 rounded"></div>
-                    <span className="text-gray-600">Ludoteca</span>
+                    <span className="text-gray-600">{t('daycare')}</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
                     <div className="w-2.5 h-2.5 bg-orange-100 border border-orange-300 rounded"></div>
-                    <span className="text-gray-600">Ambos</span>
+                    <span className="text-gray-600">{t('both')}</span>
                   </div>
                   <div className="flex items-center space-x-1.5">
                     <div className="w-2.5 h-2.5 bg-gray-100 rounded"></div>
-                    <span className="text-gray-600">No disponible</span>
+                    <span className="text-gray-600">{t('notAvailable')}</span>
                   </div>
                 </div>
               </div>
@@ -334,7 +344,7 @@ export function CalendarSection() {
                   {!user && (
                     <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                       <p className="text-sm text-green-700">
-                        ✓ Puedes reservar sin iniciar sesión
+                        ✓ {t('canReserveWithoutLogin')}
                       </p>
                     </div>
                   )}
@@ -346,7 +356,7 @@ export function CalendarSection() {
               {(selectedDayType === 'daycare' || selectedDayType === 'both') && selectedDay && (
                 <div className="bg-white rounded-3xl shadow-xl p-8">
                   <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                    {selectedDayType === 'both' ? 'Ludoteca' : ''} Horarios - {selectedDay.toLocaleDateString('es-ES')}
+                    {selectedDayType === 'both' ? t('daycare') + ' ' : ''}{t('schedules')} - {selectedDay.toLocaleDateString(locale === 'ca' ? 'ca-ES' : 'es-ES')}
                   </h3>
                   {selectedDaySlots.length > 0 ? (
                     <div className="space-y-3">
@@ -354,32 +364,32 @@ export function CalendarSection() {
                         <div key={slot.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-blue-50 transition-all">
                           <div>
                             <p className="font-medium text-gray-800">{slot.openHour} - {slot.closeHour}</p>
-                            <p className="text-sm text-gray-500">{slot.availableSpots} plazas disponibles</p>
+                            <p className="text-sm text-gray-500">{slot.availableSpots} {t('availableSpots')}</p>
                           </div>
                           {user ? (
                             <button
                               onClick={() => {
                                 localStorage.setItem('openDaycareBooking', selectedDay.toISOString());
                                 localStorage.setItem('shouldOpenDaycareBooking', 'true');
-                                window.location.href = '/';
+                                router.push('/dashboard');
                               }}
                               className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm font-medium transition-all"
                             >
-                              Reservar
+                              {t('book')}
                             </button>
                           ) : (
                             <button
                               onClick={() => handleAuthClick('login')}
                               className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2 rounded-lg hover:shadow-md text-sm font-medium transition-all"
                             >
-                              Login para reservar
+                              {t('loginToBook')}
                             </button>
                           )}
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500">No hay horarios disponibles para este día</p>
+                    <p className="text-gray-500">{t('noSlots')}</p>
                   )}
                 </div>
               )}
@@ -387,11 +397,11 @@ export function CalendarSection() {
               {/* Mostrar ambos si es 'both' */}
               {selectedDayType === 'both' && birthdaySlots &&
                 <div className="bg-white rounded-3xl shadow-xl p-8">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">Cumpleaños</h3>
+                  <h3 className="text-2xl font-bold text-gray-800 mb-4">{t('birthday')}</h3>
                   {!user && (
                     <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                       <p className="text-sm text-green-700">
-                        ✓ Reserva cumpleaños sin login
+                        ✓ {t('reserveBirthdayWithoutLogin')}
                       </p>
                     </div>
                   )}

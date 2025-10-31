@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { LogIn, Eye, EyeOff, User, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -9,6 +10,7 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }: LoginFormProps) {
+  const t = useTranslation('Auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -24,7 +26,7 @@ export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }
     if (success) {
       onClose();
     } else {
-      setError('Credenciales incorrectas. Prueba con admin@prueba.com / admin123 o cualquier email / user123');
+      setError(t.t('wrongCredentials'));
     }
   };
 
@@ -34,8 +36,8 @@ export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }
         <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
           <LogIn className="w-8 h-8 text-white" />
         </div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Iniciar Sesión</h2>
-        <p className="text-gray-600">Accede a tu cuenta para gestionar tus reservas</p>
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">{t.t('loginTitle')}</h2>
+        <p className="text-gray-600">{t.t('loginSubtitle')}</p>
       </div>
 
       {sessionExpiredMessage && (
@@ -47,7 +49,7 @@ export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            Correo electrónico
+            {t.t('email')}
           </label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -56,7 +58,7 @@ export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all duration-200"
-              placeholder="tu@email.com"
+              placeholder={t.t('emailPlaceholder')}
               required
             />
           </div>
@@ -64,7 +66,7 @@ export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }
 
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            Contraseña
+            {t.t('password')}
           </label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -73,7 +75,7 @@ export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:border-green-400 focus:ring-2 focus:ring-green-100 transition-all duration-200"
-              placeholder="Tu contraseña"
+              placeholder={t.t('passwordPlaceholder')}
               required
             />
             <button
@@ -97,18 +99,18 @@ export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }
           disabled={isLoading}
           className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white py-3 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
         >
-          {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
+          {isLoading ? t.t('loggingIn') : t.t('loginButton')}
         </button>
       </form>
 
       <div className="mt-6 text-center">
         <p className="text-gray-600">
-          ¿No tienes cuenta?{' '}
+          {t.t('noAccount')}{' '}
           <button
             onClick={onSwitchToRegister}
             className="text-green-500 font-medium hover:underline"
           >
-            Regístrate aquí
+            {t.t('registerHere')}
           </button>
         </p>
       </div>

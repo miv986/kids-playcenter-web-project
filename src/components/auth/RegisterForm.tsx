@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserPlus, Eye, EyeOff, User, Lock, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 interface RegisterFormProps {
   onSwitchToLogin: () => void;
@@ -8,6 +9,7 @@ interface RegisterFormProps {
 }
 
 export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
+  const t = useTranslation('Auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -21,7 +23,7 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
     setError('');
 
     if (password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres');
+      setError(t.t('passwordMin'));
       return;
     }
 
@@ -29,7 +31,7 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
     if (success) {
       onClose();
     } else {
-      setError('Error al crear la cuenta. Inténtalo de nuevo.');
+      setError(t.t('errorCreating'));
     }
   };
 
@@ -39,15 +41,15 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
         <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
           <UserPlus className="w-8 h-8 text-white" />
         </div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Crear Cuenta</h2>
-        <p className="text-gray-600">Únete a nuestra comunidad de familias felices</p>
+        <h2 className="text-3xl font-bold text-gray-800 mb-2">{t.t('registerTitle')}</h2>
+        <p className="text-gray-600">{t.t('registerSubtitle')}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            Nombre
+            {t.t('name')}
           </label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -56,7 +58,7 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
               value={name}
               onChange={(e) => setName(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-              placeholder="Tu nombre"
+              placeholder={t.t('namePlaceholder')}
               required
             />
           </div>
@@ -64,7 +66,7 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
         
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            Apellidos
+            {t.t('surname')}
           </label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -73,14 +75,14 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
               value={surname}
               onChange={(e) => setSurname(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-              placeholder="Tus apellidos"
+              placeholder={t.t('surnamePlaceholder')}
               required
             />
           </div>
         </div>
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            Correo electrónico
+            {t.t('email')}
           </label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -89,7 +91,7 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-              placeholder="tu@email.com"
+              placeholder={t.t('emailPlaceholder')}
               required
             />
           </div>
@@ -97,7 +99,7 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
 
         <div>
           <label className="block text-gray-700 font-medium mb-2">
-            Contraseña
+            {t.t('password')}
           </label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -106,7 +108,7 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-              placeholder="Mínimo 6 caracteres"
+              placeholder={t.t('passwordMinPlaceholder')}
               required
             />
             <button
@@ -130,18 +132,18 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
           disabled={isLoading}
           className="w-full bg-gradient-to-r from-pink-400 to-purple-500 text-white py-3 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
         >
-          {isLoading ? 'Creando cuenta...' : 'Crear Cuenta'}
+          {isLoading ? t.t('creatingAccount') : t.t('registerButton')}
         </button>
       </form>
 
       <div className="mt-6 text-center">
         <p className="text-gray-600">
-          ¿Ya tienes cuenta?{' '}
+          {t.t('hasAccount')}{' '}
           <button
             onClick={onSwitchToLogin}
             className="text-pink-500 font-medium hover:underline"
           >
-            Inicia sesión aquí
+            {t.t('loginHere')}
           </button>
         </p>
       </div>

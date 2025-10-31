@@ -1,18 +1,19 @@
 import React from 'react';
 import { Users, Award, Shield, Heart } from 'lucide-react';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 export function AboutUs() {
+  const t = useTranslation('AboutUs');
+  
   return (
     <section id="nosotros" className="py-20 bg-white">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
-            Quiénes Somos
+            {t.t('title')}
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Somos un equipo apasionado dedicado a crear experiencias mágicas para los niños. 
-            Nuestra ludoteca es más que un lugar de juegos: es un espacio donde la imaginación 
-            y el aprendizaje van de la mano.
+            {t.t('description')}
           </p>
         </div>
 
@@ -22,7 +23,7 @@ export function AboutUs() {
               <div className="aspect-video bg-white rounded-2xl shadow-md flex items-center justify-center">
                 <div className="text-center">
                   <div className="text-6xl mb-4">👨‍👩‍👧‍👦</div>
-                  <p className="text-gray-600 font-medium">Nuestro equipo profesional</p>
+                  <p className="text-gray-600 font-medium">{t.t('teamCaption')}</p>
                 </div>
               </div>
             </div>
@@ -30,20 +31,16 @@ export function AboutUs() {
           
           <div className="space-y-8">
             <div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Nuestra Misión</h3>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">{t.t('mission')}</h3>
               <p className="text-gray-600 leading-relaxed">
-                Proporcionar un ambiente seguro, divertido y educativo donde los niños puedan 
-                desarrollar sus habilidades sociales, creativas y cognitivas a través del juego 
-                y actividades estructuradas.
+                {t.t('missionText')}
               </p>
             </div>
             
             <div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">Nuestra Visión</h3>
+              <h3 className="text-2xl font-bold text-gray-800 mb-4">{t.t('vision')}</h3>
               <p className="text-gray-600 leading-relaxed">
-                Ser la ludoteca de referencia en la comunidad, reconocida por la calidad de 
-                nuestros servicios, la calidez de nuestro trato y el impacto positivo en el 
-                desarrollo infantil.
+                {t.t('visionText')}
               </p>
             </div>
           </div>
@@ -54,9 +51,9 @@ export function AboutUs() {
             <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Users className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Equipo Profesional</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{t.t('professionalTeam')}</h3>
             <p className="text-gray-600">
-              Educadores especializados en desarrollo infantil y recreación
+              {t.t('professionalTeamText')}
             </p>
           </div>
 
@@ -64,9 +61,9 @@ export function AboutUs() {
             <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Award className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Calidad Garantizada</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{t.t('quality')}</h3>
             <p className="text-gray-600">
-              Certificados en seguridad infantil y primeros auxilios
+              {t.t('qualityText')}
             </p>
           </div>
 
@@ -74,9 +71,9 @@ export function AboutUs() {
             <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Shield className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Ambiente Seguro</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{t.t('safe')}</h3>
             <p className="text-gray-600">
-              Instalaciones adaptadas y supervisión constante
+              {t.t('safeText')}
             </p>
           </div>
 
@@ -84,9 +81,9 @@ export function AboutUs() {
             <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
               <Heart className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Con Amor</h3>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">{t.t('withLove')}</h3>
             <p className="text-gray-600">
-              Cada actividad está diseñada con cariño y dedicación
+              {t.t('withLoveText')}
             </p>
           </div>
         </div>

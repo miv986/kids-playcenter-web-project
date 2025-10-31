@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Check, Star, Crown, Heart, Edit, Save, X } from 'lucide-react';
 import { useHttp } from '../../contexts/HttpContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 interface BirthdayPackage {
   id: number;
@@ -15,12 +16,51 @@ interface BirthdayPackage {
   isActive: boolean;
 }
 
+// Helper function to translate package data
+function translatePackage(pack: BirthdayPackage, t: ReturnType<typeof useTranslation>['t']): BirthdayPackage {
+  const packType = pack.type.toLowerCase() as 'alegria' | 'fiesta' | 'especial';
+  const packKey = `pack${packType.charAt(0).toUpperCase() + packType.slice(1)}` as 'packAlegria' | 'packFiesta' | 'packEspecial';
+
+  // Get translated name
+  const translatedName = t(`${packKey}.name`) || pack.name;
+
+  // Get translated duration
+  const translatedDuration = t(`${packKey}.duration`) || pack.duration;
+
+  // Get translated features
+  const translatedFeatures = pack.features.map((_, index) => {
+    const featureKey = `${packKey}.feature${index + 1}`;
+    const translated = t(featureKey);
+    // If translation exists and is different from the key, use it, otherwise use original
+    return translated && translated !== featureKey ? translated : pack.features[index];
+  });
+
+  return {
+    ...pack,
+    name: translatedName,
+    duration: pack.duration + translatedDuration,
+    features: translatedFeatures,
+  };
+}
+
 export function PackagesAndPrices() {
+  const tHook = useTranslation('Packages');
+  const t = tHook.t;
+  const services = useTranslation('Services');
+  const tCommon = useTranslation('Common');
   const { get, put } = useHttp();
   const { user } = useAuth();
   const [packages, setPackages] = useState<BirthdayPackage[]>([]);
   const [editingPackage, setEditingPackage] = useState<BirthdayPackage | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Translated packages for display (only translate when not editing)
+  const translatedPackages = packages.map(pack => {
+    if (editingPackage?.id === pack.id) {
+      return pack; // Don't translate while editing
+    }
+    return translatePackage(pack, t);
+  });
 
   useEffect(() => {
     fetchPackages();
@@ -39,13 +79,15 @@ export function PackagesAndPrices() {
     }
   };
 
+  console.log("PACKS: ", packages);
+
   const handleEdit = (pkg: BirthdayPackage) => {
     setEditingPackage({ ...pkg });
   };
 
   const handleSave = async () => {
     if (!editingPackage) return;
-    
+
     setLoading(true);
     try {
       await put(`/api/packages/${editingPackage.type}`, editingPackage);
@@ -107,48 +149,58 @@ export function PackagesAndPrices() {
   return (
     <section id="precios" className="py-20 bg-white">
       <div className="container mx-auto px-4">
+
         <div className="text-center mb-16">
+
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
-            Packs y Precios
+            {services.t('specialRequest')}
           </h2>
+
+
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Elige el pack perfecto para tu celebración. Todos nuestros paquetes incluyen 
-            diversión garantizada y momentos inolvidables para los pequeños.
+            {t('description')}
           </p>
+          <div className="mt-16 text-center">
+
+            <h3 className="text-3xl font-bold text-gray-800 mb-4">
+              {t('title')}
+            </h3>
+          </div>
           {user?.role === 'ADMIN' && (
             <div className="mt-4 text-sm text-blue-600 font-medium">
-              🔧 Modo Administrador Activo - Edita los packs haciendo clic en ellos
+              {services.t('adminMode')}
             </div>
           )}
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {packages.map((pack) => {
+          {translatedPackages.map((pack) => {
             const IconComponent = getPackageIcon(pack.type);
             const color = getPackageColor(pack.type);
             const bgColor = getPackageBgColor(pack.type);
             const isEditing = editingPackage?.id === pack.id;
 
+            console.log("DURACION PACKS: ", pack.duration);
+
             return (
               <div
                 key={pack.id}
-                className={`relative p-8 bg-gradient-to-br ${!pack.isActive ? 'from-gray-100 to-gray-200 opacity-70' : bgColor} rounded-3xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col ${
-                  pack.isPopular && !isEditing ? 'ring-4 ring-yellow-300 ring-opacity-50' : ''
-                } ${user?.role === 'ADMIN' ? 'cursor-pointer' : ''}`}
+                className={`relative p-8 bg-gradient-to-br ${!pack.isActive ? 'from-gray-100 to-gray-200 opacity-70' : bgColor} rounded-3xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col ${pack.isPopular && !isEditing ? 'ring-4 ring-yellow-300 ring-opacity-50' : ''
+                  } ${user?.role === 'ADMIN' ? 'cursor-pointer' : ''}`}
                 onClick={() => user?.role === 'ADMIN' && !isEditing && handleEdit(pack)}
               >
                 {pack.isPopular && !isEditing && pack.isActive && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg">
-                      ¡Más Popular!
+                      {t('mostPopular')}
                     </div>
                   </div>
                 )}
-                
+
                 {!pack.isActive && !isEditing && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                     <div className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg">
-                      Inactivo
+                      {t('inactive')}
                     </div>
                   </div>
                 )}
@@ -157,7 +209,7 @@ export function PackagesAndPrices() {
                   <div className={`w-20 h-20 bg-gradient-to-br ${color} rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg`}>
                     <IconComponent className="w-10 h-10 text-white" />
                   </div>
-                  
+
                   {isEditing ? (
                     <div className="space-y-3">
                       <input
@@ -194,7 +246,7 @@ export function PackagesAndPrices() {
                         {pack.price}
                       </div>
                       <div className="text-gray-600">
-                        por niño
+                        {t('perChild')}
                       </div>
                     </>
                   )}
@@ -203,7 +255,7 @@ export function PackagesAndPrices() {
                 {isEditing ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Características (una por línea)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('features')}</label>
                       <textarea
                         rows={6}
                         value={editingPackage.features.join('\n')}
@@ -221,7 +273,7 @@ export function PackagesAndPrices() {
                         className="w-5 h-5 text-blue-600 rounded"
                         onClick={(e) => e.stopPropagation()}
                       />
-                      <label className="text-sm font-medium text-gray-700">Marcar como popular</label>
+                      <label className="text-sm font-medium text-gray-700">{t('markPopular')}</label>
                     </div>
 
                     <div className="flex items-center space-x-2">
@@ -232,7 +284,7 @@ export function PackagesAndPrices() {
                         className="w-5 h-5 text-blue-600 rounded"
                         onClick={(e) => e.stopPropagation()}
                       />
-                      <label className="text-sm font-medium text-gray-700">Activo</label>
+                      <label className="text-sm font-medium text-gray-700">{t('markActive')}</label>
                     </div>
 
                     <div className="flex space-x-2">
@@ -246,7 +298,7 @@ export function PackagesAndPrices() {
                       >
                         <div className="flex items-center justify-center space-x-2">
                           <Save className="w-4 h-4" />
-                          <span>Guardar</span>
+                          <span>{tCommon.t('save')}</span>
                         </div>
                       </button>
                       <button
@@ -258,7 +310,7 @@ export function PackagesAndPrices() {
                       >
                         <div className="flex items-center justify-center space-x-2">
                           <X className="w-4 h-4" />
-                          <span>Cancelar</span>
+                          <span>{tCommon.t('cancel')}</span>
                         </div>
                       </button>
                     </div>
@@ -276,13 +328,12 @@ export function PackagesAndPrices() {
                       ))}
                     </div>
 
-                    <button 
+                    <button
                       disabled={!pack.isActive}
-                      className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 mt-auto ${
-                        pack.isActive 
-                          ? `bg-gradient-to-r ${color} text-white hover:shadow-lg transform hover:scale-105` 
-                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      }`}
+                      className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 mt-auto ${pack.isActive
+                        ? `bg-gradient-to-r ${color} text-white hover:shadow-lg transform hover:scale-105`
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
                       onClick={(e) => {
                         e.stopPropagation();
                         if (pack.isActive) {
@@ -293,7 +344,7 @@ export function PackagesAndPrices() {
                         }
                       }}
                     >
-                      {pack.isActive ? 'Reservar Ahora' : 'Pack No Disponible'}
+                      {pack.isActive ? t('bookNow') : t('packUnavailable')}
                     </button>
                   </>
                 )}
@@ -302,10 +353,11 @@ export function PackagesAndPrices() {
           })}
         </div>
 
+        {/*}
         <div className="mt-16 text-center">
           <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-3xl p-8 shadow-lg max-w-4xl mx-auto">
             <h3 className="text-3xl font-bold text-gray-800 mb-4">
-              Descuentos Especiales
+              {t('specialDiscounts')}
             </h3>
             <div className="grid md:grid-cols-2 gap-6 text-left">
               <div className="flex items-center space-x-4">
@@ -313,8 +365,8 @@ export function PackagesAndPrices() {
                   <span className="text-white font-bold">10%</span>
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-800">Grupos de 10+ niños</div>
-                  <div className="text-gray-600">Descuento automático</div>
+                  <div className="font-semibold text-gray-800">{t('groupDiscount')}</div>
+                  <div className="text-gray-600">{t('groupDiscountDesc')}</div>
                 </div>
               </div>
               <div className="flex items-center space-x-4">
@@ -322,13 +374,14 @@ export function PackagesAndPrices() {
                   <span className="text-white font-bold">15%</span>
                 </div>
                 <div>
-                  <div className="font-semibold text-gray-800">Reservas anticipadas</div>
-                  <div className="text-gray-600">Con 2 semanas de antelación</div>
+                  <div className="font-semibold text-gray-800">{t('earlyBooking')}</div>
+                  <div className="text-gray-600">{t('earlyBookingDesc')}</div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+*/}
       </div>
     </section>
   );

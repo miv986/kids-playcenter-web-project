@@ -1,47 +1,50 @@
 import React from 'react';
 import { Palette, Music, BookOpen, Gamepad2, Users, Cake } from 'lucide-react';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 export function Services() {
+  const t = useTranslation('Services');
+  
   const services = [
     {
       icon: Cake,
-      title: 'Fiestas Infantiles',
-      description: 'Celebraciones únicas con animación, decoración y diversión garantizada',
+      title: t.t('birthdayParties'),
+      description: t.t('birthdayPartiesDesc'),
       color: 'from-pink-400 to-purple-500',
       bgColor: 'from-pink-50 to-purple-50'
     },
     {
       icon: Palette,
-      title: 'Talleres de Arte',
-      description: 'Pintura, manualidades y actividades creativas para desarrollar la imaginación',
+      title: t.t('artWorkshops'),
+      description: t.t('artWorkshopsDesc'),
       color: 'from-green-400 to-blue-500',
       bgColor: 'from-green-50 to-blue-50'
     },
     {
       icon: Music,
-      title: 'Música y Baile',
-      description: 'Clases de ritmo, canto y expresión corporal para los más pequeños',
+      title: t.t('musicDance'),
+      description: t.t('musicDanceDesc'),
       color: 'from-yellow-400 to-orange-500',
       bgColor: 'from-yellow-50 to-orange-50'
     },
     {
       icon: BookOpen,
-      title: 'Cuentacuentos',
-      description: 'Sesiones de lectura interactiva que fomentan el amor por los libros',
+      title: t.t('storytelling'),
+      description: t.t('storytellingDesc'),
       color: 'from-indigo-400 to-purple-500',
       bgColor: 'from-indigo-50 to-purple-50'
     },
     {
       icon: Gamepad2,
-      title: 'Juegos Educativos',
-      description: 'Actividades lúdicas que combinan diversión con aprendizaje',
+      title: t.t('educationalGames'),
+      description: t.t('educationalGamesDesc'),
       color: 'from-red-400 to-pink-500',
       bgColor: 'from-red-50 to-pink-50'
     },
     {
       icon: Users,
-      title: 'Actividades Grupales',
-      description: 'Dinámicas de equipo que fortalecen las habilidades sociales',
+      title: t.t('groupActivities'),
+      description: t.t('groupActivitiesDesc'),
       color: 'from-teal-400 to-cyan-500',
       bgColor: 'from-teal-50 to-cyan-50'
     }
@@ -52,11 +55,10 @@ export function Services() {
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-6">
-            Nuestros Servicios
+            {t.t('title')}
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Ofrecemos una amplia variedad de actividades diseñadas para estimular el desarrollo 
-            integral de los niños mientras se divierten y hacen nuevos amigos.
+            {t.t('description')}
           </p>
         </div>
 
@@ -82,7 +84,7 @@ export function Services() {
                 
                 <div className="mt-6">
                   <button className={`text-transparent bg-clip-text bg-gradient-to-r ${service.color} font-semibold hover:underline transition-all duration-200`}>
-                    Más información →
+                    {t.t('moreInfo')}
                   </button>
                 </div>
               </div>
@@ -90,20 +92,7 @@ export function Services() {
           })}
         </div>
 
-        <div className="mt-16 text-center">
-          <div className="bg-white rounded-3xl p-8 shadow-xl max-w-4xl mx-auto">
-            <h3 className="text-3xl font-bold text-gray-800 mb-4">
-              ¿Necesitas algo especial?
-            </h3>
-            <p className="text-gray-600 mb-6 text-lg">
-              También ofrecemos servicios personalizados para eventos especiales, 
-              campamentos de verano y actividades extraescolares.
-            </p>
-            <button className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300">
-              Contacta con Nosotros
-            </button>
-          </div>
-        </div>
+
       </div>
     </section>
   );

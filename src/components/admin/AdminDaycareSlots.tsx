@@ -6,13 +6,15 @@ import { useDaycareSlots } from "../../contexts/DaycareSlotContext";
 import { DaycareSlot } from "../../types/auth";
 import {SlotModal} from "../modals/SlotModal";
 import { CalendarComponent } from "../shared/Calendar";
+import { useTranslation } from "../../contexts/TranslationContext";
 
 export function AdminDaycareSlots() {
     const { user } = useAuth();
-    const { fetchSlots, fetchAvailableSlotsByDate, generateSlots, updateSlot, deleteSlot } = useDaycareSlots();
+    const { fetchSlots, generateSlots, updateSlot, deleteSlot } = useDaycareSlots();
+    const t = useTranslation('AdminDaycareSlots');
+    const locale = t.locale;
 
     const [slots, setSlots] = useState([] as Array<DaycareSlot>);
-    const [dailySlots, setDailySlots] = useState<DaycareSlot[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedSlot, setSelectedSlot] = useState<DaycareSlot | undefined>(undefined);
@@ -35,33 +37,29 @@ export function AdminDaycareSlots() {
         setIsModalOpen(false);
     };
 
-    // Fetch all slots for current month on mount
-    useEffect(() => {
-        if (!user) return;
-        const fetchAllSlots = async () => {
-            const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
-            const lastDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
-            const slotsByMonth: DaycareSlot[] = [];
-            for (let i = 0; i <= lastDay.getDate() - 1; i++) {
-                const day = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i + 1);
-                const daySlots = await fetchAvailableSlotsByDate(day);
-                slotsByMonth.push(...(Array.isArray(daySlots) ? daySlots : []));
-            }
-        };
-        fetchAllSlots();
-    }, [user, currentMonth]);
-
-    // Fetch all slots
+    // Fetch all slots - UNA SOLA PETICIÓN
     useEffect(() => {
         if (!!user) {
             fetchSlots().then(
                 (slots) => {
                     console.log("🔵 Slots cargados al inicio:", slots);
-                    setSlots(slots);
+                    setSlots(slots || []);
                 },
             );
         }
     }, [user]);
+
+    // Filtrar slots del día seleccionado desde todos los slots cargados
+    const dailySlots = useMemo(() => {
+        if (!selectedDate) return [];
+        
+        return slots.filter(slot => {
+            const slotDate = new Date(slot.date);
+            return slotDate.getFullYear() === selectedDate.getFullYear() &&
+                slotDate.getMonth() === selectedDate.getMonth() &&
+                slotDate.getDate() === selectedDate.getDate();
+        });
+    }, [slots, selectedDate]);
 
     // Filtrar slots por fechas si hay filtro activo
     const filteredSlots = useMemo(() => {
@@ -136,7 +134,7 @@ export function AdminDaycareSlots() {
         console.log("🟢 DATA EN HANDLECREATESLOT:", data);
 
         if (!data.date || data.openHour === undefined || data.closeHour === undefined || !data.capacity) {
-            alert("Debes rellenar fecha, hora de inicio, hora de fin y capacidad");
+            alert(t.t('fillRequired'));
             return;
         }
 
@@ -151,14 +149,10 @@ export function AdminDaycareSlots() {
                 capacity: data.capacity,
             });
 
-            const newSlots = await fetchAvailableSlotsByDate(new Date(data.date));
-            console.log("🟢 Nuevos slots obtenidos:", newSlots);
-            setSlots((prev) => {
-                const updated = [...prev, ...(Array.isArray(newSlots) ? newSlots : [])];
-                console.log("🟢 Slots actualizados:", updated);
-                return updated;
-            });
-            alert("✅ Slot creado correctamente");
+            // Recargar todos los slots en lugar de solo los del día
+            const updatedSlots = await fetchSlots();
+            setSlots(updatedSlots || []);
+            alert(t.t('createSuccess'));
         } catch (err) {
             console.error("❌ Error creando slot:", err);
         }
@@ -173,23 +167,21 @@ export function AdminDaycareSlots() {
             // Actualizar estados locales con el slot actualizado del backend
             if (updatedSlot) {
                 setSlots((prev) => prev.map((s) => (s.id === id ? { ...s, ...updatedSlot } : s)));
-                if (selectedDate) setDailySlots((prev) => prev.map((s) => (s.id === id ? { ...s, ...updatedSlot } : s)));
                 if (selectedSlot?.id === id) setSelectedSlot(updatedSlot);
             }
 
-            alert("Slot actualizado correctamente");
+            alert(t.t('updateSuccess'));
         } catch (error) {
             console.error("❌ Error actualizando slot:", error);
-            alert("Error al actualizar el slot");
+            alert(t.t('updateError'));
         }
     };
 
     // Eliminar slot
     const handleDeleteSlot = async (id: number) => {
-        if (!window.confirm("¿Seguro que quieres eliminar este slot?")) return;
+        if (!window.confirm(t.t('confirmDelete'))) return;
         await deleteSlot(id);
         setSlots((prev) => prev.filter((s) => s.id !== id));
-        if (selectedDate) setDailySlots((prev) => prev.filter((s) => s.id !== id));
 
         // Remover de selección si estaba seleccionado
         setSelectedSlots(prev => {
@@ -198,33 +190,32 @@ export function AdminDaycareSlots() {
             return newSet;
         });
 
-        alert("Slot eliminado");
+        alert(t.t('deleteSuccess'));
     };
 
     // Eliminar múltiples slots
     const handleDeleteMultipleSlots = async () => {
         if (selectedSlots.size === 0) {
-            alert("Selecciona al menos un slot para eliminar");
+            alert(t.t('selectAtLeastOne'));
             return;
         }
 
-        if (!window.confirm(`¿Seguro que quieres eliminar ${selectedSlots.size} slots?`)) return;
+        if (!window.confirm(`${t.t('confirmDeleteMultiple')} ${selectedSlots.size} ${t.t('slotsQ')}`)) return;
 
         try {
             const deletePromises = Array.from(selectedSlots).map(id => deleteSlot(id));
             await Promise.all(deletePromises);
 
             setSlots((prev) => prev.filter((s) => !selectedSlots.has(s.id)));
-            if (selectedDate) setDailySlots((prev) => prev.filter((s) => !selectedSlots.has(s.id)));
             setSelectedSlots(new Set());
-            alert(`${selectedSlots.size} slots eliminados correctamente`);
+            alert(`${selectedSlots.size} ${t.t('deleteMultipleSuccess')}`);
 
             // Refrescar slots para actualizar el calendario
             const updatedSlots = await fetchSlots();
             setSlots(updatedSlots);
         } catch (error) {
             console.error("Error eliminando slots:", error);
-            alert("Error al eliminar algunos slots");
+            alert(t.t('deleteError'));
         }
     };
 
@@ -262,7 +253,7 @@ export function AdminDaycareSlots() {
     // Generar slots para rango de fechas
     const handleGenerateSlotsForRange = async (openHour: string, closeHour: string, capacity: number) => {
         if (!dateFilter.start || !dateFilter.end) {
-            alert("Selecciona un rango de fechas");
+            alert(t.t('selectDateRange'));
             return;
         }
 
@@ -280,18 +271,18 @@ export function AdminDaycareSlots() {
             // Refrescar slots
             const updatedSlots = await fetchSlots();
             setSlots(updatedSlots);
-            alert("Slots generados correctamente para 2 semanas a partir de la fecha seleccionada");
+            alert(t.t('generateSuccess'));
         } catch (error) {
             console.error("Error generando slots:", error);
-            alert("Error al generar slots");
+            alert(t.t('generateError'));
         }
     };
 
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">Panel de Slots Ludoteca</h1>
-                <p className="text-gray-600">Gestiona los slots disponibles para reservas de ludoteca (Lunes a Jueves)</p>
+                <h1 className="text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
+                <p className="text-gray-600">{t.t('subtitle')}</p>
             </div>
 
             {/* Controles superiores */}
@@ -305,7 +296,7 @@ export function AdminDaycareSlots() {
                             }`}
                     >
                         <CalendarDays className="w-4 h-4" />
-                        Vista Calendario
+                        {t.t('calendarView')}
                     </button>
                     <button
                         onClick={() => setViewMode("list")}
@@ -315,7 +306,7 @@ export function AdminDaycareSlots() {
                             }`}
                     >
                         <Calendar className="w-4 h-4" />
-                        Vista Lista
+                        {t.t('listView')}
                     </button>
                 </div>
 
@@ -325,21 +316,21 @@ export function AdminDaycareSlots() {
                         className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-xl hover:bg-purple-600"
                     >
                         <Filter className="w-4 h-4" />
-                        Filtrar Fechas
+                        {t.t('filterDates')}
                     </button>
                     <button
                         onClick={() => setShowBulkActions(!showBulkActions)}
                         className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl hover:bg-orange-600"
                     >
                         <Settings className="w-4 h-4" />
-                        Acciones Masivas
+                        {t.t('bulkActions')}
                     </button>
                     <button
                         onClick={() => openModal()}
                         className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-xl hover:bg-green-600"
                     >
                         <Plus className="w-4 h-4" />
-                        Generar Slots
+                        {t.t('generateSlots')}
                     </button>
                 </div>
             </div>
@@ -347,10 +338,10 @@ export function AdminDaycareSlots() {
             {/* Filtro de fechas */}
             {showDateFilter && (
                 <div className="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-4">
-                    <h3 className="text-lg font-semibold text-purple-800 mb-3">Filtrar por Fechas</h3>
+                    <h3 className="text-lg font-semibold text-purple-800 mb-3">{t.t('filterByDates')}</h3>
                     <div className="flex flex-wrap gap-4">
                         <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium">Desde:</label>
+                            <label className="text-sm font-medium">{t.t('from')}</label>
                             <input
                                 type="date"
                                 value={dateFilter.start ? dateFilter.start.toISOString().split('T')[0] : ''}
@@ -359,7 +350,7 @@ export function AdminDaycareSlots() {
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium">Hasta:</label>
+                            <label className="text-sm font-medium">{t.t('to')}</label>
                             <input
                                 type="date"
                                 value={dateFilter.end ? dateFilter.end.toISOString().split('T')[0] : ''}
@@ -371,7 +362,7 @@ export function AdminDaycareSlots() {
                             onClick={() => setDateFilter({ start: null, end: null })}
                             className="bg-gray-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-600"
                         >
-                            Limpiar Filtro
+                            {t.t('clearFilter')}
                         </button>
                     </div>
                 </div>
@@ -380,7 +371,7 @@ export function AdminDaycareSlots() {
             {/* Acciones masivas */}
             {showBulkActions && (
                 <div className="mb-6 bg-orange-50 border border-orange-200 rounded-xl p-4">
-                    <h3 className="text-lg font-semibold text-orange-800 mb-3">Acciones Masivas</h3>
+                    <h3 className="text-lg font-semibold text-orange-800 mb-3">{t.t('bulkActions')}</h3>
                     <div className="flex flex-wrap gap-4 items-center">
                         <div className="flex gap-2">
                             <button
@@ -388,25 +379,26 @@ export function AdminDaycareSlots() {
                                 className="flex items-center gap-2 bg-blue-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-600"
                             >
                                 <CheckSquare className="w-4 h-4" />
-                                Seleccionar Todos
+                                {t.t('selectAll')}
                             </button>
                             <button
                                 onClick={deselectAllSlots}
                                 className="flex items-center gap-2 bg-gray-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-gray-600"
                             >
                                 <Square className="w-4 h-4" />
-                                Deseleccionar
+                                {t.t('deselect')}
                             </button>
                         </div>
                         <div className="text-sm text-gray-600">
-                            {selectedSlots.size} slots seleccionados
+                            {selectedSlots.size} {t.t('selected')}
                         </div>
                         {selectedSlots.size > 0 && (
                             <button
                                 onClick={handleDeleteMultipleSlots}
-                                className="bg-red-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-600"
+                                className="flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600"
                             >
-                                Eliminar Seleccionados
+                                <Trash2 className="w-4 h-4" />
+                                {t.t('deleteSelected')} ({selectedSlots.size})
                             </button>
                         )}
                     </div>
@@ -424,7 +416,6 @@ export function AdminDaycareSlots() {
                                     <button
                                         onClick={() => {
                                             setSelectedDate(undefined);
-                                            setDailySlots([]);
                                         }}
                                         className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
                                     >
@@ -616,10 +607,9 @@ export function AdminDaycareSlots() {
                         currentMonth={currentMonth}
                         setCurrentMonth={setCurrentMonth}
                         selectedDate={selectedDate}
-                        onSelectDate={async (date) => {
+                        onSelectDate={(date) => {
                             setSelectedDate(date);
-                            const data = await fetchAvailableSlotsByDate(date);
-                            setDailySlots(data || []);
+                            // dailySlots se calcula automáticamente con useMemo
                         }}
                     />
 

@@ -3,7 +3,8 @@ import { Users, User, Mail, Phone, FileText, Plus, X, Search, ChevronLeft, Chevr
 import { useHttp } from '../../contexts/HttpContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, ca } from 'date-fns/locale';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 interface Tutor {
   id: number;
@@ -31,6 +32,9 @@ interface Child {
 export function AdminTutors() {
   const http = useHttp();
   const { user } = useAuth();
+  const t = useTranslation('AdminTutors');
+  const locale = t.locale;
+  const dateFnsLocale = locale === 'ca' ? ca : es;
   const [tutors, setTutors] = useState<Tutor[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
@@ -140,7 +144,7 @@ export function AdminTutors() {
 
   const handleSaveNote = async () => {
     if (!selectedChild || !noteForm.content.trim()) {
-      alert('Por favor, completa el contenido de la nota');
+      alert(t.t('fillNoteContent'));
       return;
     }
 
@@ -151,11 +155,11 @@ export function AdminTutors() {
         content: noteForm.content,
         images: imagesToSend
       });
-      alert('Nota creada exitosamente');
+      alert(t.t('noteCreated'));
       handleCloseNoteModal();
     } catch (err) {
       console.error('Error guardando nota:', err);
-      alert('Error al guardar la nota');
+      alert(t.t('noteError'));
     }
   };
 
@@ -197,7 +201,7 @@ export function AdminTutors() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">Cargando tutores...</div>
+        <div className="text-gray-500">{t.t('loading')}</div>
       </div>
     );
   }
@@ -205,8 +209,8 @@ export function AdminTutors() {
   return (
     <div className="container mx-auto px-4">
       <div className="mb-4 lg:mb-6">
-        <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-1">Gestión de Tutores e Hijos</h1>
-        <p className="text-sm text-gray-600">Visualiza y gestiona notas de los hijos registrados</p>
+        <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-1">{t.t('title')}</h1>
+        <p className="text-sm text-gray-600">{t.t('subtitle')}</p>
       </div>
 
       {/* Barra de búsqueda compacta */}
@@ -215,7 +219,7 @@ export function AdminTutors() {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <input
             type="text"
-            placeholder="Buscar por nombre, apellido, email..."
+            placeholder={t.t('searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
@@ -224,7 +228,7 @@ export function AdminTutors() {
             <button
               onClick={() => setSearchQuery('')}
               className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-red-100 text-red-600 p-1.5 rounded hover:bg-red-200 transition-colors"
-              title="Limpiar búsqueda"
+              title={t.t('clearSearch')}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -236,7 +240,7 @@ export function AdminTutors() {
             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 rounded-lg">
               <Filter className="w-3.5 h-3.5 text-blue-600" />
               <span className="text-sm font-medium text-blue-800">
-                {total} {total === 1 ? 'resultado' : 'resultados'}
+                {total} {total === 1 ? t.t('results') : t.t('resultsPlural')}
               </span>
             </div>
             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg">
@@ -248,7 +252,7 @@ export function AdminTutors() {
               className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5 text-sm font-medium"
             >
               <X className="w-3.5 h-3.5" />
-              Limpiar
+              {t.t('clear')}
             </button>
           </div>
         )}
@@ -257,21 +261,21 @@ export function AdminTutors() {
       {tutors.length === 0 ? (
         <div className="bg-white rounded-xl shadow-lg p-6 lg:p-8 text-center">
           <Users className="w-12 h-12 lg:w-16 lg:h-16 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-lg lg:text-xl font-semibold text-gray-600 mb-1.5">No hay tutores registrados</h3>
-          <p className="text-sm lg:text-base text-gray-500">Aún no se han registrado tutores con hijos en el sistema</p>
+          <h3 className="text-lg lg:text-xl font-semibold text-gray-600 mb-1.5">{t.t('noTutors')}</h3>
+          <p className="text-sm lg:text-base text-gray-500">{t.t('noTutorsDesc')}</p>
         </div>
       ) : total === 0 && searchQuery && !loading ? (
         <div className="bg-white rounded-xl shadow-lg p-6 lg:p-8 text-center">
           <Search className="w-12 h-12 lg:w-16 lg:h-16 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-lg lg:text-xl font-semibold text-gray-600 mb-1.5">No se encontraron resultados</h3>
+          <h3 className="text-lg lg:text-xl font-semibold text-gray-600 mb-1.5">{t.t('noResults')}</h3>
           <p className="text-sm lg:text-base text-gray-500 mb-3">
-            No hay tutores o hijos que coincidan con "<strong>{debouncedSearch || searchQuery}</strong>"
+            {t.t('noResultsDesc')} "<strong>{debouncedSearch || searchQuery}</strong>"
           </p>
           <button
             onClick={() => setSearchQuery('')}
             className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium"
           >
-            Limpiar búsqueda
+            {t.t('clearSearch')}
           </button>
         </div>
       ) : (
@@ -300,7 +304,7 @@ export function AdminTutors() {
                             <button
                               onClick={(e) => handleCopyEmail(tutor.email, e)}
                               className="flex items-center gap-1.5 lg:gap-1 truncate hover:text-blue-600 transition-colors cursor-pointer group"
-                              title="Copiar email"
+                              title={t.t('copyEmail')}
                             >
                               <Mail className="w-4 h-4 lg:w-3 lg:h-3 flex-shrink-0" />
                               <span className="truncate">{tutor.email}</span>
@@ -315,7 +319,7 @@ export function AdminTutors() {
                             <button
                               onClick={(e) => handleCopyPhone(tutor.phone_number, e)}
                               className="flex items-center gap-1.5 lg:gap-1 flex-shrink-0 hover:text-blue-600 transition-colors cursor-pointer"
-                              title="Copiar teléfono"
+                              title={t.t('copyPhone')}
                             >
                               <Phone className="w-4 h-4 lg:w-3 lg:h-3" />
                               <span>{tutor.phone_number}</span>
@@ -330,7 +334,7 @@ export function AdminTutors() {
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 lg:ml-2">
-                      <div className="text-[0.85rem] text-gray-500">Hijos</div>
+                      <div className="text-[0.85rem] text-gray-500">{t.t('children')}</div>
                       <div className="text-2xl lg:text-xl font-bold text-blue-600">{tutor.children.length}</div>
                     </div>
                   </div>
@@ -351,7 +355,7 @@ export function AdminTutors() {
                           <button
                             onClick={() => handleOpenNoteModal(child)}
                             className="p-2 lg:p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors flex-shrink-0"
-                            title="Dejar nota para el padre"
+                            title={t.t('addNote')}
                           >
                             <Plus className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
                           </button>
@@ -360,17 +364,17 @@ export function AdminTutors() {
                         {/* Información del hijo - Layout compacto */}
                         <div className="grid grid-cols-2 gap-2.5 lg:gap-2">
                           <div className="bg-gray-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-gray-200">
-                            <p className="text-[0.85rem] font-semibold text-gray-800 mb-1">Fecha Nacimiento</p>
-                            <p className="text-base text-gray-700">{child.dateOfBirth ? format(new Date(child.dateOfBirth), "dd/MM/yyyy", { locale: es }) : "No registrada"}</p>
+                            <p className="text-[0.85rem] font-semibold text-gray-800 mb-1">{t.t('birthDate')}</p>
+                            <p className="text-base text-gray-700">{child.dateOfBirth ? format(new Date(child.dateOfBirth), "dd/MM/yyyy", { locale: dateFnsLocale }) : t.t('notRegistered')}</p>
                           </div>
                           <div className="bg-orange-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-orange-200">
-                            <p className="text-[0.85rem] font-semibold text-orange-800 mb-1">Emergencia 1</p>
-                            <p className="text-base text-gray-700 truncate">{child.emergency_contact_name_1 || "No registrado"}</p>
+                            <p className="text-[0.85rem] font-semibold text-orange-800 mb-1">{t.t('emergency1')}</p>
+                            <p className="text-base text-gray-700 truncate">{child.emergency_contact_name_1 || t.t('notRegistered')}</p>
                             {child.emergency_phone_1 ? (
                               <button
                                 onClick={(e) => handleCopyPhone(child.emergency_phone_1!, e)}
                                 className="text-base text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1 group"
-                                title="Copiar teléfono"
+                                title={t.t('copyPhone')}
                               >
                                 {child.emergency_phone_1}
                                 {copiedPhone === child.emergency_phone_1 ? (
@@ -380,17 +384,17 @@ export function AdminTutors() {
                                 )}
                               </button>
                             ) : (
-                              <p className="text-base text-gray-600">Sin teléfono</p>
+                              <p className="text-base text-gray-600">{t.t('noPhone')}</p>
                             )}
                           </div>
                           <div className="bg-orange-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-orange-200">
-                            <p className="text-[0.85rem] font-semibold text-orange-800 mb-1">Emergencia 2</p>
-                            <p className="text-base text-gray-700 truncate">{child.emergency_contact_name_2 || "No registrado"}</p>
+                            <p className="text-[0.85rem] font-semibold text-orange-800 mb-1">{t.t('emergency2')}</p>
+                            <p className="text-base text-gray-700 truncate">{child.emergency_contact_name_2 || t.t('notRegistered')}</p>
                             {child.emergency_phone_2 ? (
                               <button
                                 onClick={(e) => handleCopyPhone(child.emergency_phone_2!, e)}
                                 className="text-base text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1 group"
-                                title="Copiar teléfono"
+                                title={t.t('copyPhone')}
                               >
                                 {child.emergency_phone_2}
                                 {copiedPhone === child.emergency_phone_2 ? (
@@ -400,29 +404,29 @@ export function AdminTutors() {
                                 )}
                               </button>
                             ) : (
-                              <p className="text-base text-gray-600">Sin teléfono</p>
+                              <p className="text-base text-gray-600">{t.t('noPhone')}</p>
                             )}
                           </div>
                           <div className="bg-red-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-red-200">
                             <p className="text-[0.85rem] font-semibold text-red-800 mb-1 flex items-center gap-1">
                               <FileText className="w-4 h-4" />
-                              Alergias
+                              {t.t('UserProfile.allergies')}
                             </p>
-                            <p className="text-base text-red-700 line-clamp-2">{child.allergies || "Sin alergias"}</p>
+                            <p className="text-base text-red-700 line-clamp-2">{child.allergies || (locale === 'ca' ? 'Sense al·lèrgies' : 'Sin alergias')}</p>
                           </div>
                           <div className="bg-blue-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-blue-200">
                             <p className="text-[0.85rem] font-semibold text-blue-800 mb-1 flex items-center gap-1">
                               <FileText className="w-4 h-4" />
-                              Notas
+                              {t.t('UserProfile.notes')}
                             </p>
-                            <p className="text-base text-blue-700 line-clamp-2">{child.notes || "Sin notas"}</p>
+                            <p className="text-base text-blue-700 line-clamp-2">{child.notes || (locale === 'ca' ? 'Sense notes' : 'Sin notas')}</p>
                           </div>
                           <div className="bg-purple-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-purple-200">
                             <p className="text-[0.85rem] font-semibold text-purple-800 mb-1 flex items-center gap-1">
                               <FileText className="w-4 h-4" />
-                              Médicas
+                              {t.t('UserProfile.medicalNotes')}
                             </p>
-                            <p className="text-base text-purple-700 line-clamp-2">{child.medicalNotes || "Sin notas médicas"}</p>
+                            <p className="text-base text-purple-700 line-clamp-2">{child.medicalNotes || (locale === 'ca' ? 'Sense notes mèdiques' : 'Sin notas médicas')}</p>
                           </div>
                         </div>
                       </div>
@@ -445,7 +449,7 @@ export function AdminTutors() {
               className="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Anterior</span>
+              <span className="hidden sm:inline">{locale === 'ca' ? 'Anterior' : 'Anterior'}</span>
             </button>
             
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
@@ -478,7 +482,7 @@ export function AdminTutors() {
               disabled={currentPage === totalPages}
               className="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
-              <span className="hidden sm:inline">Siguiente</span>
+              <span className="hidden sm:inline">{locale === 'ca' ? 'Següent' : 'Siguiente'}</span>
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -492,7 +496,7 @@ export function AdminTutors() {
           <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
               <h3 className="text-2xl font-bold text-gray-800">
-                Dejar nota para {selectedChild.name} {selectedChild.surname}
+                {t.t('noteTitle')} {selectedChild.name} {selectedChild.surname}
               </h3>
               <button
                 onClick={handleCloseNoteModal}
@@ -505,20 +509,20 @@ export function AdminTutors() {
             <div className="p-6 space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Contenido de la nota
+                  {t.t('noteContent')}
                 </label>
                 <textarea
                   rows={8}
                   value={noteForm.content}
                   onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="Escribe la nota para el padre del niño..."
+                  placeholder={t.t('noteContentPlaceholder')}
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  URLs de imágenes (opcional)
+                  {t.t('imageUrl')} (opcional)
                 </label>
                 <div className="space-y-3">
                   {noteForm.images.map((url, index) => (
@@ -527,7 +531,7 @@ export function AdminTutors() {
                         type="url"
                         value={url}
                         onChange={(e) => handleImageUrlChange(index, e.target.value)}
-                        placeholder="https://..."
+                        placeholder={t.t('imageUrlPlaceholder')}
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                       />
                       {noteForm.images.length > 1 && (
@@ -545,7 +549,7 @@ export function AdminTutors() {
                     className="w-full px-4 py-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center gap-2"
                   >
                     <Plus className="w-4 h-4" />
-                    Agregar otra imagen
+                    {t.t('addImage')}
                   </button>
                 </div>
               </div>
@@ -556,13 +560,13 @@ export function AdminTutors() {
                 onClick={handleSaveNote}
                 className="flex-1 bg-green-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
               >
-                Guardar Nota
+                {t.t('saveNote')}
               </button>
               <button
                 onClick={handleCloseNoteModal}
                 className="flex-1 bg-gray-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
               >
-                Cancelar
+                {t.t('UserProfile.cancel')}
               </button>
             </div>
           </div>

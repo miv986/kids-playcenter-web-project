@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Providers from "./providers";
 import "../index.css";
+import { Header } from "../components/layout/Header";
+import { Footer } from "../components/layout/Footer";
 
 export const metadata: Metadata = {
     title: "Ludoteca Somriures & Colors",
@@ -10,9 +12,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
-        <html lang="es">
+        <html>
             <body className="min-h-screen bg-gradient-to-b from-pink-50 via-green-50 to-yellow-50">
-                <Providers>{children}</Providers>
+                <Providers>
+                    <Header />
+                    <main>{children}</main>
+                    <Footer />
+                </Providers>
             </body>
         </html>
     );

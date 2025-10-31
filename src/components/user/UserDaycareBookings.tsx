@@ -4,10 +4,13 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useDaycareBookings } from "../../contexts/DaycareBookingContext";
 import { DaycareBooking } from "../../types/auth";
 import {NewDaycareBookingModal} from "../shared/NewDaycareBookingModal";
+import { useTranslation } from "../../contexts/TranslationContext";
 
 export function UserDaycareBookings() {
     const { user } = useAuth();
     const { fetchMyBookings, cancelBooking } = useDaycareBookings();
+    const t = useTranslation('UserDaycareBookings');
+    const locale = t.locale;
     const [bookings, setBookings] = useState<DaycareBooking[]>([]);
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState<DaycareBooking | null>(null);
@@ -43,21 +46,21 @@ export function UserDaycareBookings() {
 
     const getStatusText = (status: DaycareBooking['status']) => {
         switch (status) {
-            case 'PENDING': return 'Pendiente';
-            case 'CONFIRMED': return 'Confirmada';
-            case 'CANCELLED': return 'Cancelada';
+            case 'PENDING': return t.t('statusPending');
+            case 'CONFIRMED': return t.t('statusConfirmed');
+            case 'CANCELLED': return t.t('statusCancelled');
             default: return status;
         }
     };
 
     const handleCancel = async (id: number) => {
-        if (window.confirm('¿Estás seguro de que quieres cancelar esta reserva?')) {
+        if (window.confirm(t.t('confirmCancel'))) {
             try {
                 await cancelBooking(id);
                 setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'CANCELLED' as any } : b));
-                alert('Reserva cancelada correctamente');
+                alert(t.t('cancelledSuccess'));
             } catch (err) {
-                alert('Error al cancelar la reserva');
+                alert(t.t('errorCancelling'));
             }
         }
     };
@@ -77,12 +80,12 @@ export function UserDaycareBookings() {
             <div className="container mx-auto px-4">
                 <div className="mb-8 flex justify-between items-center">
                     <div>
-                        <h1 className="text-4xl font-bold text-gray-800 mb-2">Mis Reservas - Ludoteca</h1>
-                        <p className="text-gray-600">Gestiona tus reservas de ludoteca</p>
+                        <h1 className="text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
+                        <p className="text-gray-600">{t.t('subtitle')}</p>
                     </div>
                     <button onClick={() => setIsNewModalOpen(true)} className="bg-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-600 flex items-center gap-2">
                         <Plus className="w-5 h-5" />
-                        Nueva Reserva
+                        {t.t('newReservation')}
                     </button>
                 </div>
 
@@ -94,7 +97,7 @@ export function UserDaycareBookings() {
                             </div>
                             <div>
                                 <div className="text-2xl font-bold text-gray-800">{bookings.length}</div>
-                                <div className="text-gray-600">Total Reservas</div>
+                                <div className="text-gray-600">{t.t('totalReservations')}</div>
                             </div>
                         </div>
                     </div>
@@ -102,14 +105,14 @@ export function UserDaycareBookings() {
 
                 <div className="bg-white rounded-2xl shadow-lg">
                     <div className="p-6 border-b border-gray-100">
-                        <h2 className="text-2xl font-bold text-gray-800">Mis Reservas</h2>
+                        <h2 className="text-2xl font-bold text-gray-800">{t.t('myReservations')}</h2>
                     </div>
                     <div className="p-6">
                         {bookings.length === 0 ? (
                             <div className="text-center py-12">
                                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                <h3 className="text-xl font-semibold text-gray-600 mb-2">No tienes reservas</h3>
-                                <p className="text-gray-500 mb-6">¡Haz tu primera reserva y comienza la diversión!</p>
+                                <h3 className="text-xl font-semibold text-gray-600 mb-2">{t.t('noReservations')}</h3>
+                                <p className="text-gray-500 mb-6">{t.t('firstReservation')}</p>
                             </div>
                         ) : (
                             <div className="space-y-6">
@@ -122,18 +125,18 @@ export function UserDaycareBookings() {
                                                         {getStatusText(booking.status)}
                                                     </span>
                                                     <span className="text-gray-500 text-sm">
-                                                        Reserva #{booking.id}
+                                                        {t.t('reservation')} #{booking.id}
                                                     </span>
                                                 </div>
 
                                                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Calendar className="w-4 h-4" />
-                                                        <span>{new Date(booking.createdAt!).toLocaleDateString('es-ES')}</span>
+                                                        <span>{new Date(booking.createdAt!).toLocaleDateString(locale === 'ca' ? 'ca-ES' : 'es-ES')}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Clock className="w-4 h-4" />
-                                                        <span>{new Date(booking.startTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })} - {new Date(booking.endTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        <span>{new Date(booking.startTime).toLocaleTimeString(locale === 'ca' ? 'ca-ES' : 'es-ES', { hour: '2-digit', minute: '2-digit' })} - {new Date(booking.endTime).toLocaleTimeString(locale === 'ca' ? 'ca-ES' : 'es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Users className="w-4 h-4" />
@@ -145,7 +148,7 @@ export function UserDaycareBookings() {
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Package className="w-4 h-4" />
-                                                        <span>{booking.slots.length} slots</span>
+                                                        <span>{booking.slots.length} {t.t('slots')}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Phone className="w-4 h-4" />
@@ -168,7 +171,7 @@ export function UserDaycareBookings() {
                                                         className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center space-x-2"
                                                     >
                                                         <Calendar className="w-4 h-4" />
-                                                        <span>Modificar</span>
+                                                        <span>{t.t('modify')}</span>
                                                     </button>
                                                 )}
                                                 {booking.status !== 'CANCELLED' && (
@@ -177,7 +180,7 @@ export function UserDaycareBookings() {
                                                         className="bg-yellow-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-yellow-600 transition-colors duration-200 flex items-center justify-center space-x-2"
                                                     >
                                                         <Clock className="w-4 h-4" />
-                                                        <span>Cancelar</span>
+                                                        <span>{t.t('cancelReservation')}</span>
                                                     </button>
                                                 )}
                                             </div>

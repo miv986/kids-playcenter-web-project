@@ -4,8 +4,9 @@ import { useDaycareBookings } from '../../contexts/DaycareBookingContext';
 import { DaycareBooking } from '../../types/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { es, ca } from 'date-fns/locale';
 import { CalendarComponent } from '../shared/Calendar';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 export function AdminDaycareBookings() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -13,6 +14,9 @@ export function AdminDaycareBookings() {
     const { fetchBookings, updateBooking, deleteBooking, cancelBooking } = useDaycareBookings();
     const [filter, setFilter] = useState<'all' | 'CONFIRMED' | 'CANCELLED'>('all');
     const { user } = useAuth();
+    const t = useTranslation('AdminDaycareBookings');
+    const locale = t.locale;
+    const dateFnsLocale = locale === 'ca' ? ca : es;
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [dailyBookings, setDailyBookings] = useState<DaycareBooking[]>([]);
     const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
@@ -76,7 +80,7 @@ export function AdminDaycareBookings() {
     const availableDaysDB = allDays.filter(d => !bookedDays.includes(d));
 
     const handleDeleteBooking = async (id: number) => {
-        if (!window.confirm("¿Seguro que quieres eliminar esta reserva?")) return;
+        if (!window.confirm(t.t('confirmDelete'))) return;
 
         try {
             setBookings(prev => prev.filter(b => b.id !== id));
@@ -84,10 +88,10 @@ export function AdminDaycareBookings() {
                 setDailyBookings(prev => prev.filter(b => b.id !== id));
             }
             await deleteBooking(id);
-            alert(`Reserva ${id} eliminada`);
+            alert(`${t.t('deleteSuccess')} ${id}`);
         } catch (err) {
             console.error(err);
-            alert("Error al eliminar la reserva");
+            alert(t.t('deleteError'));
         }
     };
 
@@ -101,15 +105,15 @@ export function AdminDaycareBookings() {
         }
         try {
             await updateBooking(id, data);
-            alert("Reserva actualizada correctamente");
+            alert(t.t('updateSuccess'));
         } catch (err) {
             console.error(err);
-            alert("Error al actualizar la reserva");
+            alert(t.t('updateError'));
         }
     };
 
     const handleCancelBooking = async (id: number) => {
-        if (!window.confirm("¿Seguro que quieres cancelar esta reserva?")) return;
+        if (!window.confirm(t.t('confirmCancel'))) return;
 
         try {
             await cancelBooking(id);
@@ -120,10 +124,10 @@ export function AdminDaycareBookings() {
             if (selectedBooking?.id === id) {
                 setSelectedBooking(prev => prev ? { ...prev, status: 'CANCELLED' as any } : prev);
             }
-            alert(`Reserva ${id} cancelada`);
+            alert(`${t.t('cancelSuccess')} ${id}`);
         } catch (err) {
             console.error(err);
-            alert("Error al cancelar la reserva");
+            alert(t.t('cancelError'));
         }
     };
 
@@ -137,10 +141,10 @@ export function AdminDaycareBookings() {
             if (selectedBooking?.id === id) {
                 setSelectedBooking(prev => prev ? { ...prev, status: 'CONFIRMED' as any } : prev);
             }
-            alert(`Reserva ${id} confirmada`);
+            alert(`${t.t('confirmSuccess')} ${id}`);
         } catch (err) {
             console.error(err);
-            alert("Error al confirmar la reserva");
+            alert(t.t('confirmError'));
         }
     };
 
@@ -168,8 +172,8 @@ export function AdminDaycareBookings() {
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">Panel de Reservas Ludoteca</h1>
-                <p className="text-gray-600">Gestiona todas las reservas de ludoteca</p>
+                <h1 className="text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
+                <p className="text-gray-600">{t.t('subtitle')}</p>
             </div>
 
             {/* Controles superiores */}
@@ -183,7 +187,7 @@ export function AdminDaycareBookings() {
                             }`}
                     >
                         <CalendarDays className="w-4 h-4" />
-                        Vista Calendario
+                        {t.t('calendarView')}
                     </button>
                     <button
                         onClick={() => setViewMode("list")}
@@ -193,7 +197,7 @@ export function AdminDaycareBookings() {
                             }`}
                     >
                         <Calendar className="w-4 h-4" />
-                        Vista Lista
+                        {t.t('listView')}
                     </button>
                 </div>
 
@@ -203,7 +207,7 @@ export function AdminDaycareBookings() {
                         className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-xl hover:bg-purple-600"
                     >
                         <Filter className="w-4 h-4" />
-                        Filtros
+                        {t.t('filters')}
                     </button>
                 </div>
             </div>
@@ -211,7 +215,7 @@ export function AdminDaycareBookings() {
             {/* Panel de filtros */}
             {showFilters && (
                 <div className="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-4">
-                    <h3 className="text-lg font-semibold text-purple-800 mb-3">Filtrar por Estado</h3>
+                    <h3 className="text-lg font-semibold text-purple-800 mb-3">{t.t('filterByStatus')}</h3>
                     <div className="flex flex-wrap gap-4">
                         <button
                             onClick={() => setFilter('all')}
@@ -220,7 +224,7 @@ export function AdminDaycareBookings() {
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
-                            Todas ({stats.total})
+                            {t.t('all')} ({stats.total})
                         </button>
                         <button
                             onClick={() => setFilter('CONFIRMED')}
@@ -229,7 +233,7 @@ export function AdminDaycareBookings() {
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
-                            Confirmadas ({stats.CONFIRMED})
+                            {t.t('confirmed')} ({stats.CONFIRMED})
                         </button>
                         <button
                             onClick={() => setFilter('CANCELLED')}
@@ -238,7 +242,7 @@ export function AdminDaycareBookings() {
                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                 }`}
                         >
-                            Canceladas ({stats.CANCELLED})
+                            {t.t('cancelled')} ({stats.CANCELLED})
                         </button>
                     </div>
                 </div>
@@ -251,7 +255,7 @@ export function AdminDaycareBookings() {
                     {viewMode === "calendar" ? (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">Vista Calendario</h2>
+                                <h2 className="text-2xl font-semibold">{t.t('calendarView')}</h2>
                                 {selectedDate && (
                                     <button
                                         onClick={() => {
@@ -260,7 +264,7 @@ export function AdminDaycareBookings() {
                                         }}
                                         className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
                                     >
-                                        Ver todas las reservas
+                                        {t.t('viewAll')}
                                     </button>
                                 )}
                             </div>
@@ -268,12 +272,12 @@ export function AdminDaycareBookings() {
                             {selectedDate ? (
                                 <div className="bg-white rounded-xl shadow-lg p-6">
                                     <h3 className="text-xl font-semibold mb-4">
-                                        Reservas del {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: es })}
+                                        {t.t('reservationsOf')} {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
                                     </h3>
                                     {dailyBookings.length === 0 ? (
                                         <div className="text-center py-8">
                                             <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                                            <p className="text-gray-500">No hay reservas para este día</p>
+                                            <p className="text-gray-500">{t.t('noReservationsDay')}</p>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
@@ -303,7 +307,7 @@ export function AdminDaycareBookings() {
                                                                 onClick={() => openModal(booking)}
                                                                 className="bg-blue-500 text-white px-3 py-1 rounded-xl hover:bg-blue-600"
                                                             >
-                                                                Ver
+                                                                {t.t('view')}
                                                             </button>
                                                             <button
                                                                 onClick={() => handleDeleteBooking(booking.id)}
@@ -322,10 +326,10 @@ export function AdminDaycareBookings() {
                                 <div className="text-center py-12">
                                     <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        Selecciona un día del calendario
+                                        {t.t('selectDay')}
                                     </h3>
                                     <p className="text-gray-500">
-                                        Haz clic en cualquier día para ver sus reservas
+                                        {t.t('clickDay')}
                                     </p>
                                 </div>
                             )}
@@ -333,9 +337,9 @@ export function AdminDaycareBookings() {
                     ) : (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">Todas las Reservas</h2>
+                                <h2 className="text-2xl font-semibold">{t.t('allReservations')}</h2>
                                 <div className="text-sm text-gray-500">
-                                    {bookingsToShow.length} reservas {filter !== 'all' ? 'filtradas' : 'totales'}
+                                    {bookingsToShow.length} {t.t('reservations')} {filter !== 'all' ? t.t('filtered') : t.t('total')}
                                 </div>
                             </div>
 
@@ -348,7 +352,7 @@ export function AdminDaycareBookings() {
                                         </div>
                                         <div>
                                             <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
-                                            <div className="text-gray-600">Total Reservas</div>
+                                            <div className="text-gray-600">{t.t('totalReservations')}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -360,7 +364,7 @@ export function AdminDaycareBookings() {
                                         </div>
                                         <div>
                                             <div className="text-2xl font-bold text-gray-800">{stats.CONFIRMED}</div>
-                                            <div className="text-gray-600">Confirmadas</div>
+                                            <div className="text-gray-600">{t.t('confirmed')}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -372,7 +376,7 @@ export function AdminDaycareBookings() {
                                         </div>
                                         <div>
                                             <div className="text-2xl font-bold text-gray-800">{stats.CANCELLED}</div>
-                                            <div className="text-gray-600">Canceladas</div>
+                                            <div className="text-gray-600">{t.t('cancelled')}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -387,12 +391,12 @@ export function AdminDaycareBookings() {
                                 <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
                                     <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        No hay reservas
+                                        {t.t('noReservations')}
                                     </h3>
                                     <p className="text-gray-500">
                                         {filter !== 'all'
-                                            ? "No se encontraron reservas con el filtro seleccionado"
-                                            : "No hay reservas registradas"}
+                                            ? t.t('noReservationsFilter')
+                                            : t.t('noReservationsRegistered')}
                                     </p>
                                 </div>
                             ) : (

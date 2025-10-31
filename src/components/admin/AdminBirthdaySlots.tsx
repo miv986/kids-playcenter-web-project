@@ -4,14 +4,17 @@ import { BirthdaySlot } from "../../types/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSlots } from "../../contexts/SlotContext";
 import { format } from "date-fns";
-import { es } from "date-fns/locale";
+import { es, ca } from "date-fns/locale";
 import { SlotModal } from "../modals/SlotModal";
 import { CalendarComponent } from "../shared/Calendar";
+import { useTranslation } from "../../contexts/TranslationContext";
 
 
 export function AdminBirthdaySlots() {
     const { user } = useAuth();
     const { fetchSlots, createSlot, updateSlot, deleteSlot, fetchSlotsByDay, } = useSlots();
+    const t = useTranslation('AdminBirthdaySlots');
+    const locale = t.locale;
 
     const [slots, setSlots] = useState([] as Array<BirthdaySlot>);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -93,7 +96,7 @@ export function AdminBirthdaySlots() {
     // Crear slot (optimista)
     const handleCreateSlot = async (data: Partial<BirthdaySlot>) => {
         if (!data.date || !data.startTime || !data.endTime) {
-            alert("Debes rellenar fecha, hora de inicio y hora de fin");
+            alert(t.t('fillRequired'));
             return;
         }
 
@@ -101,14 +104,14 @@ export function AdminBirthdaySlots() {
         const end = new Date(data.endTime);
 
         if (end <= start) {
-            alert("La hora de fin debe ser posterior a la de inicio");
+            alert(t.t('endAfterStart'));
             return;
         }
         try {
             const newSlot = await createSlot(data);
             if (!newSlot) return;
             setSlots((prev) => [...prev, newSlot]);
-            alert("Slot creado correctamente");
+            alert(t.t('createSuccess'));
         } catch (err) {
             console.error("Error manejando la creación del slot", err);
         }
@@ -130,28 +133,30 @@ export function AdminBirthdaySlots() {
         }
         const slotToUpdate = await updateSlot(id, data);
         if (!slotToUpdate) return;
-        alert("Slot actualizado correctamente");
+        alert(t.t('updateSuccess'));
     };
 
     // Eliminar slot
     const handleDeleteSlot = async (id: number) => {
-        if (!window.confirm("¿Seguro que quieres eliminar este slot?")) return;
+        if (!window.confirm(t.t('confirmDelete'))) return;
         setSlots((prev) => prev.filter((s) => s.id !== id));
         if (selectedDate) {
             setDailySlots((prev) => prev.filter((s) => s.id !== id));
         }
         await deleteSlot(id);
-        alert("Slot eliminado");
+        alert(t.t('deleteSuccess'));
     };
+
+    const dateFnsLocale = locale === 'ca' ? ca : es;
 
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">
                 <h1 className="text-4xl font-bold text-gray-800 mb-2">
-                    Panel de Slots
+                    {t.t('title')}
                 </h1>
                 <p className="text-gray-600">
-                    Gestiona los slots disponibles para reservas de cumpleaños
+                    {t.t('subtitle')}
                 </p>
             </div>
 
@@ -166,7 +171,7 @@ export function AdminBirthdaySlots() {
                             }`}
                     >
                         <CalendarDays className="w-4 h-4" />
-                        Vista Calendario
+                        {t.t('calendarView')}
                     </button>
                     <button
                         onClick={() => setViewMode("list")}
@@ -176,7 +181,7 @@ export function AdminBirthdaySlots() {
                             }`}
                     >
                         <Calendar className="w-4 h-4" />
-                        Vista Lista
+                        {t.t('listView')}
                     </button>
                 </div>
 
@@ -186,7 +191,7 @@ export function AdminBirthdaySlots() {
                         className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-xl hover:bg-green-600"
                     >
                         <Plus className="w-4 h-4" />
-                        Nuevo Slot
+                        {t.t('newSlot')}
                     </button>
                 </div>
             </div>
@@ -198,7 +203,7 @@ export function AdminBirthdaySlots() {
                     {viewMode === "calendar" ? (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">Vista Calendario</h2>
+                                <h2 className="text-2xl font-semibold">{t.t('calendarView')}</h2>
                                 {selectedDate && (
                                     <button
                                         onClick={() => {
@@ -207,7 +212,7 @@ export function AdminBirthdaySlots() {
                                         }}
                                         className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
                                     >
-                                        Ver todos los slots
+                                        {t.t('viewAllSlots')}
                                     </button>
                                 )}
                             </div>
@@ -215,12 +220,12 @@ export function AdminBirthdaySlots() {
                             {selectedDate ? (
                                 <div className="bg-white rounded-xl shadow-lg p-6">
                                     <h3 className="text-xl font-semibold mb-4">
-                                        Slots del {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: es })}
+                                        {t.t('slotsOf')} {format(selectedDate, locale === 'ca' ? "dd 'de' MMMM 'de' yyyy" : "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
                                     </h3>
                                     {dailySlots.length === 0 ? (
                                         <div className="text-center py-8">
                                             <Clock className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                                            <p className="text-gray-500">No hay slots para este día</p>
+                                            <p className="text-gray-500">{t.t('noSlotsDay')}</p>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -234,7 +239,7 @@ export function AdminBirthdaySlots() {
                                                             <p className="font-semibold text-gray-800">
                                                                 {format(new Date(slot.startTime), "HH:mm")} - {format(new Date(slot.endTime), "HH:mm")}
                                                             </p>
-                                                            <p className="text-sm text-gray-600">Estado: {slot.status}</p>
+                                                            <p className="text-sm text-gray-600">{t.t('status')} {slot.status}</p>
                                                         </div>
                                                         <div className="flex gap-1">
                                                             <button
@@ -260,10 +265,10 @@ export function AdminBirthdaySlots() {
                                 <div className="text-center py-12">
                                     <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        Selecciona un día del calendario
+                                        {t.t('selectDay')}
                                     </h3>
                                     <p className="text-gray-500">
-                                        Haz clic en cualquier día para ver sus slots
+                                        {t.t('clickDay')}
                                     </p>
                                 </div>
                             )}
@@ -271,9 +276,9 @@ export function AdminBirthdaySlots() {
                     ) : (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">Todos los Slots</h2>
+                                <h2 className="text-2xl font-semibold">{t.t('allSlots')}</h2>
                                 <div className="text-sm text-gray-500">
-                                    {slots.length} slots totales
+                                    {slots.length} {t.t('totalSlots')}
                                 </div>
                             </div>
 
@@ -281,10 +286,10 @@ export function AdminBirthdaySlots() {
                                 <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
                                     <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        No hay slots
+                                        {t.t('noSlots')}
                                     </h3>
                                     <p className="text-gray-500">
-                                        Crea tu primer slot para comenzar
+                                        {t.t('createFirst')}
                                     </p>
                                 </div>
                             ) : (
