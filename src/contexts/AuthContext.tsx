@@ -1,8 +1,10 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { User, AuthContextType } from "../types/auth";
 import { useHttp } from "./HttpContext";
 import { useToken } from "./TokenContext";
+import { showToast } from "../lib/toast";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -19,6 +21,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState(null as User | null);
   const httpProvider = useHttp();
   const tokenProvider = useToken();
+  const router = useRouter();
 
   useEffect(() => {
     const initAuth = async () => {
@@ -63,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error("Login error", error);
       // Si el error viene del backend, mostrar el mensaje específico
       if (error?.message) {
-        alert(error.message);
+        showToast.error(error.message);
       }
       return false;
     } finally {
@@ -77,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     try {
       await httpProvider.post('/api/auth/register', { email, password, name, surname });
-      alert("Registro exitoso. Revisa tu correo para confirmar tu cuenta.");
+      showToast.success("Registro exitoso. Revisa tu correo para confirmar tu cuenta.");
       return true;
     } catch (error) {
       console.error("Register error", error);
@@ -93,8 +96,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await httpProvider.post('/api/auth/logout');
       setUser(null);
       tokenProvider.setToken(null);
+      showToast.success("Sesión cerrada correctamente.");
+      router.push('/');
     } catch (error) {
       console.error("Logout error", error);
+      setUser(null);
+      tokenProvider.setToken(null);
+      router.push('/');
     }
   };
 

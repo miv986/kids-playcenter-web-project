@@ -3,6 +3,7 @@ import { Check, Star, Crown, Heart, Edit, Save, X } from 'lucide-react';
 import { useHttp } from '../../contexts/HttpContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/TranslationContext';
+import { showToast } from '../../lib/toast';
 
 interface BirthdayPackage {
   id: number;
@@ -93,9 +94,10 @@ export function PackagesAndPrices() {
       await put(`/api/packages/${editingPackage.type}`, editingPackage);
       await fetchPackages();
       setEditingPackage(null);
+      showToast.success('Pack actualizado correctamente');
     } catch (err) {
       console.error('Error guardando pack:', err);
-      alert('Error al guardar el pack');
+      showToast.error('Error al guardar el pack');
     } finally {
       setLoading(false);
     }

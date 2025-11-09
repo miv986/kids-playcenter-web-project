@@ -24,6 +24,7 @@ export type Child = {
 };
 
 export type Status = "PENDING" | "CANCELLED" | "CONFIRMED" | "CLOSED" | "OPEN";
+export type AttendanceStatus = "PENDING" | "ATTENDED" | "NOT_ATTENDED";
 export type Package = "ALEGRIA" | "FIESTA" | "ESPECIAL";
 
 export interface DaycareBooking{
@@ -34,6 +35,7 @@ export interface DaycareBooking{
   createdAt?: string;
   upstringdAt: string;
   status: Status;
+  attendanceStatus?: AttendanceStatus;
   user: User;
   children: User[]; // Los hijos son usuarios (User con role CHILD)
   slots: DaycareSlot[];
@@ -79,6 +81,28 @@ export interface BirthdaySlot {
   createdAt?: string;
   upstringdAt?: string;
 
+}
+
+export interface ChildNote {
+  id: number;
+  childId: number;
+  adminId: number;
+  content: string;
+  images: string[];
+  noteDate: string;
+  isRead: boolean;
+  createdAt: string;
+  updatedAt: string;
+  child?: {
+    id: number;
+    name: string;
+    surname: string;
+  };
+  admin?: {
+    id: number;
+    name: string;
+    surname: string;
+  };
 }
 
 export interface AuthContextType {

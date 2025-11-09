@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { Status } from "../../types/auth";
+import { showToast } from "../../lib/toast";
+import { useTranslation } from "../../contexts/TranslationContext";
 
 // Tipo genérico para slots (cumpleaños o daycare)
 export interface GenericSlot {
@@ -34,6 +36,7 @@ export function SlotModal<T extends GenericSlot>({
   updateSlot,
   isDaycare,
 }: SlotModalProps<T>) {
+  const { t } = useTranslation('SlotModal');
   const [formData, setFormData] = useState<Partial<T>>({
     date: new Date().toISOString(),
     startTime: new Date().toISOString(),
@@ -121,14 +124,14 @@ export function SlotModal<T extends GenericSlot>({
 
   const handleSave = async () => {
     if (!formData.date) {
-      alert("La fecha es obligatoria");
+      showToast.error(t('dateRequired'));
       return;
     }
 
     // Validación específica para daycare o cumpleaños
     if (isDaycare) {
       if (!formData.openHour || !formData.closeHour || !formData.capacity) {
-        alert("Debes rellenar fecha, hora de inicio, hora de fin y capacidad");
+        showToast.error(t('fillRequiredDaycare'));
         return;
       }
 
@@ -140,7 +143,7 @@ export function SlotModal<T extends GenericSlot>({
       const closeMinutes = closeH * 60 + closeM;
 
       if (closeMinutes <= openMinutes) {
-        alert("La hora de fin debe ser posterior a la de inicio");
+        showToast.error(t('endAfterStart'));
         return;
       }
 
@@ -150,12 +153,12 @@ export function SlotModal<T extends GenericSlot>({
     } else {
       // Slots de cumpleaños
       if (!formData.startTime || !formData.endTime) {
-        alert("Debes rellenar hora de inicio y fin");
+        showToast.error(t('fillRequiredBirthday'));
         return;
       }
 
       if (new Date(formData.endTime) <= new Date(formData.startTime)) {
-        alert("La hora de fin debe ser posterior a la de inicio");
+        showToast.error(t('endAfterStart'));
         return;
       }
     }
@@ -165,14 +168,16 @@ export function SlotModal<T extends GenericSlot>({
       if (slot?.id) {
         const updatedSlot = await updateSlot(slot.id, formData);
         console.log("✅ Slot actualizado en modal:", updatedSlot);
+        showToast.success(t('updateSuccess'));
       } else {
         await createSlot(formData);
+        showToast.success(t('createSuccess'));
       }
 
       onClose();
     } catch (error) {
       console.error("Error guardando slot:", error);
-      alert("Error al guardar el slot");
+      showToast.error(t('saveError'));
     }
   };
 
@@ -180,11 +185,11 @@ export function SlotModal<T extends GenericSlot>({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-md">
-        <h3 className="text-2xl font-bold mb-4">{slot ? `Editar Slot #${slot.id}` : "Nuevo Slot"}</h3>
+        <h3 className="text-2xl font-bold mb-4">{slot ? `${t('editSlot')} #${slot.id}` : t('newSlot')}</h3>
 
         <div className="space-y-3 text-gray-700">
           <div>
-            <label className="font-medium">Fecha:</label>
+            <label className="font-medium">{t('date')}:</label>
             <input
               type="date"
               value={format(new Date(formData.date ?? new Date()), "yyyy-MM-dd")}
@@ -194,14 +199,14 @@ export function SlotModal<T extends GenericSlot>({
           {!isDaycare ? (
             <>
               <div>
-                <label className="font-medium">Hora inicio:</label>
+                <label className="font-medium">{t('startTime')}:</label>
                 <input
                   type="time"
                   value={formData.startTime ? format(new Date(formData.startTime ?? new Date()), "HH:mm") : ""}
                   onChange={(e) => handleChange("startTime" as keyof T, e.target.value)}
                   className="border rounded px-2 py-1 w-full" />
               </div><div>
-                <label className="font-medium">Hora fin:</label>
+                <label className="font-medium">{t('endTime')}:</label>
                 <input
                   type="time"
                   value={formData.endTime ? format(new Date(formData.endTime ?? new Date()), "HH:mm") : ""}
@@ -212,21 +217,21 @@ export function SlotModal<T extends GenericSlot>({
             </>
           ) : (
             <>            <div>
-              <label className="font-medium">Hora inicio:</label>
+              <label className="font-medium">{t('startTime')}:</label>
               <input
                 type="time"
                 value={formData.openHour || ""}
                 onChange={(e) => handleChange("openHour" as keyof T, e.target.value)}
                 className="border rounded px-2 py-1 w-full" />
             </div><div>
-                <label className="font-medium">Hora fin:</label>
+                <label className="font-medium">{t('endTime')}:</label>
                 <input
                   type="time"
                   value={formData.closeHour || ""}
                   onChange={(e) => handleChange("closeHour" as keyof T, e.target.value)}
                   className="border rounded px-2 py-1 w-full" />
               </div><div>
-                <label className="font-medium">Capacidad:</label>
+                <label className="font-medium">{t('capacity')}:</label>
                 <input
                   type="number"
                   value={formData.capacity || 0}
@@ -236,7 +241,7 @@ export function SlotModal<T extends GenericSlot>({
           )}
 
           <div>
-            <label className="font-medium">Estado:</label>
+            <label className="font-medium">{t('status')}:</label>
             <select
               value={formData.status}
               onChange={(e) => handleChange("status" as keyof T, e.target.value)}
@@ -253,13 +258,13 @@ export function SlotModal<T extends GenericSlot>({
             onClick={handleSave}
             className="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 flex-1"
           >
-            {slot ? "Guardar cambios" : "Crear Slot"}
+            {slot ? t('saveChanges') : t('createSlot')}
           </button>
           <button
             onClick={onClose}
             className="bg-gray-200 px-4 py-2 rounded-xl hover:bg-gray-300 flex-1"
           >
-            Cancelar
+            {t('cancel')}
           </button>
         </div>
       </div>

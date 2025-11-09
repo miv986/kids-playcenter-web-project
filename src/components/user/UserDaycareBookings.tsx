@@ -5,16 +5,22 @@ import { useDaycareBookings } from "../../contexts/DaycareBookingContext";
 import { DaycareBooking } from "../../types/auth";
 import {NewDaycareBookingModal} from "../shared/NewDaycareBookingModal";
 import { useTranslation } from "../../contexts/TranslationContext";
+import { Spinner } from "../shared/Spinner";
+import { showToast } from "../../lib/toast";
+import { useConfirm } from "../../hooks/useConfirm";
 
 export function UserDaycareBookings() {
     const { user } = useAuth();
     const { fetchMyBookings, cancelBooking } = useDaycareBookings();
     const t = useTranslation('UserDaycareBookings');
     const locale = t.locale;
+    const { confirm, ConfirmComponent } = useConfirm();
     const [bookings, setBookings] = useState<DaycareBooking[]>([]);
+    const [filter, setFilter] = useState<'all' | 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'CLOSED'>('all');
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState<DaycareBooking | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [isLoadingBookings, setIsLoadingBookings] = useState(true);
 
     useEffect(() => {
         const savedDate = localStorage.getItem('openDaycareBooking');
@@ -28,9 +34,12 @@ export function UserDaycareBookings() {
 
     useEffect(() => {
         if (user) {
+            setIsLoadingBookings(true);
             fetchMyBookings().then(data => {
-                console.log("📋 Bookings recibidas:", data);
                 setBookings(data);
+                setIsLoadingBookings(false);
+            }).catch(() => {
+                setIsLoadingBookings(false);
             });
         }
     }, [user]);
@@ -40,6 +49,7 @@ export function UserDaycareBookings() {
             case 'PENDING': return 'bg-yellow-100 text-yellow-800';
             case 'CONFIRMED': return 'bg-green-100 text-green-800';
             case 'CANCELLED': return 'bg-red-100 text-red-800';
+            case 'CLOSED': return 'bg-gray-100 text-gray-800';
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -49,19 +59,24 @@ export function UserDaycareBookings() {
             case 'PENDING': return t.t('statusPending');
             case 'CONFIRMED': return t.t('statusConfirmed');
             case 'CANCELLED': return t.t('statusCancelled');
+            case 'CLOSED': return t.t('statusClosed') || 'Cerrada';
             default: return status;
         }
     };
 
     const handleCancel = async (id: number) => {
-        if (window.confirm(t.t('confirmCancel'))) {
-            try {
-                await cancelBooking(id);
-                setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'CANCELLED' as any } : b));
-                alert(t.t('cancelledSuccess'));
-            } catch (err) {
-                alert(t.t('errorCancelling'));
-            }
+        const confirmed = await confirm({ 
+            message: t.t('confirmCancel'),
+            variant: 'warning'
+        });
+        if (!confirmed) return;
+        
+        try {
+            await cancelBooking(id);
+            setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'CANCELLED' as any } : b));
+            showToast.success(t.t('cancelledSuccess'));
+        } catch (err) {
+            showToast.error(t.t('errorCancelling'));
         }
     };
 
@@ -75,61 +90,126 @@ export function UserDaycareBookings() {
         setEditingBooking(null);
     };
 
+    const filteredBookings = bookings.filter(booking =>
+        filter === 'all' || booking.status === filter
+    );
+
+    const stats = {
+        total: bookings.length,
+        PENDING: bookings.filter(b => b.status === 'PENDING').length,
+        CONFIRMED: bookings.filter(b => b.status === 'CONFIRMED').length,
+        CANCELLED: bookings.filter(b => b.status === 'CANCELLED').length,
+        CLOSED: bookings.filter(b => b.status === 'CLOSED').length
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 py-8">
             <div className="container mx-auto px-4">
-                <div className="mb-8 flex justify-between items-center">
+                <div className="mb-6 flex justify-between items-center">
                     <div>
-                        <h1 className="text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
-                        <p className="text-gray-600">{t.t('subtitle')}</p>
+                        <h1 className="text-3xl font-bold text-gray-800 mb-1">{t.t('title')}</h1>
+                        <p className="text-gray-600 text-sm">{t.t('subtitle')}</p>
                     </div>
-                    <button onClick={() => setIsNewModalOpen(true)} className="bg-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-600 flex items-center gap-2">
+                    <button onClick={() => setIsNewModalOpen(true)} className="bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-blue-600 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg">
                         <Plus className="w-5 h-5" />
-                        {t.t('newReservation')}
+                        <span>{t.t('newReservation')}</span>
                     </button>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-6 mb-8">
-                    <div className="bg-white p-6 rounded-2xl shadow-lg">
-                        <div className="flex items-center space-x-3">
-                            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                                <Calendar className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <div>
-                                <div className="text-2xl font-bold text-gray-800">{bookings.length}</div>
-                                <div className="text-gray-600">{t.t('totalReservations')}</div>
-                            </div>
-                        </div>
+                {/* Panel de filtros - Siempre visible y compacto */}
+                <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                        <span className="text-sm font-medium text-gray-700">{t.t('filterByStatus')}:</span>
+                        <button
+                            onClick={() => setFilter('all')}
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'all'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                                }`}
+                        >
+                            {t.t('all')} ({stats.total})
+                        </button>
+                        <button
+                            onClick={() => setFilter('PENDING')}
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'PENDING'
+                                ? 'bg-yellow-500 text-white'
+                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                                }`}
+                        >
+                            {t.t('statusPending')} ({stats.PENDING})
+                        </button>
+                        <button
+                            onClick={() => setFilter('CONFIRMED')}
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CONFIRMED'
+                                ? 'bg-green-500 text-white'
+                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                                }`}
+                        >
+                            {t.t('statusConfirmed')} ({stats.CONFIRMED})
+                        </button>
+                        <button
+                            onClick={() => setFilter('CANCELLED')}
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CANCELLED'
+                                ? 'bg-red-500 text-white'
+                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                                }`}
+                        >
+                            {t.t('statusCancelled')} ({stats.CANCELLED})
+                        </button>
+                        <button
+                            onClick={() => setFilter('CLOSED')}
+                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CLOSED'
+                                ? 'bg-gray-500 text-white'
+                                : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                                }`}
+                        >
+                            {t.t('statusClosed') || 'Cerradas'} ({stats.CLOSED})
+                        </button>
                     </div>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-lg">
-                    <div className="p-6 border-b border-gray-100">
-                        <h2 className="text-2xl font-bold text-gray-800">{t.t('myReservations')}</h2>
+                <div className="bg-white rounded-xl shadow-lg">
+                    <div className="p-4 border-b border-gray-100 flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-gray-800">{t.t('myReservations')}</h2>
+                        <span className="text-sm text-gray-500">
+                            {filteredBookings.length} {filteredBookings.length !== 1 ? t.t('reservations') : t.t('reservation')} {filter !== 'all' ? t.t('filtered') : t.t('total')}
+                        </span>
                     </div>
-                    <div className="p-6">
-                        {bookings.length === 0 ? (
+                    <div className="p-4">
+                        {isLoadingBookings ? (
+                            <div className="flex items-center justify-center py-12">
+                                <Spinner size="lg" text={t.t('loading')} />
+                            </div>
+                        ) : bookings.length === 0 ? (
                             <div className="text-center py-12">
                                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                 <h3 className="text-xl font-semibold text-gray-600 mb-2">{t.t('noReservations')}</h3>
                                 <p className="text-gray-500 mb-6">{t.t('firstReservation')}</p>
                             </div>
+                        ) : filteredBookings.length === 0 ? (
+                            <div className="text-center py-12">
+                                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                <h3 className="text-xl font-semibold text-gray-600 mb-2">{t.t('noReservations')}</h3>
+                                <p className="text-gray-500 mb-6">
+                                    {filter !== 'all' ? t.t('noReservationsFilter') : t.t('firstReservation')}
+                                </p>
+                            </div>
                         ) : (
-                            <div className="space-y-6">
-                                {bookings.map((booking) => (
-                                    <div key={booking.id} className="border border-gray-200 rounded-2xl p-6 hover:shadow-md transition-shadow duration-300">
-                                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                            <div className="space-y-4">
+                                {filteredBookings.map((booking) => (
+                                    <div key={booking.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all duration-200 bg-gray-50">
+                                        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                                             <div className="flex-1">
-                                                <div className="flex items-center space-x-3 mb-4">
-                                                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}>
+                                                <div className="flex items-center space-x-2 mb-3">
+                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
                                                         {getStatusText(booking.status)}
                                                     </span>
-                                                    <span className="text-gray-500 text-sm">
-                                                        {t.t('reservation')} #{booking.id}
+                                                    <span className="text-gray-500 text-xs">
+                                                        #{booking.id}
                                                     </span>
                                                 </div>
 
-                                                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                                                <div className="grid md:grid-cols-2 gap-3 text-sm">
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Calendar className="w-4 h-4" />
                                                         <span>{new Date(booking.createdAt!).toLocaleDateString(locale === 'ca' ? 'ca-ES' : 'es-ES')}</span>
@@ -140,11 +220,7 @@ export function UserDaycareBookings() {
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Users className="w-4 h-4" />
-                                                        <span>{(() => {
-                                                            console.log("🔍 Booking:", booking);
-                                                            console.log("🔍 Booking.children:", booking?.children);
-                                                            return booking?.children?.map(child => child.name).join(', ') || 'N/A';
-                                                        })()}</span>
+                                                        <span>{booking?.children?.map(child => child.name).join(', ') || t.t('notAvailable')}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Package className="w-4 h-4" />
@@ -152,7 +228,7 @@ export function UserDaycareBookings() {
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Phone className="w-4 h-4" />
-                                                        <span>{booking.user?.phone_number || 'N/A'}</span>
+                                                        <span>{booking.user?.phone_number || t.t('notAvailable')}</span>
                                                     </div>
                                                 </div>
 
@@ -164,24 +240,29 @@ export function UserDaycareBookings() {
                                                 )}
                                             </div>
 
-                                            <div className="flex flex-col space-y-3 lg:w-48">
-                                                {booking.status !== 'CANCELLED' && (
+                                            <div className="flex flex-row lg:flex-col gap-2 lg:w-40">
+                                                {booking.status !== 'CANCELLED' && booking.status !== 'CLOSED' && (
                                                     <button
                                                         onClick={() => handleEdit(booking)}
-                                                        className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200 flex items-center justify-center space-x-2"
+                                                        className="flex-1 lg:flex-none bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-all duration-200 flex items-center justify-center gap-1.5"
                                                     >
                                                         <Calendar className="w-4 h-4" />
                                                         <span>{t.t('modify')}</span>
                                                     </button>
                                                 )}
-                                                {booking.status !== 'CANCELLED' && (
+                                                {booking.status !== 'CANCELLED' && booking.status !== 'CLOSED' && (
                                                     <button
                                                         onClick={() => handleCancel(booking.id)}
-                                                        className="bg-yellow-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-yellow-600 transition-colors duration-200 flex items-center justify-center space-x-2"
+                                                        className="flex-1 lg:flex-none bg-yellow-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-yellow-600 transition-all duration-200 flex items-center justify-center gap-1.5"
                                                     >
                                                         <Clock className="w-4 h-4" />
                                                         <span>{t.t('cancelReservation')}</span>
                                                     </button>
+                                                )}
+                                                {booking.status === 'CLOSED' && (
+                                                    <div className="text-sm text-gray-500 italic">
+                                                        {t.t('closedReservation') || 'Reserva cerrada'}
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -202,6 +283,7 @@ export function UserDaycareBookings() {
                     onClose={handleCloseEditModal}
                     existingBooking={editingBooking}
                 />
+                {ConfirmComponent}
             </div>
         </div>
     );

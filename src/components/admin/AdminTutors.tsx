@@ -1,10 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { Users, User, Mail, Phone, FileText, Plus, X, Search, ChevronLeft, ChevronRight, Filter, Copy, Check } from 'lucide-react';
+import { Users, User, Mail, Phone, Copy, Check } from 'lucide-react';
 import { useHttp } from '../../contexts/HttpContext';
 import { useAuth } from '../../contexts/AuthContext';
-import { format } from 'date-fns';
 import { es, ca } from 'date-fns/locale';
 import { useTranslation } from '../../contexts/TranslationContext';
+import { showToast } from '../../lib/toast';
+import { ChildNote } from '../../types/auth';
+import { useConfirm } from '../../hooks/useConfirm';
+import { Spinner } from '../shared/Spinner';
+import { ChildNoteModal } from '../modals/ChildNoteModal';
+import { SearchBar } from '../shared/SearchBar';
+import { Pagination } from '../shared/Pagination';
+import { ImageViewerModal } from '../shared/ImageViewerModal';
+import { ChildCard } from '../shared/ChildCard';
 
 interface Tutor {
   id: number;
@@ -51,8 +59,16 @@ export function AdminTutors() {
   // Estados para notas del admin
   const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
-  const [noteForm, setNoteForm] = useState({ content: '', images: [''] as string[] });
+  const [editingNote, setEditingNote] = useState<ChildNote | null>(null);
   const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
+  
+  // Estados para ver notas existentes
+  const [childNotes, setChildNotes] = useState<Record<number, ChildNote[]>>({});
+  const [expandedNotes, setExpandedNotes] = useState<Record<number, boolean>>({});
+  const [loadingNotes, setLoadingNotes] = useState<Record<number, boolean>>({});
+  const [viewingImageUrl, setViewingImageUrl] = useState<string | null>(null);
+  const [viewingImageName, setViewingImageName] = useState<string>('');
+  const { confirm, ConfirmComponent } = useConfirm();
 
   // Debounce para la búsqueda
   useEffect(() => {
@@ -116,50 +132,100 @@ export function AdminTutors() {
     });
   };
 
-  const handleOpenNoteModal = (child: Child) => {
+  const handleOpenNoteModal = (child: Child, note?: ChildNote) => {
     setSelectedChild(child);
+    setEditingNote(note || null);
     setShowNoteModal(true);
   };
 
   const handleCloseNoteModal = () => {
     setShowNoteModal(false);
     setSelectedChild(null);
-    setNoteForm({ content: '', images: [''] });
+    setEditingNote(null);
   };
 
-  const handleAddImageUrl = () => {
-    setNoteForm({ ...noteForm, images: [...noteForm.images, ''] });
-  };
-
-  const handleImageUrlChange = (index: number, url: string) => {
-    const newImages = [...noteForm.images];
-    newImages[index] = url;
-    setNoteForm({ ...noteForm, images: newImages });
-  };
-
-  const handleRemoveImageUrl = (index: number) => {
-    const newImages = noteForm.images.filter((_, i) => i !== index);
-    setNoteForm({ ...noteForm, images: newImages });
-  };
-
-  const handleSaveNote = async () => {
-    if (!selectedChild || !noteForm.content.trim()) {
-      alert(t.t('fillNoteContent'));
-      return;
-    }
+  const handleSaveNote = async (data: { content: string; images: string[] }) => {
+    if (!selectedChild) return;
 
     try {
-      const imagesToSend = noteForm.images.filter(img => img.trim() !== '');
-      await http.post('/api/childNote', {
-        childId: selectedChild.id,
-        content: noteForm.content,
-        images: imagesToSend
-      });
-      alert(t.t('noteCreated'));
+      if (editingNote) {
+        // Actualizar nota existente
+        await http.put(`/api/childNote/${editingNote.id}`, {
+          content: data.content,
+          images: data.images
+        });
+        showToast.success(t.t('noteUpdated') || 'Nota actualizada correctamente');
+        // Refrescar notas del hijo
+        if (childNotes[selectedChild.id]) {
+          await fetchChildNotes(selectedChild.id);
+        }
+      } else {
+        // Crear nueva nota
+        await http.post('/api/childNote', {
+          childId: selectedChild.id,
+          content: data.content,
+          images: data.images
+        });
+        showToast.success(t.t('noteCreated'));
+        // Refrescar notas del hijo
+        if (childNotes[selectedChild.id]) {
+          await fetchChildNotes(selectedChild.id);
+        }
+      }
       handleCloseNoteModal();
     } catch (err) {
       console.error('Error guardando nota:', err);
-      alert(t.t('noteError'));
+      showToast.error(t.t('noteError'));
+      throw err; // Re-lanzar para que el modal maneje el error
+    }
+  };
+
+  // Función para obtener las notas de un hijo
+  const fetchChildNotes = async (childId: number) => {
+    if (loadingNotes[childId]) return;
+    
+    setLoadingNotes(prev => ({ ...prev, [childId]: true }));
+    try {
+      const notes = await http.get(`/api/childNote/child/${childId}`);
+      // Filtrar solo las notas del admin actual
+      const adminNotes = notes.filter((note: ChildNote) => note.adminId === user?.id);
+      setChildNotes(prev => ({ ...prev, [childId]: adminNotes }));
+    } catch (error) {
+      console.error("Error fetching child notes:", error);
+      showToast.error(t.t('errorLoadingNotes') || 'Error cargando notas');
+    } finally {
+      setLoadingNotes(prev => ({ ...prev, [childId]: false }));
+    }
+  };
+
+  // Toggle para expandir/colapsar notas de un hijo
+  const toggleChildNotes = (childId: number) => {
+    setExpandedNotes(prev => ({ ...prev, [childId]: !prev[childId] }));
+    // Cargar notas si no están cargadas
+    if (!childNotes[childId] && !loadingNotes[childId]) {
+      fetchChildNotes(childId);
+    }
+  };
+
+  // Función para eliminar nota
+  const handleDeleteNote = async (noteId: number, childId: number) => {
+    const confirmed = await confirm({ 
+      message: t.t('confirmDeleteNote') || '¿Estás seguro de que quieres eliminar esta nota?',
+      variant: 'danger'
+    });
+    if (!confirmed) return;
+
+    try {
+      await http.delete(`/api/childNote/${noteId}`);
+      showToast.success(t.t('noteDeleted') || 'Nota eliminada correctamente');
+      // Actualizar estado local
+      setChildNotes(prev => ({
+        ...prev,
+        [childId]: prev[childId]?.filter(note => note.id !== noteId) || []
+      }));
+    } catch (error) {
+      console.error("Error eliminando nota:", error);
+      showToast.error(t.t('errorDeletingNote') || 'Error eliminando la nota');
     }
   };
 
@@ -207,56 +273,23 @@ export function AdminTutors() {
   }
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="container mx-auto px-4 pb-8">
       <div className="mb-4 lg:mb-6">
         <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-1">{t.t('title')}</h1>
         <p className="text-sm text-gray-600">{t.t('subtitle')}</p>
       </div>
 
-      {/* Barra de búsqueda compacta */}
-      <div className="bg-white rounded-xl shadow-md p-3 mb-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input
-            type="text"
-            placeholder={t.t('searchPlaceholder')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-10 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-red-100 text-red-600 p-1.5 rounded hover:bg-red-200 transition-colors"
-              title={t.t('clearSearch')}
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
-        {searchQuery && (
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 border border-blue-200 rounded-lg">
-              <Filter className="w-3.5 h-3.5 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">
-                {total} {total === 1 ? t.t('results') : t.t('resultsPlural')}
-              </span>
-            </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg">
-              <Search className="w-3.5 h-3.5 text-gray-600" />
-              <span className="text-sm text-gray-700">"{debouncedSearch || searchQuery}"</span>
-            </div>
-            <button
-              onClick={() => setSearchQuery('')}
-              className="px-2.5 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5 text-sm font-medium"
-            >
-              <X className="w-3.5 h-3.5" />
-              {t.t('clear')}
-            </button>
-          </div>
-        )}
-      </div>
+      {/* Barra de búsqueda sticky */}
+      <SearchBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        total={total}
+        resultsLabel={t.t('results')}
+        resultsPluralLabel={t.t('resultsPlural')}
+        placeholder={t.t('searchPlaceholder')}
+        clearLabel={t.t('clear')}
+        sticky={true}
+      />
 
       {tutors.length === 0 ? (
         <div className="bg-white rounded-xl shadow-lg p-6 lg:p-8 text-center">
@@ -266,7 +299,7 @@ export function AdminTutors() {
         </div>
       ) : total === 0 && searchQuery && !loading ? (
         <div className="bg-white rounded-xl shadow-lg p-6 lg:p-8 text-center">
-          <Search className="w-12 h-12 lg:w-16 lg:h-16 text-gray-300 mx-auto mb-3" />
+          <Users className="w-12 h-12 lg:w-16 lg:h-16 text-gray-300 mx-auto mb-3" />
           <h3 className="text-lg lg:text-xl font-semibold text-gray-600 mb-1.5">{t.t('noResults')}</h3>
           <p className="text-sm lg:text-base text-gray-500 mb-3">
             {t.t('noResultsDesc')} "<strong>{debouncedSearch || searchQuery}</strong>"
@@ -280,11 +313,11 @@ export function AdminTutors() {
         </div>
       ) : (
         <>
-        <div className="space-y-3 lg:space-y-2">
+        <div className="space-y-4 lg:space-y-3">
           {tutors.map((tutor) => {
             const isExpanded = expandedTutors.has(tutor.id);
             return (
-              <div key={tutor.id} className={`bg-white ${isExpanded ? 'rounded-t-xl rounded-b-xl border-2 border-blue-500 shadow-md' : 'rounded-xl shadow-sm hover:shadow-md'} overflow-hidden transition-all`}>
+              <div key={tutor.id} className={`bg-white ${isExpanded ? 'rounded-t-xl rounded-b-xl border-2 border-blue-500 shadow-md' : 'rounded-xl shadow-sm hover:shadow-md mb-2'} overflow-hidden transition-all`}>
                 {/* Header del tutor */}
                 <div
                   className={`p-4 lg:p-3 cursor-pointer transition-colors ${isExpanded ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
@@ -345,91 +378,43 @@ export function AdminTutors() {
                   <div className="border-t bg-gray-50">
                     <div className="p-3 space-y-2">
                       {tutor.children.map((child) => (
-                        <div key={child.id} className="bg-white rounded-lg p-3 lg:p-2 border border-gray-200">
-                        <div className="flex justify-between items-center mb-2 lg:mb-1.5">
-                          <div>
-                            <h4 className="text-base lg:text-sm font-semibold text-gray-800">
-                              {child.name} {child.surname}
-                            </h4>
-                          </div>
-                          <button
-                            onClick={() => handleOpenNoteModal(child)}
-                            className="p-2 lg:p-1.5 bg-green-100 text-green-600 rounded hover:bg-green-200 transition-colors flex-shrink-0"
-                            title={t.t('addNote')}
-                          >
-                            <Plus className="w-4 h-4 lg:w-3.5 lg:h-3.5" />
-                          </button>
-                        </div>
-
-                        {/* Información del hijo - Layout compacto */}
-                        <div className="grid grid-cols-2 gap-2.5 lg:gap-2">
-                          <div className="bg-gray-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-gray-200">
-                            <p className="text-[0.85rem] font-semibold text-gray-800 mb-1">{t.t('birthDate')}</p>
-                            <p className="text-base text-gray-700">{child.dateOfBirth ? format(new Date(child.dateOfBirth), "dd/MM/yyyy", { locale: dateFnsLocale }) : t.t('notRegistered')}</p>
-                          </div>
-                          <div className="bg-orange-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-orange-200">
-                            <p className="text-[0.85rem] font-semibold text-orange-800 mb-1">{t.t('emergency1')}</p>
-                            <p className="text-base text-gray-700 truncate">{child.emergency_contact_name_1 || t.t('notRegistered')}</p>
-                            {child.emergency_phone_1 ? (
-                              <button
-                                onClick={(e) => handleCopyPhone(child.emergency_phone_1!, e)}
-                                className="text-base text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1 group"
-                                title={t.t('copyPhone')}
-                              >
-                                {child.emergency_phone_1}
-                                {copiedPhone === child.emergency_phone_1 ? (
-                                  <Check className="w-3 h-3 text-green-600" />
-                                ) : (
-                                  <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                              </button>
-                            ) : (
-                              <p className="text-base text-gray-600">{t.t('noPhone')}</p>
-                            )}
-                          </div>
-                          <div className="bg-orange-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-orange-200">
-                            <p className="text-[0.85rem] font-semibold text-orange-800 mb-1">{t.t('emergency2')}</p>
-                            <p className="text-base text-gray-700 truncate">{child.emergency_contact_name_2 || t.t('notRegistered')}</p>
-                            {child.emergency_phone_2 ? (
-                              <button
-                                onClick={(e) => handleCopyPhone(child.emergency_phone_2!, e)}
-                                className="text-base text-gray-600 hover:text-blue-600 transition-colors flex items-center gap-1 group"
-                                title={t.t('copyPhone')}
-                              >
-                                {child.emergency_phone_2}
-                                {copiedPhone === child.emergency_phone_2 ? (
-                                  <Check className="w-3 h-3 text-green-600" />
-                                ) : (
-                                  <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                )}
-                              </button>
-                            ) : (
-                              <p className="text-base text-gray-600">{t.t('noPhone')}</p>
-                            )}
-                          </div>
-                          <div className="bg-red-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-red-200">
-                            <p className="text-[0.85rem] font-semibold text-red-800 mb-1 flex items-center gap-1">
-                              <FileText className="w-4 h-4" />
-                              {t.t('UserProfile.allergies')}
-                            </p>
-                            <p className="text-base text-red-700 line-clamp-2">{child.allergies || (locale === 'ca' ? 'Sense al·lèrgies' : 'Sin alergias')}</p>
-                          </div>
-                          <div className="bg-blue-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-blue-200">
-                            <p className="text-[0.85rem] font-semibold text-blue-800 mb-1 flex items-center gap-1">
-                              <FileText className="w-4 h-4" />
-                              {t.t('UserProfile.notes')}
-                            </p>
-                            <p className="text-base text-blue-700 line-clamp-2">{child.notes || (locale === 'ca' ? 'Sense notes' : 'Sin notas')}</p>
-                          </div>
-                          <div className="bg-purple-50 px-3 py-2 lg:px-2 lg:py-1.5 rounded border border-purple-200">
-                            <p className="text-[0.85rem] font-semibold text-purple-800 mb-1 flex items-center gap-1">
-                              <FileText className="w-4 h-4" />
-                              {t.t('UserProfile.medicalNotes')}
-                            </p>
-                            <p className="text-base text-purple-700 line-clamp-2">{child.medicalNotes || (locale === 'ca' ? 'Sense notes mèdiques' : 'Sin notas médicas')}</p>
-                          </div>
-                        </div>
-                      </div>
+                        <ChildCard
+                          key={child.id}
+                          child={child}
+                          dateFnsLocale={dateFnsLocale}
+                          expandedNotes={expandedNotes[child.id] || false}
+                          notes={childNotes[child.id]}
+                          isLoadingNotes={loadingNotes[child.id] || false}
+                          notesCount={childNotes[child.id]?.length || 0}
+                          copiedPhone={copiedPhone}
+                          onToggleNotes={() => toggleChildNotes(child.id)}
+                          onAddNote={() => handleOpenNoteModal(child)}
+                          onEditNote={(note) => handleOpenNoteModal(child, note)}
+                          onDeleteNote={(noteId) => handleDeleteNote(noteId, child.id)}
+                          onImageClick={(url, childName) => {
+                            setViewingImageUrl(url);
+                            setViewingImageName(childName);
+                          }}
+                          onCopyPhone={handleCopyPhone}
+                          translations={{
+                            birthDate: t.t('birthDate'),
+                            emergency1: t.t('emergency1'),
+                            emergency2: t.t('emergency2'),
+                            allergies: t.t('allergies'),
+                            notes: t.t('notes'),
+                            medicalNotes: t.t('medicalNotes'),
+                            notRegistered: t.t('notRegistered'),
+                            noPhone: t.t('noPhone'),
+                            noAllergies: t.t('noAllergies'),
+                            noNotes: t.t('noNotes'),
+                            noMedicalNotes: t.t('noMedicalNotes'),
+                            viewNotes: t.t('viewNotes') || 'Ver notas',
+                            addNote: t.t('addNote'),
+                            copyPhone: t.t('copyPhone'),
+                            loadingNotes: t.t('loadingNotes') || 'Cargando notas...',
+                            noNotesYet: t.t('noNotesYet') || 'No hay notas aún'
+                          }}
+                        />
                       ))}
                     </div>
                   </div>
@@ -441,137 +426,35 @@ export function AdminTutors() {
 
 
         {/* Paginación */}
-        {totalPages > 1 && (
-          <div className="flex justify-center items-center gap-2 lg:gap-1.5 mt-4">
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">{locale === 'ca' ? 'Anterior' : 'Anterior'}</span>
-            </button>
-            
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-              if (
-                page === 1 ||
-                page === totalPages ||
-                (page >= currentPage - 1 && page <= currentPage + 1)
-              ) {
-                return (
-                  <button
-                    key={page}
-                    onClick={() => handlePageChange(page)}
-                    className={`px-3 py-2 rounded-lg ${
-                      page === currentPage
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-white border border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                );
-              } else if (page === currentPage - 2 || page === currentPage + 2) {
-                return <span key={page} className="px-1">...</span>;
-              }
-              return null;
-            })}
-            
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="px-3 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
-            >
-              <span className="hidden sm:inline">{locale === 'ca' ? 'Següent' : 'Siguiente'}</span>
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
         </>
       )}
 
       {/* Modal para dejar notas */}
-      {showNoteModal && selectedChild && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-              <h3 className="text-2xl font-bold text-gray-800">
-                {t.t('noteTitle')} {selectedChild.name} {selectedChild.surname}
-              </h3>
-              <button
-                onClick={handleCloseNoteModal}
-                className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
+      <ChildNoteModal
+        isOpen={showNoteModal}
+        onClose={handleCloseNoteModal}
+        child={selectedChild}
+        note={editingNote}
+        onSave={handleSaveNote}
+      />
 
-            <div className="p-6 space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.t('noteContent')}
-                </label>
-                <textarea
-                  rows={8}
-                  value={noteForm.content}
-                  onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder={t.t('noteContentPlaceholder')}
-                />
-              </div>
+      {/* Modal para ver imagen en grande */}
+      <ImageViewerModal
+        isOpen={!!viewingImageUrl}
+        onClose={() => {
+          setViewingImageUrl(null);
+          setViewingImageName('');
+        }}
+        imageUrl={viewingImageUrl || ''}
+        imageName={viewingImageName}
+      />
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  {t.t('imageUrl')} (opcional)
-                </label>
-                <div className="space-y-3">
-                  {noteForm.images.map((url, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="url"
-                        value={url}
-                        onChange={(e) => handleImageUrlChange(index, e.target.value)}
-                        placeholder={t.t('imageUrlPlaceholder')}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-                      />
-                      {noteForm.images.length > 1 && (
-                        <button
-                          onClick={() => handleRemoveImageUrl(index)}
-                          className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    onClick={handleAddImageUrl}
-                    className="w-full px-4 py-2 bg-green-100 text-green-600 rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    {t.t('addImage')}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="sticky bottom-0 bg-white border-t px-6 py-4 flex gap-3">
-              <button
-                onClick={handleSaveNote}
-                className="flex-1 bg-green-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-green-600 transition-colors"
-              >
-                {t.t('saveNote')}
-              </button>
-              <button
-                onClick={handleCloseNoteModal}
-                className="flex-1 bg-gray-500 text-white px-4 py-3 rounded-xl font-medium hover:bg-gray-600 transition-colors"
-              >
-                {t.t('UserProfile.cancel')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {ConfirmComponent}
     </div>
   );
 }

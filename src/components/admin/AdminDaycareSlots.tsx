@@ -1,18 +1,24 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Calendar, Plus, Trash2, Edit3, CalendarDays, Clock, Settings, Filter, CheckSquare, Square } from "lucide-react";
-import { format } from "date-fns";
+import { Calendar, Plus, Trash2, Edit3, CalendarDays, Clock, Settings, Filter, CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
+import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval } from "date-fns";
+import { es, ca } from "date-fns/locale";
 import { useAuth } from "../../contexts/AuthContext";
 import { useDaycareSlots } from "../../contexts/DaycareSlotContext";
 import { DaycareSlot } from "../../types/auth";
 import {SlotModal} from "../modals/SlotModal";
 import { CalendarComponent } from "../shared/Calendar";
 import { useTranslation } from "../../contexts/TranslationContext";
+import { showToast } from "../../lib/toast";
+import { useConfirm } from "../../hooks/useConfirm";
+import { Pagination } from "../shared/Pagination";
 
 export function AdminDaycareSlots() {
     const { user } = useAuth();
     const { fetchSlots, generateSlots, updateSlot, deleteSlot } = useDaycareSlots();
     const t = useTranslation('AdminDaycareSlots');
     const locale = t.locale;
+    const dateFnsLocale = locale === 'ca' ? ca : es;
+    const { confirm, ConfirmComponent } = useConfirm();
 
     const [slots, setSlots] = useState([] as Array<DaycareSlot>);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -83,6 +89,98 @@ export function AdminDaycareSlots() {
 
     const slotsToShow = selectedDate ? (filteredDailySlots || []) : (filteredSlots || []);
 
+    // Agrupar slots por semana
+    const slotsByWeek = useMemo(() => {
+        if (slotsToShow.length === 0 || selectedDate) return [];
+
+        // Obtener todas las fechas únicas de los slots
+        const uniqueDates = Array.from(
+            new Set(slotsToShow.map(slot => {
+                const date = new Date(slot.date);
+                date.setHours(0, 0, 0, 0);
+                return date.getTime();
+            }))
+        ).map(timestamp => new Date(timestamp));
+
+        if (uniqueDates.length === 0) return [];
+
+        // Encontrar el rango de fechas
+        const minDate = new Date(Math.min(...uniqueDates.map(d => d.getTime())));
+        const maxDate = new Date(Math.max(...uniqueDates.map(d => d.getTime())));
+
+        // Obtener todas las semanas en el rango
+        const weeks = eachWeekOfInterval(
+            { start: minDate, end: maxDate },
+            { weekStartsOn: 1 } // Lunes
+        );
+
+        // Agrupar slots por semana
+        const weeksData = weeks.map(weekStart => {
+            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+            const weekSlots = slotsToShow.filter(slot => {
+                const slotDate = new Date(slot.date);
+                slotDate.setHours(0, 0, 0, 0);
+                return isWithinInterval(slotDate, { start: weekStart, end: weekEnd });
+            });
+
+            // Ordenar slots por fecha descendente (más recientes primero)
+            const sortedSlots = weekSlots.sort((a, b) => {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                return dateB - dateA;
+            });
+
+            return {
+                weekStart,
+                weekEnd,
+                slots: sortedSlots,
+                totalSlots: weekSlots.length,
+                availableSlots: weekSlots.filter(s => s.status === 'OPEN').length,
+                totalCapacity: weekSlots.reduce((acc, s) => acc + s.capacity, 0),
+                availableCapacity: weekSlots.reduce((acc, s) => acc + s.availableSpots, 0)
+            };
+        }).filter(week => week.totalSlots > 0); // Solo semanas con slots
+
+        // Ordenar por fecha descendente (más recientes primero)
+        return weeksData.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
+    }, [slotsToShow, selectedDate]);
+
+    const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
+    const [weekPages, setWeekPages] = useState<Record<string, number>>({});
+    const ITEMS_PER_PAGE = 20;
+
+    const toggleWeek = (weekKey: string) => {
+        setExpandedWeeks(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(weekKey)) {
+                newSet.delete(weekKey);
+            } else {
+                newSet.add(weekKey);
+                // Resetear página cuando se expande
+                if (!weekPages[weekKey]) {
+                    setWeekPages(prev => ({ ...prev, [weekKey]: 1 }));
+                }
+            }
+            return newSet;
+        });
+    };
+
+    const getWeekPage = (weekKey: string) => weekPages[weekKey] || 1;
+
+    const setWeekPage = (weekKey: string, page: number) => {
+        setWeekPages(prev => ({ ...prev, [weekKey]: page }));
+    };
+
+    const getPaginatedSlots = (slots: DaycareSlot[], weekKey: string) => {
+        const page = getWeekPage(weekKey);
+        const startIndex = (page - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        return slots.slice(startIndex, endIndex);
+    };
+
+    const getTotalPages = (slots: DaycareSlot[]) => {
+        return Math.ceil(slots.length / ITEMS_PER_PAGE);
+    };
 
     // Calcular días con slots para el calendario con información detallada
     const calendarData = useMemo(() => {
@@ -134,7 +232,7 @@ export function AdminDaycareSlots() {
         console.log("🟢 DATA EN HANDLECREATESLOT:", data);
 
         if (!data.date || data.openHour === undefined || data.closeHour === undefined || !data.capacity) {
-            alert(t.t('fillRequired'));
+            showToast.error(t.t('fillRequired'));
             return;
         }
 
@@ -152,9 +250,10 @@ export function AdminDaycareSlots() {
             // Recargar todos los slots en lugar de solo los del día
             const updatedSlots = await fetchSlots();
             setSlots(updatedSlots || []);
-            alert(t.t('createSuccess'));
+            showToast.success(t.t('createSuccess'));
         } catch (err) {
             console.error("❌ Error creando slot:", err);
+            showToast.error(t.t('createError') || 'Error al crear el slot');
         }
     };
 
@@ -170,16 +269,17 @@ export function AdminDaycareSlots() {
                 if (selectedSlot?.id === id) setSelectedSlot(updatedSlot);
             }
 
-            alert(t.t('updateSuccess'));
+            showToast.success(t.t('updateSuccess'));
         } catch (error) {
             console.error("❌ Error actualizando slot:", error);
-            alert(t.t('updateError'));
+            showToast.error(t.t('updateError'));
         }
     };
 
     // Eliminar slot
     const handleDeleteSlot = async (id: number) => {
-        if (!window.confirm(t.t('confirmDelete'))) return;
+        const confirmed = await confirm({ message: t.t('confirmDelete'), variant: 'danger' });
+        if (!confirmed) return;
         await deleteSlot(id);
         setSlots((prev) => prev.filter((s) => s.id !== id));
 
@@ -190,32 +290,37 @@ export function AdminDaycareSlots() {
             return newSet;
         });
 
-        alert(t.t('deleteSuccess'));
+        showToast.success(t.t('deleteSuccess'));
     };
 
     // Eliminar múltiples slots
     const handleDeleteMultipleSlots = async () => {
         if (selectedSlots.size === 0) {
-            alert(t.t('selectAtLeastOne'));
+            showToast.error(t.t('selectAtLeastOne'));
             return;
         }
 
-        if (!window.confirm(`${t.t('confirmDeleteMultiple')} ${selectedSlots.size} ${t.t('slotsQ')}`)) return;
+        const confirmed = await confirm({ 
+            message: `${t.t('confirmDeleteMultiple')} ${selectedSlots.size} ${t.t('slotsQ')}`,
+            variant: 'danger'
+        });
+        if (!confirmed) return;
 
         try {
             const deletePromises = Array.from(selectedSlots).map(id => deleteSlot(id));
             await Promise.all(deletePromises);
 
+            const deletedCount = selectedSlots.size;
             setSlots((prev) => prev.filter((s) => !selectedSlots.has(s.id)));
             setSelectedSlots(new Set());
-            alert(`${selectedSlots.size} ${t.t('deleteMultipleSuccess')}`);
+            showToast.success(`${deletedCount} ${t.t('deleteMultipleSuccess')}`);
 
             // Refrescar slots para actualizar el calendario
             const updatedSlots = await fetchSlots();
             setSlots(updatedSlots);
         } catch (error) {
             console.error("Error eliminando slots:", error);
-            alert(t.t('deleteError'));
+            showToast.error(t.t('deleteError'));
         }
     };
 
@@ -253,7 +358,7 @@ export function AdminDaycareSlots() {
     // Generar slots para rango de fechas
     const handleGenerateSlotsForRange = async (openHour: string, closeHour: string, capacity: number) => {
         if (!dateFilter.start || !dateFilter.end) {
-            alert(t.t('selectDateRange'));
+            showToast.error(t.t('selectDateRange'));
             return;
         }
 
@@ -271,10 +376,10 @@ export function AdminDaycareSlots() {
             // Refrescar slots
             const updatedSlots = await fetchSlots();
             setSlots(updatedSlots);
-            alert(t.t('generateSuccess'));
+            showToast.success(t.t('generateSuccess'));
         } catch (error) {
             console.error("Error generando slots:", error);
-            alert(t.t('generateError'));
+            showToast.error(t.t('generateError'));
         }
     };
 
@@ -405,13 +510,13 @@ export function AdminDaycareSlots() {
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 items-start py-6 px-6">
                 {/* Panel principal */}
                 <div className="min-h-auto bg-gray-50 py-8">
                     {viewMode === "calendar" ? (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">Vista Calendario</h2>
+                                <h2 className="text-2xl font-semibold">{t.t('calendarView')}</h2>
                                 {selectedDate && (
                                     <button
                                         onClick={() => {
@@ -419,7 +524,7 @@ export function AdminDaycareSlots() {
                                         }}
                                         className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
                                     >
-                                        Ver todos los slots
+                                        {t.t('viewAllSlots')}
                                     </button>
                                 )}
                             </div>
@@ -427,12 +532,12 @@ export function AdminDaycareSlots() {
                             {selectedDate ? (
                                 <div className="bg-white rounded-xl shadow-lg p-6">
                                     <h3 className="text-xl font-semibold mb-4">
-                                        Slots del {format(selectedDate, "dd/MM/yyyy")}
+                                        {t.t('slotsOf')} {format(selectedDate, "dd/MM/yyyy")}
                                     </h3>
                                     {dailySlots.length === 0 ? (
                                         <div className="text-center py-8">
                                             <Clock className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                                            <p className="text-gray-500">No hay slots para este día</p>
+                                            <p className="text-gray-500">{t.t('noSlotsDay')}</p>
                                         </div>
                                     ) : (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -461,9 +566,9 @@ export function AdminDaycareSlots() {
                                                                     {slot.openHour} - {slot.closeHour}
                                                                 </p>
                                                                 <p className="text-sm text-gray-600">
-                                                                    Plazas: {slot.availableSpots}/{slot.capacity}
+                                                                    {t.t('spots')}: {slot.availableSpots}/{slot.capacity}
                                                                 </p>
-                                                                <p className="text-sm text-gray-600">Estado: {slot.status}</p>
+                                                                <p className="text-sm text-gray-600">{t.t('status')}: {slot.status}</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-1">
@@ -490,10 +595,10 @@ export function AdminDaycareSlots() {
                                 <div className="text-center py-12">
                                     <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        Selecciona un día del calendario
+                                        {t.t('selectDay')}
                                     </h3>
                                     <p className="text-gray-500">
-                                        Haz clic en cualquier día para ver sus slots
+                                        {t.t('clickDay')}
                                     </p>
                                 </div>
                             )}
@@ -501,9 +606,9 @@ export function AdminDaycareSlots() {
                     ) : (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">Todos los Slots</h2>
+                                <h2 className="text-2xl font-semibold">{t.t('allSlots')}</h2>
                                 <div className="text-sm text-gray-500">
-                                    {slotsToShow.length} slots {dateFilter.start && dateFilter.end ? 'filtrados' : 'totales'}
+                                    {slotsToShow.length} {t.t('slots')} {dateFilter.start && dateFilter.end ? t.t('filtered') : t.t('total')}
                                 </div>
                             </div>
 
@@ -511,13 +616,13 @@ export function AdminDaycareSlots() {
                                 <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
                                     <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        {dateFilter.start && dateFilter.end ? "No hay slots en el rango seleccionado" : "No hay slots"}
+                                        {dateFilter.start && dateFilter.end ? t.t('noSlotsInRange') : t.t('noSlots')}
                                     </h3>
                                     <p className="text-gray-500">
-                                        {dateFilter.start && dateFilter.end ? "Prueba con otro rango de fechas" : "Genera tu primer slot para comenzar"}
+                                        {dateFilter.start && dateFilter.end ? t.t('tryAnotherRange') : t.t('createFirst')}
                                     </p>
                                 </div>
-                            ) : (
+                            ) : selectedDate ? (
                                 <div className="space-y-3">
                                     {slotsToShow.map((slot) => (
                                         <div
@@ -526,7 +631,7 @@ export function AdminDaycareSlots() {
                                                 }`}
                                         >
                                             <div className="flex items-center gap-4">
-                                                {viewMode === "list" && (
+                                                {showBulkActions && (
                                                     <button
                                                         onClick={() => toggleSlotSelection(slot.id)}
                                                         className="text-blue-500 hover:text-blue-700"
@@ -543,7 +648,7 @@ export function AdminDaycareSlots() {
                                                         {format(new Date(slot.date), "dd")}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
-                                                        {format(new Date(slot.date), "MMM")}
+                                                        {format(new Date(slot.date), "MMM", { locale: dateFnsLocale })}
                                                     </div>
                                                 </div>
                                                 <div>
@@ -551,7 +656,7 @@ export function AdminDaycareSlots() {
                                                         {slot.openHour} - {slot.closeHour}
                                                     </p>
                                                     <p className="text-sm text-gray-500">
-                                                        {new Date(slot.date).toLocaleDateString("es-ES", { weekday: "long", year: "numeric", month: "2-digit", day: "2-digit" })}
+                                                        {format(new Date(slot.date), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2">
@@ -562,7 +667,7 @@ export function AdminDaycareSlots() {
                                                         {slot.status}
                                                     </div>
                                                     <div className="text-sm text-gray-600">
-                                                        {slot.availableSpots}/{slot.capacity} plazas
+                                                        {slot.availableSpots}/{slot.capacity} {t.t('spots')}
                                                     </div>
                                                 </div>
                                             </div>
@@ -582,6 +687,153 @@ export function AdminDaycareSlots() {
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {slotsByWeek.map((week) => {
+                                        const weekKey = `${week.weekStart.getTime()}`;
+                                        const isExpanded = expandedWeeks.has(weekKey);
+
+                                        return (
+                                            <div
+                                                key={weekKey}
+                                                className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden"
+                                            >
+                                                {/* Card de semana */}
+                                                <button
+                                                    onClick={() => toggleWeek(weekKey)}
+                                                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                                >
+                                                    <div className="flex items-center gap-4 flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            {isExpanded ? (
+                                                                <ChevronDown className="w-5 h-5 text-gray-500" />
+                                                            ) : (
+                                                                <ChevronRight className="w-5 h-5 text-gray-500" />
+                                                            )}
+                                                            <CalendarDays className="w-5 h-5 text-blue-500" />
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <div className="font-semibold text-gray-800">
+                                                                {format(week.weekStart, "dd 'de' MMMM", { locale: dateFnsLocale })} - {format(week.weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                            </div>
+                                                            <div className="text-sm text-gray-500">
+                                                                {week.totalSlots} {t.t('slots')} • {week.availableSlots} {t.t('available')} • {week.availableCapacity}/{week.totalCapacity} {t.t('spots')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                                            week.availableSlots === 0 
+                                                                ? 'bg-red-100 text-red-800'
+                                                                : week.availableSlots === week.totalSlots
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : 'bg-yellow-100 text-yellow-800'
+                                                        }`}>
+                                                            {week.availableSlots === 0 
+                                                                ? t.t('full') || 'Completo'
+                                                                : week.availableSlots === week.totalSlots
+                                                                ? t.t('available') || 'Disponible'
+                                                                : t.t('partial') || 'Parcial'
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </button>
+
+                                                {/* Slots de la semana (expandible) */}
+                                                {isExpanded && (() => {
+                                                    const paginatedSlots = getPaginatedSlots(week.slots, weekKey);
+                                                    const totalPages = getTotalPages(week.slots);
+                                                    const currentPage = getWeekPage(weekKey);
+
+                                                    return (
+                                                        <div className="border-t border-gray-200 bg-gray-50 p-4">
+                                                            <div className="space-y-2 mb-4">
+                                                                {paginatedSlots.map((slot) => (
+                                                            <div
+                                                                key={slot.id}
+                                                                className={`bg-white p-3 rounded-lg border flex justify-between items-center ${selectedSlots.has(slot.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''
+                                                                    }`}
+                                                            >
+                                                                <div className="flex items-center gap-4 flex-1">
+                                                                    {showBulkActions && (
+                                                                        <button
+                                                                            onClick={() => toggleSlotSelection(slot.id)}
+                                                                            className="text-blue-500 hover:text-blue-700"
+                                                                        >
+                                                                            {selectedSlots.has(slot.id) ? (
+                                                                                <CheckSquare className="w-5 h-5" />
+                                                                            ) : (
+                                                                                <Square className="w-5 h-5" />
+                                                                            )}
+                                                                        </button>
+                                                                    )}
+                                                                    <div className="text-center min-w-[50px]">
+                                                                        <div className="text-sm font-medium text-gray-600">
+                                                                            {format(new Date(slot.date), "dd")}
+                                                                        </div>
+                                                                        <div className="text-xs text-gray-500">
+                                                                            {format(new Date(slot.date), "MMM", { locale: dateFnsLocale })}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <p className="font-semibold text-gray-800">
+                                                                            {slot.openHour} - {slot.closeHour}
+                                                                        </p>
+                                                                        <p className="text-sm text-gray-500">
+                                                                            {format(new Date(slot.date), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                                        </p>
+                                                                    </div>
+                                                                    <div className="flex gap-2">
+                                                                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${slot.status === 'OPEN'
+                                                                                ? 'bg-green-100 text-green-800'
+                                                                                : 'bg-red-100 text-red-800'
+                                                                            }`}>
+                                                                            {slot.status}
+                                                                        </div>
+                                                                        <div className="text-sm text-gray-600">
+                                                                            {slot.availableSpots}/{slot.capacity} {t.t('spots')}
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex gap-2 ml-4">
+                                                                    <button
+                                                                        onClick={() => openModal(slot)}
+                                                                        className="bg-yellow-500 text-white px-3 py-1 rounded-xl hover:bg-yellow-600 transition-colors"
+                                                                        title={t.t('edit') || 'Editar'}
+                                                                    >
+                                                                        <Edit3 className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDeleteSlot(slot.id)}
+                                                                        className="bg-red-500 text-white px-3 py-1 rounded-xl hover:bg-red-600 transition-colors"
+                                                                        title={t.t('delete') || 'Eliminar'}
+                                                                    >
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                            </div>
+
+                                                            {/* Paginación */}
+                                                            <div className="pt-4 border-t border-gray-300">
+                                                                <div className="text-sm text-gray-600 mb-3 text-center">
+                                                                    {t.t('showing')} {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, week.slots.length)} {t.t('of')} {week.slots.length}
+                                                                </div>
+                                                                <Pagination
+                                                                    currentPage={currentPage}
+                                                                    totalPages={totalPages}
+                                                                    onPageChange={(page) => setWeekPage(weekKey, page)}
+                                                                    className="mt-0 mb-0"
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -615,24 +867,24 @@ export function AdminDaycareSlots() {
 
                     {/* Estadísticas del mes */}
                     <div className="mt-4 bg-white rounded-xl shadow-lg p-4">
-                        <h4 className="font-semibold text-gray-800 mb-3">Estadísticas del Mes</h4>
+                        <h4 className="font-semibold text-gray-800 mb-3">{t.t('monthStats')}</h4>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Días con slots:</span>
+                                <span className="text-gray-600">{t.t('daysWithSlots')}</span>
                                 <span className="font-medium">{calendarData.bookedDays.length}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Total slots:</span>
+                                <span className="text-gray-600">{t.t('totalSlots')}</span>
                                 <span className="font-medium">{slotsToShow.length}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Disponibles:</span>
+                                <span className="text-gray-600">{t.t('available')}</span>
                                 <span className="font-medium text-green-600">
                                     {slotsToShow.filter(s => s.status === 'OPEN').length}
                                 </span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Plazas totales:</span>
+                                <span className="text-gray-600">{t.t('totalSpots')}</span>
                                 <span className="font-medium">
                                     {slotsToShow.reduce((acc, s) => acc + s.capacity, 0)}
                                 </span>
@@ -641,6 +893,7 @@ export function AdminDaycareSlots() {
                     </div>
                 </div>
             </div>
+            {ConfirmComponent}
         </div>
     );
 }

@@ -8,6 +8,7 @@ import { BirthdayBooking, BirthdaySlot, DaycareSlot } from '../../types/auth';
 import { AuthModal } from '../auth/AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/TranslationContext';
+import { Spinner } from '../shared/Spinner';
 
 
 export function CalendarSection() {
@@ -26,7 +27,7 @@ export function CalendarSection() {
   const [selectedDayType, setSelectedDayType] = useState<'birthday' | 'daycare' | 'both' | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-
+  const [isLoadingSlots, setIsLoadingSlots] = useState(true);
 
   const { user } = useAuth();
 
@@ -38,12 +39,19 @@ export function CalendarSection() {
   // Fetch all slots - UNA SOLA PETICIÓN
   useEffect(() => {
     const loadAllSlots = async () => {
-      const [birthdayData, daycareData] = await Promise.all([
-        fetchSlotsAvailable(),
-        fetchSlots()
-      ]);
-      setBirthdaySlots(birthdayData);
-      setAllDaycareSlots(daycareData || []);
+      setIsLoadingSlots(true);
+      try {
+        const [birthdayData, daycareData] = await Promise.all([
+          fetchSlotsAvailable(),
+          fetchSlots()
+        ]);
+        setBirthdaySlots(birthdayData);
+        setAllDaycareSlots(daycareData || []);
+      } catch (error) {
+        console.error('Error loading slots:', error);
+      } finally {
+        setIsLoadingSlots(false);
+      }
     };
     loadAllSlots();
   }, []);
@@ -247,6 +255,11 @@ export function CalendarSection() {
         </div>
 
         <div className="max-w-4xl mx-auto">
+          {isLoadingSlots ? (
+            <div className="flex items-center justify-center py-20">
+              <Spinner size="lg" text={t('loading')} />
+            </div>
+          ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
             {/* Calendar */}
             <div className="bg-white rounded-3xl shadow-xl p-8">
@@ -287,12 +300,27 @@ export function CalendarSection() {
                     day === selectedDay.getDate() &&
                     currentMonth.getMonth() === selectedDay.getMonth() &&
                     currentMonth.getFullYear() === selectedDay.getFullYear();
-                  const bgClass = isSelected 
-                    ? 'w-full h-full rounded-lg text-sm font-medium transition ring-2 ring-orange-600 font-bold text-green-800 bg-green-400 rounded-full' 
-                    : status.type === 'both' ? 'bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700 hover:from-orange-200 hover:to-orange-300' :
-                      status.type === 'birthday' ? 'bg-gradient-to-br from-green-100 to-green-200 text-green-700 hover:from-green-200 hover:to-green-300' :
-                        status.type === 'daycare' ? 'bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300' :
-                          'bg-gray-100 text-gray-400 cursor-not-allowed';
+                  
+                  let bgClass = '';
+                  if (status.type === 'none') {
+                    bgClass = 'bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-transparent';
+                  } else if (isSelected) {
+                    if (status.type === 'both') {
+                      bgClass = 'bg-orange-200 text-orange-800 border-2 border-white ring-2 ring-orange-400 font-bold';
+                    } else if (status.type === 'birthday') {
+                      bgClass = 'bg-green-200 text-green-800 border-2 border-white ring-2 ring-green-400 font-bold';
+                    } else if (status.type === 'daycare') {
+                      bgClass = 'bg-blue-200 text-blue-800 border-2 border-white ring-2 ring-blue-400 font-bold';
+                    }
+                  } else {
+                    if (status.type === 'both') {
+                      bgClass = 'bg-gradient-to-br from-orange-100 to-orange-200 text-orange-700 hover:from-orange-200 hover:to-orange-300 border-2 border-transparent';
+                    } else if (status.type === 'birthday') {
+                      bgClass = 'bg-gradient-to-br from-green-100 to-green-200 text-green-700 hover:from-green-200 hover:to-green-300 border-2 border-transparent';
+                    } else if (status.type === 'daycare') {
+                      bgClass = 'bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700 hover:from-blue-200 hover:to-blue-300 border-2 border-transparent';
+                    }
+                  }
 
                   return (
                     <div key={index}
@@ -409,12 +437,12 @@ export function CalendarSection() {
                 </div>
               }
             </div>
-
-
           </div>
+          )}
         </div>
       </div>
-    </section><>
+    </section>
+    <>
         {/* AuthModal*/}
         <AuthModal
           isOpen={isAuthModalOpen}

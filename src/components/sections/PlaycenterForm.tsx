@@ -3,9 +3,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useBookings } from "../../contexts/BookingContext";
 import { useChildren } from "../../contexts/ChildrenContext";
 import { Child } from "../../types/auth";
+import { showToast } from '../../lib/toast';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 
 export function Playcenter() {
+    const { t } = useTranslation('PlaycenterForm');
     const [name, setName] = useState("");
     const [contact_number, setContactNumber] = useState("");
     const [kids, setKids] = useState<Child[]>([]);
@@ -35,14 +38,14 @@ export function Playcenter() {
         setLoading(true);
 
         if (!user?.id) {
-            alert("Debes iniciar sesión para reservar");
+            showToast.error(t('mustLogin'));
             setLoading(false);
             return;
         }
         try {
 
 
-            alert("✅ Reserva creada con éxito");
+            showToast.success(t('bookingCreated'));
             // limpiar
             setName("");
             setContactNumber("");
@@ -50,7 +53,7 @@ export function Playcenter() {
             setPack("");
             setComments("");
         } catch (err: any) {
-            alert("❌ " + err.message);
+            showToast.error(err.message || t('errorCreating'));
         } finally {
             setLoading(false);
         }
@@ -61,31 +64,31 @@ export function Playcenter() {
             <form className="w-full p-6 sm:p-8 space-y-6">
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
-                        Nombre del responsable
+                        {t('responsibleName')}
                     </label>
                     <input
                         type="text"
                         value={name}
                         onChange={e => setName(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                        placeholder="Tu nombre completo" />
+                        placeholder={t('namePlaceholder')} />
                 </div>
 
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
-                        Teléfono de contacto
+                        {t('contactPhone')}
                     </label>
                     <input
                         type="tel"
                         value={contact_number}
                         onChange={e => setContactNumber(e.target.value)}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                        placeholder="+34 123 456 789" />
+                        placeholder={t('phonePlaceholder')} />
                 </div>
 
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
-                        Selecciona niño/os
+                        {t('selectChildren')}
                     </label>
 
                     {kids.map((kid) => (
@@ -99,14 +102,14 @@ export function Playcenter() {
 
                 <div>
                     <label className="block text-gray-700 font-medium mb-2">
-                        Comentarios adicionales
+                        {t('additionalComments')}
                     </label>
                     <textarea
                         rows={3}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
                         value={comments}
                         onChange={e => setComments(e.target.value)}
-                        placeholder="Cuéntanos sobre la celebración..."
+                        placeholder={t('celebrationComments')}
                     ></textarea>
                 </div>
 
@@ -116,7 +119,7 @@ export function Playcenter() {
                     type="submit"
                     className="w-full bg-gradient-to-r from-pink-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300"
                 >
-                    {loading ? "Procesando..." : "Confirmar Reserva"}
+                    {loading ? t('processing') : t('confirmBooking')}
                 </button>
             </form>
         </div>
