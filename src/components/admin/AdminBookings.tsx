@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Users, CheckCircle, XCircle, Trash2, Phone, Clock, Glasses, CalendarDays, Filter, Settings } from 'lucide-react';
+import { Calendar, Users, Trash2, Phone, Clock, Glasses, CalendarDays, Settings } from 'lucide-react';
 import { useBookings } from '../../contexts/BookingContext';
 import { BirthdayBooking } from '../../types/auth';
 import { useAuth } from '../../contexts/AuthContext';
@@ -9,11 +9,15 @@ import { CalendarComponent } from '../shared/Calendar';
 import { useMemo } from "react";
 import { BookingCard } from '../shared/BookingCard';
 import { useTranslation } from '../../contexts/TranslationContext';
+import { Spinner } from '../shared/Spinner';
+import { showToast } from '../../lib/toast';
+import { useConfirm } from '../../hooks/useConfirm';
 
 export function AdminBookings() {
     const [currentMonth, setCurrentMonth] = useState(new Date()); // empieza en mes actual
     const t = useTranslation('AdminBookings');
     const locale = t.locale;
+    const { confirm, ConfirmComponent } = useConfirm();
 
     const [bookings, setBookings] = useState([] as Array<BirthdayBooking>)
     const { fetchBookings, updateBookingStatus, deleteBooking, updateBooking, fetchBookingByDate } = useBookings();
@@ -22,12 +26,12 @@ export function AdminBookings() {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [dailyBookings, setDailyBookings] = useState<BirthdayBooking[]>([]);
     const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
-    const [showFilters, setShowFilters] = useState(false);
 
     const [bookedDaysDB, setBookedDaysDB] = useState<number[]>([]);
 
     const [selectedBooking, setSelectedBooking] = useState<BirthdayBooking | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isLoadingBookings, setIsLoadingBookings] = useState(true);
 
     const openModal = (booking: BirthdayBooking) => {
         setSelectedBooking(booking);
@@ -41,7 +45,13 @@ export function AdminBookings() {
 
     useEffect(() => {
         if (!!user) {
-            fetchBookings().then((bookings) => setBookings(bookings || []))
+            setIsLoadingBookings(true);
+            fetchBookings().then((bookings) => {
+                setBookings(bookings || []);
+                setIsLoadingBookings(false);
+            }).catch(() => {
+                setIsLoadingBookings(false);
+            });
         }
     }, [user])
 
@@ -66,6 +76,23 @@ export function AdminBookings() {
     const availableDaysDB = allDays.filter(d => !bookedDays.includes(d));
 
     const handleUpdateBookingStatus = async (id: number, status: BirthdayBooking['status']) => {
+        let confirmMessage = '';
+        let variant: 'danger' | 'warning' | 'info' = 'info';
+        
+        if (status === 'CONFIRMED') {
+            confirmMessage = t.t('confirmReservationQuestion') || `¿Confirmar la reserva #${id}?`;
+            variant = 'info';
+        } else if (status === 'CANCELLED') {
+            confirmMessage = t.t('cancelReservationQuestion') || `¿Cancelar la reserva #${id}?`;
+            variant = 'warning';
+        } else if (status === 'PENDING') {
+            confirmMessage = t.t('setPendingQuestion') || `¿Establecer la reserva #${id} como pendiente?`;
+            variant = 'warning';
+        }
+        
+        const confirmed = await confirm({ message: confirmMessage, variant });
+        if (!confirmed) return;
+        
         try {
             // Actualización optimista en front
             setBookings(prev =>
@@ -87,15 +114,16 @@ export function AdminBookings() {
             updateBookingStatus(id, status);
 
             // Notificación opcional
-            alert(`${t.t('updateSuccess')} ${status}`);
+            showToast.success(`${t.t('updateSuccess')} ${status}`);
         } catch (err) {
             console.error(err);
-            alert(t.t('updateError'));
+            showToast.error(t.t('updateError'));
         }
     };
 
     const handleDeleteBooking = async (id: number) => {
-        if (!window.confirm(t.t('confirmDelete'))) return;
+        const confirmed = await confirm({ message: t.t('confirmDelete'), variant: 'danger' });
+        if (!confirmed) return;
 
         try {
             setBookings(prev => prev.filter(b => b.id !== id));
@@ -105,15 +133,15 @@ export function AdminBookings() {
             }
 
             deleteBooking(id);
-            alert(`${t.t('deleteSuccess')} ${id}`);
+            showToast.success(`${t.t('deleteSuccess')} ${id}`);
         } catch (err) {
             console.error(err);
-            alert(t.t('deleteError'));
+            showToast.error(t.t('deleteError'));
         }
     };
 
 
-    const handleUpdateBooking = async (id: number, data: Partial<BirthdayBooking>) => {
+    const handleUpdateBooking = async (id: number, data: Partial<BirthdayBooking>): Promise<void> => {
         // Actualiza inmediatamente en la lista principal
         setBookings(prev => prev.map(b => b.id === id ? { ...b, ...data } : b));
 
@@ -128,11 +156,11 @@ export function AdminBookings() {
         }
 
         try {
-            updateBooking(id, data); // Llamada al backend
-            alert(t.t('updateSuccess').replace(' a', ''));
+            await updateBooking(id, data); // Llamada al backend
+            showToast.success(t.t('updateSuccess').replace(' a', ''));
         } catch (err) {
             console.error(err);
-            alert(t.t('updateError'));
+            showToast.error(t.t('updateError'));
         }
     };
 
@@ -154,7 +182,7 @@ export function AdminBookings() {
             </div>
 
             {/* Controles superiores */}
-            <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
+            <div className="mb-4 flex flex-wrap gap-4 items-center justify-between">
                 <div className="flex gap-2">
                     <button
                         onClick={() => setViewMode("calendar")}
@@ -179,64 +207,52 @@ export function AdminBookings() {
                         {t.t('listView')}
                     </button>
                 </div>
+            </div>
 
-                <div className="flex gap-2">
+            {/* Panel de filtros - Siempre visible y compacto */}
+            <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
+                <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm font-medium text-gray-700">{t.t('filterByStatus')}:</span>
                     <button
-                        onClick={() => setShowFilters(!showFilters)}
-                        className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-xl hover:bg-purple-600"
+                        onClick={() => setFilter('all')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'all'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                            }`}
                     >
-                        <Filter className="w-4 h-4" />
-                        {t.t('filters')}
+                        {t.t('all')} ({stats.total})
+                    </button>
+                    <button
+                        onClick={() => setFilter('PENDING')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'PENDING'
+                            ? 'bg-yellow-500 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                            }`}
+                    >
+                        {t.t('pending')} ({stats.PENDING})
+                    </button>
+                    <button
+                        onClick={() => setFilter('CONFIRMED')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CONFIRMED'
+                            ? 'bg-green-500 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                            }`}
+                    >
+                        {t.t('confirmed')} ({stats.CONFIRMED})
+                    </button>
+                    <button
+                        onClick={() => setFilter('CANCELLED')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CANCELLED'
+                            ? 'bg-red-500 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
+                            }`}
+                    >
+                        {t.t('cancelled')} ({stats.CANCELLED})
                     </button>
                 </div>
             </div>
 
-            {/* Panel de filtros */}
-            {showFilters && (
-                <div className="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-4">
-                    <h3 className="text-lg font-semibold text-purple-800 mb-3">{t.t('filterByStatus')}</h3>
-                    <div className="flex flex-wrap gap-4">
-                        <button
-                            onClick={() => setFilter('all')}
-                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'all'
-                                ? 'bg-blue-500 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                        >
-                            {t.t('all')} ({stats.total})
-                        </button>
-                        <button
-                            onClick={() => setFilter('PENDING')}
-                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'PENDING'
-                                ? 'bg-yellow-500 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                        >
-                            {t.t('pending')} ({stats.PENDING})
-                        </button>
-                        <button
-                            onClick={() => setFilter('CONFIRMED')}
-                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'CONFIRMED'
-                                ? 'bg-green-500 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                        >
-                            {t.t('confirmed')} ({stats.CONFIRMED})
-                        </button>
-                        <button
-                            onClick={() => setFilter('CANCELLED')}
-                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${filter === 'CANCELLED'
-                                ? 'bg-red-500 text-white'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
-                        >
-                            {t.t('cancelled')} ({stats.CANCELLED})
-                        </button>
-                    </div>
-                </div>
-            )}
-
-            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 items-start py-6 px-6">
                 {/* Panel principal */}
                 <div className="min-h-auto bg-gray-50 py-8">
 
@@ -291,60 +307,9 @@ export function AdminBookings() {
                     ) : (
                         <div>
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">{t.t('allReservations')}</h2>
+                                <h2 className="text-xl font-semibold">{t.t('allReservations')}</h2>
                                 <div className="text-sm text-gray-500">
                                     {bookingsToShow.length} {t.t('reservations')} {filter !== 'all' ? t.t('filtered') : t.t('total')}
-                                </div>
-                            </div>
-
-                            {/* Stats Cards */}
-                            <div className="grid md:grid-cols-4 gap-6 mb-8">
-                                <div className="bg-white p-6 rounded-2xl shadow-lg">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                                            <Calendar className="w-6 h-6 text-blue-600" />
-                                        </div>
-                                        <div>
-                                            <div className="text-2xl font-bold text-gray-800">{stats.total}</div>
-                                            <div className="text-gray-600">{t.t('totalReservations')}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-6 rounded-2xl shadow-lg">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center">
-                                            <Clock className="w-6 h-6 text-yellow-600" />
-                                        </div>
-                                        <div>
-                                            <div className="text-2xl font-bold text-gray-800">{stats.PENDING}</div>
-                                            <div className="text-gray-600">{t.t('pending')}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-6 rounded-2xl shadow-lg">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                                            <CheckCircle className="w-6 h-6 text-green-600" />
-                                        </div>
-                                        <div>
-                                            <div className="text-2xl font-bold text-gray-800">{stats.CONFIRMED}</div>
-                                            <div className="text-gray-600">{t.t('confirmed')}</div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-6 rounded-2xl shadow-lg">
-                                    <div className="flex items-center space-x-3">
-                                        <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                                            <XCircle className="w-6 h-6 text-red-600" />
-                                        </div>
-                                        <div>
-                                            <div className="text-2xl font-bold text-gray-800">{stats.CANCELLED}</div>
-                                            <div className="text-gray-600">{t.t('cancelled')}</div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -352,7 +317,11 @@ export function AdminBookings() {
                     {/* Lista de reservas para vista lista */}
                     {viewMode === "list" && (
                         <div className="space-y-6">
-                            {bookingsToShow.length === 0 ? (
+                            {isLoadingBookings ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Spinner size="lg" text={t.t('loading')} />
+                                </div>
+                            ) : bookingsToShow.length === 0 ? (
                                 <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
                                     <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
@@ -420,6 +389,7 @@ export function AdminBookings() {
                     </div>
                 </div>
             </div>
+            {ConfirmComponent}
         </div>
     );
 }

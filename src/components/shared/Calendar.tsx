@@ -111,21 +111,28 @@ export function CalendarComponent({
             selectedDate.getMonth() === currentMonth.getMonth() &&
             selectedDate.getDate() === day;
 
+          const isBooked = bookedDaysDB.includes(day);
+          const isAvailable = availableDaysDB.includes(day);
+          
           return (
             <div key={idx} className="aspect-square">
               <button
                 onClick={() => handleDayClick(day)}
-                disabled={!availableDaysDB.includes(day) && !bookedDaysDB.includes(day)}
+                disabled={!isAvailable && !isBooked}
                 type="button"
                 className={clsx(
-                  "w-full h-full rounded-lg text-sm font-medium transition",
+                  "w-full h-full rounded-lg text-sm font-medium transition-all duration-200",
                   selected
-                    ? "ring-2 ring-orange-600 font-bold text-green-800 bg-green-400 rounded-full"
-                    : bookedDaysDB.includes(day)
-                      ? "bg-red-100 text-red-600 hover:bg-red-200"
-                      : availableDaysDB.includes(day)
-                        ? "bg-green-100 text-green-600 hover:bg-green-200"
-                        : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    ? isBooked
+                      ? "bg-red-200 text-red-800 border-2 border-white ring-2 ring-red-400 font-bold"
+                      : isAvailable
+                        ? "bg-green-200 text-green-800 border-2 border-white ring-2 ring-green-400 font-bold"
+                        : ""
+                    : isBooked
+                      ? "bg-red-100 text-red-600 hover:bg-red-200 border-2 border-transparent"
+                      : isAvailable
+                        ? "bg-green-100 text-green-600 hover:bg-green-200 border-2 border-transparent"
+                        : "bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-transparent"
                 )}
               >
                 {day}

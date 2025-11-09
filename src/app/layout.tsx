@@ -3,6 +3,7 @@ import Providers from "./providers";
 import "../index.css";
 import { Header } from "../components/layout/Header";
 import { Footer } from "../components/layout/Footer";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
     title: "Ludoteca Somriures & Colors",
@@ -18,6 +19,30 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     <Header />
                     <main>{children}</main>
                     <Footer />
+                    <Toaster 
+                        position="top-right"
+                        toastOptions={{
+                            duration: 4000,
+                        style: {
+                            background: '#fff',
+                            color: '#363636',
+                            },
+                            success: {
+                                duration: 3000,
+                                iconTheme: {
+                                    primary: '#10b981',
+                                    secondary: '#fff',
+                                },
+                            },
+                            error: {
+                                duration: 4000,
+                                iconTheme: {
+                                    primary: '#ef4444',
+                                    secondary: '#fff',
+                                },
+                            },
+                        }}
+                    />
                 </Providers>
             </body>
         </html>

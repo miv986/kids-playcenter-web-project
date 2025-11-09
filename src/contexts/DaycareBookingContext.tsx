@@ -17,6 +17,7 @@ interface DaycareBookingContextType {
     updateBooking: (id: number, bookingData: Partial<DaycareBooking> & { childrenIds?: number[] }) => Promise<void>;
     cancelBooking: (id: number) => Promise<void>;
     deleteBooking: (id: number) => Promise<void>;
+    markAttendance: (id: number, attendanceStatus: "ATTENDED" | "NOT_ATTENDED" | "PENDING") => Promise<DaycareBooking>;
     fetchBookings: () => Promise<DaycareBooking[]>;      // Admin → todas
     fetchMyBookings: () => Promise<DaycareBooking[]>;    // Usuario → solo las suyas
     fetchAvailableSlotsByDate: (date: Date) => Promise<any[]>; // Slots disponibles por día
@@ -116,6 +117,17 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
         }
     };
 
+    // ✅ Marcar asistencia (solo ADMIN)
+    const markAttendance = async (id: number, attendanceStatus: "ATTENDED" | "NOT_ATTENDED" | "PENDING") => {
+        try {
+            const response = await http.put(`/api/daycareBookings/${id}/attendance`, { attendanceStatus });
+            return response.booking || response;
+        } catch (err) {
+            console.error("❌ Error marcando asistencia:", err);
+            throw err;
+        }
+    };
+
     return (
         <DaycareBookingContext.Provider
             value={{
@@ -123,6 +135,7 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
                 updateBooking,
                 cancelBooking,
                 deleteBooking,
+                markAttendance,
                 fetchBookings,
                 fetchMyBookings,
                 fetchAvailableSlotsByDate,

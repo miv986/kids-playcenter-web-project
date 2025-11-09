@@ -6,6 +6,7 @@ import { useSlots } from "../../contexts/SlotContext";
 import { BirthdayBooking, BirthdaySlot } from "../../types/auth";
 import { format } from "date-fns";
 import { useTranslation } from '../../contexts/TranslationContext';
+import { showToast } from '../../lib/toast';
 
 
 export function PacksForm({
@@ -73,7 +74,7 @@ export function PacksForm({
         setLoading(true);
         /*
         if (!user?.id) {
-            alert("Debes iniciar sesión para reservar");
+            showToast.error("Debes iniciar sesión para reservar");
             setLoading(false);
             return;
         }
@@ -81,7 +82,7 @@ export function PacksForm({
         try {
 
             if (!selectedSlot) {
-                alert(t.t('selectSlotError'));
+                showToast.error(t.t('selectSlotError'));
                 setLoading(false);
                 return;
             }
@@ -104,7 +105,7 @@ export function PacksForm({
                 setSlots(updatedSlots);
             }
 
-            alert(t.t('successMessage'));
+            showToast.success(t.t('successMessage'));
             // limpiar
             setFormData({
                 selectedSlot: "",
@@ -116,7 +117,7 @@ export function PacksForm({
                 comments: "",
             });
         } catch (err: any) {
-            alert("❌ " + err.message);
+            showToast.error(err.message || 'Error al crear la reserva');
         } finally {
             setLoading(false);
         }

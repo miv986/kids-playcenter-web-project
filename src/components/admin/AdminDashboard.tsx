@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Users, Package, MessageSquare, Edit, Trash2, Phone, XCircle } from 'lucide-react';
+import { Calendar, Clock, Users, Package, MessageSquare, Edit, Trash2, Phone, XCircle, Gift, Baby } from 'lucide-react';
 import { useBookings } from '../../contexts/BookingContext';
 import { BirthdayBooking, Child } from '../../types/auth';
 import { useAuth } from '../../contexts/AuthContext';
@@ -26,11 +26,11 @@ export function AdminDashboard() {
 
 
   const tabs = [
-    { id: "birthdayBookings", label: t.t('admin.birthdayBookings'), content: <AdminBookings /> },
-    { id: "birthdaySlots", label: t.t('admin.birthdaySlots'), content: <AdminBirthdaySlots /> },
-    { id: "daycareSlots", label: t.t('admin.daycareSlots'), content: <AdminDaycareSlots /> },
-    { id: "daycareBookings", label: t.t('admin.daycareBookings'), content: <AdminDaycareBookings /> },
-    { id: "tutors", label: t.t('admin.tutors'), content: <AdminTutors /> },
+    { id: "birthdayBookings", label: t.t('admin.birthdayBookings'), icon: Gift, content: <AdminBookings /> },
+    { id: "birthdaySlots", label: t.t('admin.birthdaySlots'), icon: Calendar, content: <AdminBirthdaySlots /> },
+    { id: "daycareSlots", label: t.t('admin.daycareSlots'), icon: Clock, content: <AdminDaycareSlots /> },
+    { id: "daycareBookings", label: t.t('admin.daycareBookings'), icon: Baby, content: <AdminDaycareBookings /> },
+    { id: "tutors", label: t.t('admin.tutors'), icon: Users, content: <AdminTutors /> },
   ];
 
   return (

@@ -8,6 +8,8 @@ import { es, ca } from "date-fns/locale";
 import { SlotModal } from "../modals/SlotModal";
 import { CalendarComponent } from "../shared/Calendar";
 import { useTranslation } from "../../contexts/TranslationContext";
+import { showToast } from "../../lib/toast";
+import { useConfirm } from "../../hooks/useConfirm";
 
 
 export function AdminBirthdaySlots() {
@@ -15,6 +17,8 @@ export function AdminBirthdaySlots() {
     const { fetchSlots, createSlot, updateSlot, deleteSlot, fetchSlotsByDay, } = useSlots();
     const t = useTranslation('AdminBirthdaySlots');
     const locale = t.locale;
+    const dateFnsLocale = locale === 'ca' ? ca : es;
+    const { confirm, ConfirmComponent } = useConfirm();
 
     const [slots, setSlots] = useState([] as Array<BirthdaySlot>);
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -96,7 +100,7 @@ export function AdminBirthdaySlots() {
     // Crear slot (optimista)
     const handleCreateSlot = async (data: Partial<BirthdaySlot>) => {
         if (!data.date || !data.startTime || !data.endTime) {
-            alert(t.t('fillRequired'));
+            showToast.error(t.t('fillRequired'));
             return;
         }
 
@@ -104,16 +108,17 @@ export function AdminBirthdaySlots() {
         const end = new Date(data.endTime);
 
         if (end <= start) {
-            alert(t.t('endAfterStart'));
+            showToast.error(t.t('endAfterStart'));
             return;
         }
         try {
             const newSlot = await createSlot(data);
             if (!newSlot) return;
             setSlots((prev) => [...prev, newSlot]);
-            alert(t.t('createSuccess'));
+            showToast.success(t.t('createSuccess'));
         } catch (err) {
             console.error("Error manejando la creación del slot", err);
+            showToast.error(t.t('createError') || 'Error al crear el slot');
         }
 
     };
@@ -133,21 +138,20 @@ export function AdminBirthdaySlots() {
         }
         const slotToUpdate = await updateSlot(id, data);
         if (!slotToUpdate) return;
-        alert(t.t('updateSuccess'));
+        showToast.success(t.t('updateSuccess'));
     };
 
     // Eliminar slot
     const handleDeleteSlot = async (id: number) => {
-        if (!window.confirm(t.t('confirmDelete'))) return;
+        const confirmed = await confirm({ message: t.t('confirmDelete'), variant: 'danger' });
+        if (!confirmed) return;
         setSlots((prev) => prev.filter((s) => s.id !== id));
         if (selectedDate) {
             setDailySlots((prev) => prev.filter((s) => s.id !== id));
         }
         await deleteSlot(id);
-        alert(t.t('deleteSuccess'));
+        showToast.success(t.t('deleteSuccess'));
     };
-
-    const dateFnsLocale = locale === 'ca' ? ca : es;
 
     return (
         <div className="container mx-auto px-4">
@@ -166,8 +170,8 @@ export function AdminBirthdaySlots() {
                     <button
                         onClick={() => setViewMode("calendar")}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${viewMode === "calendar"
-                                ? "bg-blue-500 text-white"
-                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                             }`}
                     >
                         <CalendarDays className="w-4 h-4" />
@@ -176,8 +180,8 @@ export function AdminBirthdaySlots() {
                     <button
                         onClick={() => setViewMode("list")}
                         className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${viewMode === "list"
-                                ? "bg-blue-500 text-white"
-                                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                             }`}
                     >
                         <Calendar className="w-4 h-4" />
@@ -197,7 +201,7 @@ export function AdminBirthdaySlots() {
             </div>
 
 
-            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 items-start py-6 px-6">
                 {/* Panel principal */}
                 <div className="min-h-auto bg-gray-50 py-8">
                     {viewMode === "calendar" ? (
@@ -305,7 +309,7 @@ export function AdminBirthdaySlots() {
                                                         {format(new Date(slot.date), "dd")}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
-                                                        {format(new Date(slot.date), "MMM", { locale: es })}
+                                                        {format(new Date(slot.date), "MMM", { locale: dateFnsLocale })}
                                                     </div>
                                                 </div>
                                                 <div>
@@ -313,12 +317,12 @@ export function AdminBirthdaySlots() {
                                                         {format(new Date(slot.startTime), "HH:mm")} - {format(new Date(slot.endTime), "HH:mm")}
                                                     </p>
                                                     <p className="text-sm text-gray-500">
-                                                        {format(new Date(slot.date), "EEEE, dd/MM/yyyy", { locale: es })}
+                                                        {format(new Date(slot.date), "EEEE, dd/MM/yyyy", { locale: dateFnsLocale })}
                                                     </p>
                                                 </div>
                                                 <div className={`px-2 py-1 rounded-full text-xs font-medium ${slot.status === 'OPEN'
-                                                        ? 'bg-green-100 text-green-800'
-                                                        : 'bg-red-100 text-red-800'
+                                                    ? 'bg-green-100 text-green-800'
+                                                    : 'bg-red-100 text-red-800'
                                                     }`}>
                                                     {slot.status}
                                                 </div>
@@ -393,6 +397,7 @@ export function AdminBirthdaySlots() {
                     </div>
                 </div>
             </div>
+            {ConfirmComponent}
         </div>
     );
 }

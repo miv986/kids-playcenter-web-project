@@ -7,6 +7,8 @@ import { DaycareSlot, Child, DaycareBooking } from '../../types/auth';
 import { CalendarComponent } from './Calendar';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/TranslationContext';
+import { Spinner } from './Spinner';
+import { showToast } from '../../lib/toast';
 
 interface NewDaycareBookingModalProps {
     isOpen: boolean;
@@ -26,6 +28,8 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
     const [loading, setLoading] = useState(false);
     const [allDaysData, setAllDaysData] = useState<Map<string, { available: number, total: number }>>(new Map());
     const [hasExistingBookingError, setHasExistingBookingError] = useState(false);
+    const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+    const [isLoadingChildren, setIsLoadingChildren] = useState(false);
 
     const { fetchAvailableSlotsByDate } = useDaycareSlots();
     const { addBooking, updateBooking, fetchMyBookings } = useDaycareBookings();
@@ -34,6 +38,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
 
     useEffect(() => {
         if (isOpen) {
+            setIsLoadingChildren(true);
             fetchMyChildren().then(kidsList => {
                 setKids(kidsList);
                 // Pre-seleccionar los hijos de la reserva si estamos modificando
@@ -41,6 +46,9 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
                     const bookingKidIds = new Set(existingBooking.children.map(child => child.id));
                     setSelectedKids(bookingKidIds);
                 }
+                setIsLoadingChildren(false);
+            }).catch(() => {
+                setIsLoadingChildren(false);
             });
             if (existingBooking) {
                 const startDate = new Date(existingBooking.startTime);
@@ -70,8 +78,12 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
 
     useEffect(() => {
         if (selectedDate) {
+            setIsLoadingSlots(true);
             fetchAvailableSlotsByDate(selectedDate).then(fetchedSlots => {
                 setSlots(fetchedSlots);
+                setIsLoadingSlots(false);
+            }).catch(() => {
+                setIsLoadingSlots(false);
             });
         }
     }, [selectedDate, fetchAvailableSlotsByDate]);
@@ -148,23 +160,23 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
 
     const handleSubmit = async () => {
         if (!selectedDate || selectedSlots.size === 0) {
-            alert(t.t('selectDateAndSlot'));
+            showToast.error(t.t('selectDateAndSlot'));
             return;
         }
 
         if (selectedKids.size === 0) {
-            alert(t.t('selectAtLeastOneChild'));
+            showToast.error(t.t('selectAtLeastOneChild'));
             return;
         }
 
         if (comments.length > 500) {
-            alert(t.t('commentTooLong'));
+            showToast.error(t.t('commentTooLong'));
             return;
         }
 
 
         if (loading) {
-            alert(t.t('processing'));
+            showToast.info(t.t('processing'));
             return;
         }
 
@@ -175,7 +187,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
         });
 
         if (sortedSlots.length === 0) {
-            alert(t.t('noSlotsSelected'));
+            showToast.error(t.t('noSlotsSelected'));
             return;
         }
 
@@ -191,7 +203,13 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
         endTime.setHours(eh, em, 0, 0);
 
         if (!user?.id) {
-            alert(t.t('mustLogin'));
+            showToast.error(t.t('mustLogin'));
+            return;
+        }
+
+        // ✅ No permitir modificar reservas CLOSED
+        if (existingBooking && existingBooking.status === 'CLOSED') {
+            showToast.error(t.t('cannotModifyClosed') || 'No se puede modificar una reserva cerrada.');
             return;
         }
 
@@ -210,7 +228,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
                 const commentsChanged = (existingBooking.comments || '') !== comments;
 
                 if (!slotsChanged && !commentsChanged && !childrenChanged) {
-                    alert(t.t('noChanges'));
+                    showToast.info(t.t('noChanges'));
                     setLoading(false);
                     return;
                 }
@@ -221,7 +239,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
                     childrenIds: Array.from(selectedKids),
                     comments: comments || undefined
                 } as any);
-                alert(t.t('bookingModified'));
+                showToast.success(t.t('bookingModified'));
             } else {
                 await addBooking({
                     userId: user.id,
@@ -231,12 +249,12 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
                     childrenIds: Array.from(selectedKids),
                     comments: comments || undefined
                 });
-                alert(t.t('bookingCreated'));
+                showToast.success(t.t('bookingCreated'));
             }
             onClose();
             window.location.reload();
         } catch (err) {
-            alert(existingBooking ? t.t('errorModify') : t.t('errorCreate'));
+            showToast.error(existingBooking ? t.t('errorModify') : t.t('errorCreate'));
         } finally {
             setLoading(false);
         }
@@ -261,6 +279,9 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
         }
     }
 
+    // Si la reserva está CLOSED, mostrar mensaje y deshabilitar edición
+    const isClosed = existingBooking?.status === 'CLOSED';
+
     return (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-7xl max-h-[95vh] overflow-y-auto">
@@ -273,7 +294,12 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
                             <div>
                                 <h3 className="text-2xl font-bold text-gray-800">{existingBooking ? t.t('modifyTitle') : t.t('newTitle')}</h3>
                                 <p className="text-gray-600 text-sm">{t.t('selectDateAndTimes')}</p>
-                                {existingBooking && (
+                                {isClosed && (
+                                    <div className="mt-2 bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium">
+                                        {t.t('closedReservation') || 'Esta reserva está cerrada y no se puede modificar.'}
+                                    </div>
+                                )}
+                                {existingBooking && !isClosed && (
                                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
                                         <span className="bg-red-100 text-red-700 px-2 py-1 rounded font-medium">
                                             {t.t('current')}: {new Date(existingBooking.startTime).toLocaleDateString(t.locale === 'ca' ? 'ca-ES' : 'es-ES')} {new Date(existingBooking.startTime).toLocaleTimeString(t.locale === 'ca' ? 'ca-ES' : 'es-ES', { hour: '2-digit', minute: '2-digit' })} - {new Date(existingBooking.endTime).toLocaleTimeString(t.locale === 'ca' ? 'ca-ES' : 'es-ES', { hour: '2-digit', minute: '2-digit' })}
@@ -326,13 +352,17 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
                                     )}
                                     <div>
                                         <h4 className="text-lg font-semibold text-gray-800 mb-4">{t.t('availableSchedules')}</h4>
-                                        {slots.length === 0 ? (
+                                        {isLoadingSlots ? (
+                                            <div className="flex items-center justify-center py-8">
+                                                <Spinner size="md" text={t.t('loading')} />
+                                            </div>
+                                        ) : slots.length === 0 ? (
                                             <p className="text-gray-500">{t.t('noSchedulesAvailable')}</p>
                                         ) : (
                                             <div className="space-y-2 max-h-64 overflow-y-auto">
                                                 {slots.map(slot => {
                                                     const isExisting = existingBooking?.slots?.some(s => s.id === slot.id);
-                                                    const isDisabled = hasExistingBookingError && !existingBooking;
+                                                    const isDisabled = (hasExistingBookingError && !existingBooking) || isClosed;
                                                     return (
                                                         <label key={slot.id} className={`flex items-center p-4 border rounded-xl transition-all ${
                                                             isDisabled 
@@ -366,12 +396,16 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
                                         )}
                                     </div>
 
-                                    {kids.length > 0 && (
+                                    {isLoadingChildren ? (
+                                        <div className="flex items-center justify-center py-8">
+                                            <Spinner size="md" text={t.t('loading')} />
+                                        </div>
+                                    ) : kids.length > 0 && (
                                         <div>
                                             <h4 className="text-lg font-semibold text-gray-800 mb-4">{t.t('children')}</h4>
                                             <div className="space-y-2 max-h-64 overflow-y-auto">
                                                 {kids.map(kid => {
-                                                    const isDisabled = hasExistingBookingError && !existingBooking;
+                                                    const isDisabled = (hasExistingBookingError && !existingBooking) || isClosed;
                                                     return (
                                                         <label key={kid.id} className={`flex items-center p-4 border rounded-xl transition-all ${
                                                             isDisabled 
@@ -400,7 +434,8 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
                                         <textarea
                                             value={comments}
                                             onChange={e => setComments(e.target.value)}
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                                            disabled={isClosed}
+                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100 disabled:cursor-not-allowed"
                                             rows={3}
                                             placeholder={t.t('additionalComments')}
                                         />
@@ -408,7 +443,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
 
                                     <button
                                         onClick={handleSubmit}
-                                        disabled={loading || selectedSlots.size === 0 || (hasExistingBookingError && !existingBooking)}
+                                        disabled={loading || isClosed || selectedSlots.size === 0 || (hasExistingBookingError && !existingBooking)}
                                         className="w-full bg-gradient-to-r from-blue-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                                     >
                                         {loading ? t.t('processing') : (existingBooking ? t.t('modifyReservation') : t.t('confirmReservation'))}

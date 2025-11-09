@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Calendar, Clock, Users, Package, MessageSquare, Edit, Trash2, Phone, XCircle } from 'lucide-react';
+import { Calendar, Clock, Users, Package, MessageSquare, Edit, Trash2, Phone, XCircle, User } from 'lucide-react';
 import { useBookings } from '../../contexts/BookingContext';
 import { BirthdayBooking, Child } from '../../types/auth';
 import { useAuth } from '../../contexts/AuthContext';
 import TabComponent from '../shared/TabComponent';
 import { UserProfile } from './UserProfile';
 import { UserDaycareBookings } from './UserDaycareBookings';
-import { useChildren } from '../../contexts/ChildrenContext';
 import { useTranslation } from '../../contexts/TranslationContext';
 
 export function UserDashboard() {
@@ -27,8 +26,8 @@ export function UserDashboard() {
 
 
   const tabs = [
-    { id: "daycareBookings", label: t.t('user.myReservations'), content: <UserDaycareBookings /> },
-    { id: "userProfile", label: t.t('user.profile'), content: <UserProfile /> },
+    { id: "daycareBookings", label: t.t('user.myReservations'), icon: Calendar, content: <UserDaycareBookings /> },
+    { id: "userProfile", label: t.t('user.profile'), icon: User, content: <UserProfile /> },
   ];
 
   return (
