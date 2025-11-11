@@ -127,7 +127,7 @@ export function HttpProvider({ children }: HttpProviderProps) {
           headers: newHeaders,
           credentials: 'include',
         });
-        return handleResponse(retryResponse);
+        return handleResponse(retryResponse, url);
       } else {
         // Si el refresh falló, marcar como expirado
         sessionExpiredRef.current = true;
@@ -140,14 +140,15 @@ export function HttpProvider({ children }: HttpProviderProps) {
       sessionExpiredRef.current = true;
     }
 
-    return handleResponse(response);
+    return handleResponse(response, url);
   };
 
-  const handleResponse = async <T = any>(response: Response): Promise<T> => {
+  const handleResponse = async <T = any>(response: Response, url: string): Promise<T> => {
     const data = await response.json();
     if (!response.ok) {
-      // Si no hay token y es 401, lanzar error especial
-      if (response.status === 401 && !tokenProvider.token) {
+      // Si no hay token y es 401, lanzar error especial (solo si NO es login/register)
+      // En login/register, un 401 es normal y debemos mostrar el error del backend
+      if (response.status === 401 && !tokenProvider.token && !url.includes('/auth/login') && !url.includes('/auth/register')) {
         throw new Error('No token provided');
       }
       throw new Error(data.error || 'Error en la petición');
