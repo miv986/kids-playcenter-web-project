@@ -59,21 +59,18 @@ export default function TabComponent({ tabs, defaultTab }: TabComponentProps) {
                 </div>
             </div>
 
-            {/* Contenido dinámico */}
+            {/* Contenido dinámico - Mantener montados pero ocultos */}
             <div className="bg-gray-50">
-                {tabs.map(
-                    (tab) =>
-                        activeTab === tab.id && (
-                            <div 
-                                key={tab.id} 
-                                className="transition-opacity duration-300 ease-in-out"
-                            >
-                                {typeof tab.content === "function"
-                                    ? tab.content()
-                                    : tab.content}
-                            </div>
-                        )
-                )}
+                {tabs.map((tab) => (
+                    <div 
+                        key={tab.id} 
+                        className={activeTab === tab.id ? "block" : "hidden"}
+                    >
+                        {typeof tab.content === "function"
+                            ? tab.content()
+                            : tab.content}
+                    </div>
+                ))}
             </div>
         </div>
     );
