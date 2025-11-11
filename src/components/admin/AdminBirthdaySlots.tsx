@@ -1,15 +1,17 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Calendar, Plus, Trash2, Edit3, CalendarDays, Clock } from "lucide-react";
+import { Calendar, Plus, Trash2, Edit3, CalendarDays, Clock, ChevronDown, ChevronRight } from "lucide-react";
 import { BirthdaySlot } from "../../types/auth";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSlots } from "../../contexts/SlotContext";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek, eachWeekOfInterval, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { es, ca } from "date-fns/locale";
 import { SlotModal } from "../modals/SlotModal";
 import { CalendarComponent } from "../shared/Calendar";
 import { useTranslation } from "../../contexts/TranslationContext";
 import { showToast } from "../../lib/toast";
 import { useConfirm } from "../../hooks/useConfirm";
+import { Spinner } from "../shared/Spinner";
+import { SearchBar } from "../shared/SearchBar";
 
 
 export function AdminBirthdaySlots() {
@@ -26,9 +28,11 @@ export function AdminBirthdaySlots() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedSlot, setSelectedSlot] = useState<BirthdaySlot | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
-
-    console.log("CURRENT MONTH", currentMonth);
+    const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
+    const [isLoading, setIsLoading] = useState(true);
+    const [isLoadingDaily, setIsLoadingDaily] = useState(false);
+    const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
+    const [searchQuery, setSearchQuery] = useState("");
 
     const openModal = (slot?: BirthdaySlot) => {
         setSelectedSlot(slot || null);
@@ -43,26 +47,112 @@ export function AdminBirthdaySlots() {
     // Fetch all slots
     useEffect(() => {
         if (!!user) {
-            fetchSlots().then((slots) => setSlots(slots));
+            setIsLoading(true);
+            fetchSlots().then((slots) => {
+                setSlots(slots);
+                setIsLoading(false);
+            }).catch(() => {
+                setIsLoading(false);
+            });
         }
     }, [user]);
 
-    const slotsLength = slots.length;
+    // Filtrar slots por búsqueda
+    const filteredSlots = useMemo(() => {
+        if (!searchQuery.trim()) return slots;
+        
+        const query = searchQuery.toLowerCase().trim();
+        return slots.filter(slot => {
+            const slotId = slot.id.toString();
+            const dateStr = format(new Date(slot.date), "dd/MM/yyyy", { locale: dateFnsLocale });
+            const startTime = format(new Date(slot.startTime), "HH:mm");
+            const endTime = format(new Date(slot.endTime), "HH:mm");
+            const status = slot.status.toLowerCase();
+            
+            return slotId.includes(query) ||
+                   dateStr.includes(query) ||
+                   startTime.includes(query) ||
+                   endTime.includes(query) ||
+                   status.includes(query);
+        });
+    }, [slots, searchQuery, dateFnsLocale]);
 
-    console.log(slotsLength);
+    // Agrupar slots por semanas para la vista de lista
+    const slotsByWeek = useMemo(() => {
+        if (!filteredSlots || filteredSlots.length === 0 || selectedDate) return [];
 
-    // Filtrado de slots por día
-    const slotsToShow = selectedDate ? (dailySlots || []) : (slots || []);
+        // Obtener todas las fechas únicas de los slots
+        const uniqueDates = Array.from(
+            new Set(filteredSlots.map(slot => {
+                const date = new Date(slot.date);
+                date.setHours(0, 0, 0, 0);
+                return date.getTime();
+            }))
+        ).map(timestamp => new Date(timestamp));
+
+        if (uniqueDates.length === 0) return [];
+
+        // Encontrar el rango de fechas
+        const minDate = new Date(Math.min(...uniqueDates.map(d => d.getTime())));
+        const maxDate = new Date(Math.max(...uniqueDates.map(d => d.getTime())));
+
+        // Obtener todas las semanas en el rango
+        const weeks = eachWeekOfInterval(
+            { start: minDate, end: maxDate },
+            { weekStartsOn: 1 } // Lunes
+        );
+
+        // Agrupar slots por semana
+        const weeksData = weeks.map(weekStart => {
+            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+            const weekSlots = filteredSlots.filter(slot => {
+                const slotDate = new Date(slot.date);
+                slotDate.setHours(0, 0, 0, 0);
+                return isWithinInterval(slotDate, { start: weekStart, end: weekEnd });
+            });
+
+            // Ordenar slots por fecha descendente (más recientes primero)
+            const sortedSlots = weekSlots.sort((a, b) => {
+                const dateA = new Date(a.date).getTime();
+                const dateB = new Date(b.date).getTime();
+                if (dateB !== dateA) return dateB - dateA;
+                return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+            });
+
+            return {
+                weekStart,
+                weekEnd,
+                slots: sortedSlots,
+                totalSlots: weekSlots.length,
+                availableSlots: weekSlots.filter(s => s.status === 'OPEN').length,
+            };
+        }).filter(week => week.totalSlots > 0); // Solo semanas con slots
+
+        // Ordenar por fecha descendente (más recientes primero)
+        return weeksData.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
+    }, [filteredSlots, selectedDate]);
+
+    const toggleWeek = (weekKey: string) => {
+        setExpandedWeeks((prev) => {
+            const next = new Set(prev);
+            if (next.has(weekKey)) {
+                next.delete(weekKey);
+            } else {
+                next.add(weekKey);
+            }
+            return next;
+        });
+    };
 
 
     // Calcular días con slots para el calendario con información detallada
     const calendarData = useMemo(() => {
-        if (!slots) return { bookedDays: [], dayStats: {} };
+        if (!filteredSlots) return { bookedDays: [], dayStats: {} };
 
         const bookedDays: number[] = [];
         const dayStats: Record<number, { total: number; available: number; status: string }> = {};
 
-        slots.forEach((slot) => {
+        filteredSlots.forEach((slot) => {
             const d = new Date(slot.date);
             if (isNaN(d.getTime())) return;
 
@@ -95,7 +185,7 @@ export function AdminBirthdaySlots() {
         });
 
         return { bookedDays, dayStats };
-    }, [slots, currentMonth]);
+    }, [filteredSlots, currentMonth]);
 
     // Crear slot (optimista)
     const handleCreateSlot = async (data: Partial<BirthdaySlot>) => {
@@ -118,13 +208,19 @@ export function AdminBirthdaySlots() {
             showToast.success(t.t('createSuccess'));
         } catch (err) {
             console.error("Error manejando la creación del slot", err);
-            showToast.error(t.t('createError') || 'Error al crear el slot');
+            showToast.error(t.t('createError'));
         }
 
     };
 
-    // Actualizar slot (optimista)
+    // Actualizar slot
     const handleUpdateSlot = async (id: number, data: Partial<BirthdaySlot>) => {
+        // Guardar estado anterior para revertir si falla
+        const previousSlots = [...slots];
+        const previousDailySlots = selectedDate ? [...dailySlots] : null;
+        const previousSelectedSlot = selectedSlot;
+
+        // Actualización optimista
         setSlots((prev) =>
             prev.map((s) => (s.id === id ? { ...s, ...data } : s))
         );
@@ -136,9 +232,45 @@ export function AdminBirthdaySlots() {
         if (selectedSlot?.id === id) {
             setSelectedSlot((prev) => (prev ? { ...prev, ...data } : prev));
         }
-        const slotToUpdate = await updateSlot(id, data);
-        if (!slotToUpdate) return;
-        showToast.success(t.t('updateSuccess'));
+
+        try {
+            const slotToUpdate = await updateSlot(id, data);
+            if (!slotToUpdate) {
+                // Revertir cambios si falla
+                setSlots(previousSlots);
+                if (previousDailySlots) {
+                    setDailySlots(previousDailySlots);
+                }
+                if (previousSelectedSlot) {
+                    setSelectedSlot(previousSelectedSlot);
+                }
+                return;
+            }
+            // Actualizar con los datos reales del servidor
+            setSlots((prev) =>
+                prev.map((s) => (s.id === id ? slotToUpdate : s))
+            );
+            if (selectedDate) {
+                setDailySlots((prev) =>
+                    prev.map((s) => (s.id === id ? slotToUpdate : s))
+                );
+            }
+            if (selectedSlot?.id === id) {
+                setSelectedSlot(slotToUpdate);
+            }
+            showToast.success(t.t('updateSuccess'));
+        } catch (err) {
+            // Revertir cambios si hay error
+            setSlots(previousSlots);
+            if (previousDailySlots) {
+                setDailySlots(previousDailySlots);
+            }
+            if (previousSelectedSlot) {
+                setSelectedSlot(previousSelectedSlot);
+            }
+            console.error("Error manejando la actualización del slot", err);
+            showToast.error(t.t('updateError'));
+        }
     };
 
     // Eliminar slot
@@ -200,6 +332,18 @@ export function AdminBirthdaySlots() {
                 </div>
             </div>
 
+            {/* Barra de búsqueda */}
+            {viewMode === "list" && !selectedDate && (
+                <SearchBar
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    total={filteredSlots.length}
+                    resultsLabel={t.t('slot') || 'slot'}
+                    resultsPluralLabel={t.t('slots') || 'slots'}
+                    placeholder={t.t('searchSlots') || "Buscar por ID, fecha, hora..."}
+                />
+            )}
+
 
             <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-8 items-start py-6 px-6">
                 {/* Panel principal */}
@@ -226,7 +370,11 @@ export function AdminBirthdaySlots() {
                                     <h3 className="text-xl font-semibold mb-4">
                                         {t.t('slotsOf')} {format(selectedDate, locale === 'ca' ? "dd 'de' MMMM 'de' yyyy" : "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
                                     </h3>
-                                    {dailySlots.length === 0 ? (
+                                    {isLoadingDaily ? (
+                                        <div className="py-8">
+                                            <Spinner size="lg" text={t.t('loading')} />
+                                        </div>
+                                    ) : dailySlots.length === 0 ? (
                                         <div className="text-center py-8">
                                             <Clock className="w-12 h-12 text-gray-300 mx-auto mb-2" />
                                             <p className="text-gray-500">{t.t('noSlotsDay')}</p>
@@ -282,11 +430,15 @@ export function AdminBirthdaySlots() {
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-2xl font-semibold">{t.t('allSlots')}</h2>
                                 <div className="text-sm text-gray-500">
-                                    {slots.length} {t.t('totalSlots')}
+                                    {searchQuery ? filteredSlots.length : slots.length} {t.t('totalSlots')}
                                 </div>
                             </div>
 
-                            {slots.length === 0 ? (
+                            {isLoading ? (
+                                <div className="bg-white p-12 rounded-2xl shadow-lg">
+                                    <Spinner size="lg" text={t.t('loading')} />
+                                </div>
+                            ) : slots.length === 0 ? (
                                 <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
                                     <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
@@ -296,53 +448,127 @@ export function AdminBirthdaySlots() {
                                         {t.t('createFirst')}
                                     </p>
                                 </div>
+                            ) : searchQuery && slotsByWeek.length === 0 ? (
+                                <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
+                                    <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                                        {t.t('noResults') || 'No se encontraron resultados'}
+                                    </h3>
+                                    <p className="text-gray-500">
+                                        {t.t('tryDifferentSearch') || 'Intenta con otros términos de búsqueda'}
+                                    </p>
+                                </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {slots.map((slot) => (
-                                        <div
-                                            key={slot.id}
-                                            className="bg-white p-4 rounded-xl shadow flex justify-between items-center"
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-center">
-                                                    <div className="text-sm font-medium text-gray-600">
-                                                        {format(new Date(slot.date), "dd")}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {format(new Date(slot.date), "MMM", { locale: dateFnsLocale })}
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-800">
-                                                        {format(new Date(slot.startTime), "HH:mm")} - {format(new Date(slot.endTime), "HH:mm")}
-                                                    </p>
-                                                    <p className="text-sm text-gray-500">
-                                                        {format(new Date(slot.date), "EEEE, dd/MM/yyyy", { locale: dateFnsLocale })}
-                                                    </p>
-                                                </div>
-                                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${slot.status === 'OPEN'
-                                                    ? 'bg-green-100 text-green-800'
-                                                    : 'bg-red-100 text-red-800'
-                                                    }`}>
-                                                    {slot.status}
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-2">
+                                    {slotsByWeek.map((week) => {
+                                        const weekKey = `${week.weekStart.getTime()}`;
+                                        const isExpanded = expandedWeeks.has(weekKey);
+
+                                        return (
+                                            <div
+                                                key={weekKey}
+                                                className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden"
+                                            >
+                                                {/* Card de semana */}
                                                 <button
-                                                    onClick={() => openModal(slot)}
-                                                    className="bg-yellow-500 text-white px-3 py-1 rounded-xl hover:bg-yellow-600"
+                                                    onClick={() => toggleWeek(weekKey)}
+                                                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
                                                 >
-                                                    <Edit3 className="w-4 h-4" />
+                                                    <div className="flex items-center gap-4 flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            {isExpanded ? (
+                                                                <ChevronDown className="w-5 h-5 text-gray-500" />
+                                                            ) : (
+                                                                <ChevronRight className="w-5 h-5 text-gray-500" />
+                                                            )}
+                                                            <CalendarDays className="w-5 h-5 text-blue-500" />
+                                                        </div>
+                                                        <div className="text-left">
+                                                            <div className="font-semibold text-gray-800">
+                                                                {format(week.weekStart, "dd 'de' MMMM", { locale: dateFnsLocale })} - {format(week.weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                            </div>
+                                                            <div className="text-sm text-gray-500">
+                                                                {week.totalSlots} {t.t('slots')} • {week.availableSlots} {t.t('availableLabel')?.replace(':', '') || 'disponibles'}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                                                            week.availableSlots === 0 
+                                                                ? 'bg-red-100 text-red-800'
+                                                                : week.availableSlots === week.totalSlots
+                                                                ? 'bg-green-100 text-green-800'
+                                                                : 'bg-yellow-100 text-yellow-800'
+                                                        }`}>
+                                                            {week.availableSlots === 0 
+                                                                ? t.t('full')
+                                                                : week.availableSlots === week.totalSlots
+                                                                ? t.t('available')
+                                                                : t.t('partial')
+                                                            }
+                                                        </div>
+                                                    </div>
                                                 </button>
-                                                <button
-                                                    onClick={() => handleDeleteSlot(slot.id)}
-                                                    className="bg-red-500 text-white px-3 py-1 rounded-xl hover:bg-red-600"
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+
+                                                {/* Slots de la semana (expandible) */}
+                                                {isExpanded && (
+                                                    <div className="border-t border-gray-200 bg-gray-50 p-4">
+                                                        <div className="space-y-2">
+                                                            {week.slots.map((slot) => (
+                                                                <div
+                                                                    key={slot.id}
+                                                                    className="bg-white p-3 rounded-lg border flex justify-between items-center"
+                                                                >
+                                                                    <div className="flex items-center gap-4 flex-1">
+                                                                        <div className="text-center min-w-[50px]">
+                                                                            <div className="text-sm font-medium text-gray-600">
+                                                                                {format(new Date(slot.date), "dd")}
+                                                                            </div>
+                                                                            <div className="text-xs text-gray-500">
+                                                                                {format(new Date(slot.date), "MMM", { locale: dateFnsLocale })}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex-1">
+                                                                            <p className="font-semibold text-gray-800">
+                                                                                {format(new Date(slot.startTime), "HH:mm")} - {format(new Date(slot.endTime), "HH:mm")}
+                                                                            </p>
+                                                                            <p className="text-sm text-gray-500">
+                                                                                {format(new Date(slot.date), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="flex gap-2">
+                                                                            <div className={`px-2 py-1 rounded-full text-xs font-medium ${slot.status === 'OPEN'
+                                                                                    ? 'bg-green-100 text-green-800'
+                                                                                    : 'bg-red-100 text-red-800'
+                                                                                }`}>
+                                                                                {slot.status}
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex gap-2 ml-4">
+                                                                        <button
+                                                                            onClick={() => openModal(slot)}
+                                                                            className="bg-yellow-500 text-white px-3 py-1 rounded-xl hover:bg-yellow-600 transition-colors"
+                                                                            title={t.t('edit')}
+                                                                        >
+                                                                            <Edit3 className="w-4 h-4" />
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleDeleteSlot(slot.id)}
+                                                                            className="bg-red-500 text-white px-3 py-1 rounded-xl hover:bg-red-600 transition-colors"
+                                                                            title={t.t('delete')}
+                                                                        >
+                                                                            <Trash2 className="w-4 h-4" />
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>
@@ -368,29 +594,31 @@ export function AdminBirthdaySlots() {
                         setCurrentMonth={setCurrentMonth}
                         selectedDate={selectedDate}
                         onSelectDate={async (date) => {
-                            console.log("CLICKED DAY", date);
+                            setViewMode("calendar");
                             setSelectedDate(date);
+                            setIsLoadingDaily(true);
                             const data = await fetchSlotsByDay(date);
                             setDailySlots(data || []);
+                            setIsLoadingDaily(false);
                         }}
                     />
 
                     {/* Estadísticas del mes */}
                     <div className="mt-4 bg-white rounded-xl shadow-lg p-4">
-                        <h4 className="font-semibold text-gray-800 mb-3">Estadísticas del Mes</h4>
+                        <h4 className="font-semibold text-gray-800 mb-3">{t.t('monthStats')}</h4>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Días con slots:</span>
+                                <span className="text-gray-600">{t.t('daysWithSlots')}</span>
                                 <span className="font-medium">{calendarData.bookedDays.length}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Total slots:</span>
-                                <span className="font-medium">{slots.length}</span>
+                                <span className="text-gray-600">{t.t('totalSlotsLabel')}</span>
+                                <span className="font-medium">{searchQuery ? filteredSlots.length : slots.length}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-600">Disponibles:</span>
+                                <span className="text-gray-600">{t.t('availableLabel')}</span>
                                 <span className="font-medium text-green-600">
-                                    {slots.filter(s => s.status === 'OPEN').length}
+                                    {(searchQuery ? filteredSlots : slots).filter(s => s.status === 'OPEN').length}
                                 </span>
                             </div>
                         </div>

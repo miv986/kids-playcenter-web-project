@@ -257,7 +257,7 @@ export function CalendarSection() {
         <div className="max-w-4xl mx-auto">
           {isLoadingSlots ? (
             <div className="flex items-center justify-center py-20">
-              <Spinner size="lg" text={t('loading')} />
+              <Spinner size="lg" text={t('loadingCalendar')} />
             </div>
           ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">

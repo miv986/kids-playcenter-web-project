@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { LucideIcon } from "lucide-react";
 
 type Tab = {
@@ -15,6 +15,13 @@ type TabComponentProps = {
 
 export default function TabComponent({ tabs, defaultTab }: TabComponentProps) {
     const [activeTab, setActiveTab] = useState(defaultTab || tabs[0].id);
+
+    // Actualizar el tab activo cuando cambie defaultTab
+    useEffect(() => {
+        if (defaultTab && tabs.some(tab => tab.id === defaultTab)) {
+            setActiveTab(defaultTab);
+        }
+    }, [defaultTab, tabs]);
 
     return (
         <div className="w-full">

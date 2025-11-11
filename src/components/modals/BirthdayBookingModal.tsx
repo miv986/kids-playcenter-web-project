@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BirthdayBooking, Package } from '../../types/auth';
+import { BirthdayBooking, Package, BirthdaySlot } from '../../types/auth';
 import { formatDateTime } from '../../lib/formatDate';
 import { CalendarComponent } from '../shared/Calendar';	
 import { format } from 'date-fns';
@@ -8,6 +8,7 @@ import { Spinner } from '../shared/Spinner';
 import { showToast } from '../../lib/toast';
 import { useTranslation } from '../../contexts/TranslationContext';
 import { useConfirm } from '../../hooks/useConfirm';
+import { useSlots } from '../../contexts/SlotContext';
 
 interface AuthModalProps {
     isOpen: boolean;
@@ -28,18 +29,65 @@ export function BirthdayBookingModal({
 }: AuthModalProps) {
     const { t } = useTranslation('BirthdayBookingModal');
     const { confirm, ConfirmComponent } = useConfirm();
+    const { fetchSlotsByDay } = useSlots();
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState<Partial<BirthdayBooking>>({});
     const [selectedDate, setSelectedDate] = useState<Date | null>(formData.slot?.date ? new Date(formData.slot.date) : null);
     const [isSaving, setIsSaving] = useState(false);
+    const [availableSlots, setAvailableSlots] = useState<BirthdaySlot[]>([]);
+    const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+    const [selectedSlotId, setSelectedSlotId] = useState<number | null>(null);
 
     // Inicializar formData al abrir modal
     useEffect(() => {
         if (booking) {
             setFormData({ ...booking });
             setIsEditing(false);
+            setSelectedDate(booking.slot?.date ? new Date(booking.slot.date) : null);
+            setSelectedSlotId(booking.slot?.id || null);
         }
     }, [booking]);
+
+    // Cargar slots disponibles cuando se cambia la fecha
+    useEffect(() => {
+        const loadAvailableSlots = async () => {
+            if (selectedDate && isEditing) {
+                setIsLoadingSlots(true);
+                try {
+                    const slots = await fetchSlotsByDay(selectedDate);
+                    // Filtrar solo slots disponibles (OPEN)
+                    const available = slots.filter(slot => slot.status === 'OPEN');
+                    
+                    // Si el slot actual existe y está en la misma fecha, incluirlo siempre
+                    if (booking?.slot && selectedDate) {
+                        const slotDate = new Date(booking.slot.date);
+                        const isSameDate = slotDate.toDateString() === selectedDate.toDateString();
+                        if (isSameDate && !available.find(s => s.id === booking.slot!.id)) {
+                            available.push(booking.slot as BirthdaySlot);
+                        }
+                    }
+                    
+                    setAvailableSlots(available);
+                    
+                    // Si hay un slot seleccionado y está en la lista, mantenerlo
+                    if (booking?.slot && available.find(s => s.id === booking.slot!.id)) {
+                        setSelectedSlotId(booking.slot.id);
+                    } else if (available.length > 0) {
+                        // Si no está el slot actual, seleccionar el primero disponible
+                        setSelectedSlotId(null);
+                    } else {
+                        setSelectedSlotId(null);
+                    }
+                } catch (error) {
+                    console.error('Error loading slots:', error);
+                    showToast.error(t('errorLoadingSlots') || 'Error cargando slots');
+                } finally {
+                    setIsLoadingSlots(false);
+                }
+            }
+        };
+        loadAvailableSlots();
+    }, [selectedDate, isEditing, booking]);
 
     // Sincronizar formData con booking cuando se desactiva la edición
     useEffect(() => {
@@ -74,6 +122,22 @@ export function BirthdayBookingModal({
         }
         if (formData.packageType !== undefined && formData.packageType !== booking.packageType) {
             backendData.pack = formData.packageType;
+        }
+        // Si se cambió la fecha, validar que se haya seleccionado un slot
+        if (selectedDate && booking?.slot) {
+            const bookingDate = new Date(booking.slot.date);
+            const isDateChanged = bookingDate.toDateString() !== selectedDate.toDateString();
+            
+            if (isDateChanged) {
+                if (!selectedSlotId) {
+                    showToast.error(t('selectSlotRequired') || 'Debes seleccionar un slot para la nueva fecha');
+                    return;
+                }
+                backendData.slotId = selectedSlotId;
+            } else if (selectedSlotId !== null && selectedSlotId !== booking.slot.id) {
+                // Misma fecha pero slot diferente
+                backendData.slotId = selectedSlotId;
+            }
         }
 
         // Si no hay cambios, no hacer nada
@@ -179,13 +243,57 @@ export function BirthdayBookingModal({
                                     <Calendar className="w-4 h-4 text-blue-600" />
                                     <label className="font-semibold text-sm text-gray-700">{t('bookingDate')}</label>
                                 </div>
-                                <input
-                                    type='datetime'
-                                    value={formData?.slot?.date ? format(new Date(formData.slot.date), "dd-MM-yyyy HH:mm") : ''}
-                                    disabled={!isEditing}
-                                    onChange={e => handleChange('guest', e.target.value)}
-                                    className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                                />
+                                {isEditing ? (
+                                    <div className="space-y-2">
+                                        <input
+                                            type="date"
+                                            value={selectedDate ? format(selectedDate, "yyyy-MM-dd") : ''}
+                                            onChange={e => {
+                                                const newDate = e.target.value ? new Date(e.target.value) : null;
+                                                setSelectedDate(newDate);
+                                                if (newDate) {
+                                                    setSelectedSlotId(null);
+                                                }
+                                            }}
+                                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        />
+                                        {selectedDate && (
+                                            <div className="mt-2">
+                                                {isLoadingSlots ? (
+                                                    <div className="flex items-center justify-center py-2">
+                                                        <Spinner size="sm" />
+                                                        <span className="ml-2 text-xs text-gray-500">{t('loadingSlots') || 'Cargando slots...'}</span>
+                                                    </div>
+                                                ) : availableSlots.length > 0 ? (
+                                                    <select
+                                                        value={selectedSlotId || ''}
+                                                        onChange={e => setSelectedSlotId(Number(e.target.value))}
+                                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                    >
+                                                        <option value="">{t('selectSlot') || 'Seleccionar slot'}</option>
+                                                        {availableSlots.map((slot) => (
+                                                            <option key={slot.id} value={slot.id}>
+                                                                {format(new Date(slot.startTime), "HH:mm")} - {format(new Date(slot.endTime), "HH:mm")} 
+                                                                {slot.id === booking.slot?.id ? ` (${t('current') || 'Actual'})` : ''}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                ) : (
+                                                    <p className="text-xs text-red-500">{t('noSlotsAvailable') || 'No hay slots disponibles para esta fecha'}</p>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-sm text-gray-700">
+                                        {formData?.slot?.date ? format(new Date(formData.slot.date), "dd-MM-yyyy") : ''}
+                                        {formData?.slot?.startTime && formData?.slot?.endTime && (
+                                            <span className="ml-2 text-gray-500">
+                                                {format(new Date(formData.slot.startTime), "HH:mm")} - {format(new Date(formData.slot.endTime), "HH:mm")}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             {/* Nombre del huésped */}

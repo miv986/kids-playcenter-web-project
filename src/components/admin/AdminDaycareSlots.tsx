@@ -48,7 +48,6 @@ export function AdminDaycareSlots() {
         if (!!user) {
             fetchSlots().then(
                 (slots) => {
-                    console.log("🔵 Slots cargados al inicio:", slots);
                     setSlots(slots || []);
                 },
             );

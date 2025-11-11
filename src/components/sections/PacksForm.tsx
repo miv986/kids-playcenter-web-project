@@ -29,7 +29,6 @@ export function PacksForm({
         contact_number: "",
         email: "",
         kids: 0,
-        pack: "",
         comments: ""
 
     });
@@ -92,7 +91,6 @@ export function PacksForm({
                 number_of_kids: Number(formData.kids),
                 contact_number: formData.contact_number,
                 comments: formData.comments,
-                packageType: formData.pack as any, // si Package es un enum (Alegria, Fiesta, etc.)
                 slotId: Number(selectedSlot),
             };
 
@@ -113,7 +111,6 @@ export function PacksForm({
                 contact_number: "",
                 email: "",
                 kids: 0,
-                pack: "",
                 comments: "",
             });
         } catch (err: any) {
@@ -206,21 +203,6 @@ export function PacksForm({
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
                         placeholder={t.t('kidsPlaceholder')}>
                     </input>
-                </div>
-
-                <div>
-                    <label className="block text-gray-700 font-medium mb-2">
-                        {tForm.t('selectedPack')}
-                    </label>
-                    <select className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                        value={formData.pack}
-                        name="pack"
-                        onChange={handleChange}
-                        required>
-                        <option value={"ALEGRIA"}>{tForm.t('packAlegria')}</option>
-                        <option value={"FIESTA"}>{tForm.t('packFiesta')}</option>
-                        <option value={"ESPECIAL"}>{tForm.t('packEspecial')}</option>
-                    </select>
                 </div>
 
                 <div>

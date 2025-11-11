@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { AdminDashboard } from '../admin/AdminDashboard';
 import {UserDashboard} from '../user/UserDashboard';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/TranslationContext';
 import { showToast } from '../../lib/toast';
+import { Spinner } from '../shared/Spinner';
 import { LogIn, AlertCircle } from 'lucide-react';
 
 export function Dashboard() {
@@ -80,5 +81,13 @@ export function Dashboard() {
     );
   }
 
-  return isAdmin ? <AdminDashboard /> : <UserDashboard />;
+  return isAdmin ? <AdminDashboard /> : (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Spinner size="lg" text={t.t('loading') || 'Cargando...'} />
+      </div>
+    }>
+      <UserDashboard />
+    </Suspense>
+  );
 }

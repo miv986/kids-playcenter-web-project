@@ -2,7 +2,8 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Phone, Mail, MapPin, Clock, Facebook, Instagram, Twitter, Heart } from 'lucide-react';
+import { Mail, MapPin, Clock, Instagram, Heart } from 'lucide-react';
+import { FaWhatsapp } from 'react-icons/fa';
 import { useTranslation } from '../../contexts/TranslationContext';
 import Link from 'next/link';
 
@@ -30,11 +31,9 @@ export function Footer() {
             </p>
 
             <div className="flex space-x-4">
-              {/*}
-              <a href="#" className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors duration-200">
-                <Facebook className="w-5 h-5" />
+              <a href="https://wa.me/+34627644212" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors duration-200">
+                <FaWhatsapp className="w-5 h-5" />
               </a>
-              */}
               <a href="https://www.instagram.com/somriuresicolors?igsh=MXZlZmdkYmRqejFzYw==" target='_blank' rel="noopener noreferrer" className="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700 transition-colors duration-200">
                 <Instagram className="w-5 h-5" />
               </a>
@@ -77,20 +76,20 @@ export function Footer() {
                 <Clock className="w-5 h-5 text-yellow-400" />
                 <div>
                   <div className="font-medium">{t.t('mondayThursday')}</div>
-                  <div className="text-gray-300 text-sm">17:00 - 20:00</div>
+                  <div className="text-gray-300 text-sm">17:00 - 21:00</div>
                 </div>
               </div>
               <div className="flex items-center space-x-3">
                 <Clock className="w-5 h-5 text-yellow-400" />
                 <div>
                   <div className="font-medium">{t.t('fridaySunday')}</div>
-                  <div className="text-gray-300 text-sm">10:00 - 20:00</div>
+                  <div className="text-gray-300 text-sm">10:00 - 22:00</div>
 
                 </div>
 
               </div>
-              <div className="mt-4 p-3 bg-red-600/20 rounded-lg">
-                <div className="text-red-400 font-medium text-sm">
+              <div className="mt-4 p-3 bg-orange-600/20 rounded-lg">
+                <div className="text-orange-400 font-medium text-sm">
                   {t.t('availableBirthdayParties')}
                 </div>
               </div>

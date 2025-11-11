@@ -2,6 +2,7 @@ import React from 'react';
 import { Star, Heart, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../contexts/TranslationContext';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export function Hero() {
   const t = useTranslation('Hero');
@@ -70,12 +71,15 @@ export function Hero() {
 
           <div className="relative">
             <div className="relative bg-gradient-to-br from-pink-200 via-purple-200 to-blue-200 rounded-3xl p-8 shadow-2xl">
-              <div className="aspect-square bg-white rounded-2xl shadow-lg flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-8xl mb-4">🎨</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">{t.t('creativity')}</h3>
-                  <p className="text-gray-600">{t.t('workshops')}</p>
-                </div>
+              <div className="aspect-square rounded-2xl shadow-lg overflow-hidden relative bg-[#fef8e8]">
+                <Image
+                  src="/proximamente.jpeg"
+                  alt="Próxima apertura"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className="object-contain"
+                  priority
+                />
               </div>
 
               {/* Floating elements */}

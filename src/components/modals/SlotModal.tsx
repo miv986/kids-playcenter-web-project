@@ -166,15 +166,19 @@ export function SlotModal<T extends GenericSlot>({
     try {
       // Guardar o actualizar
       if (slot?.id) {
-        const updatedSlot = await updateSlot(slot.id, formData);
+        const updatedSlot: any = await updateSlot(slot.id, formData);
         console.log("✅ Slot actualizado en modal:", updatedSlot);
-        showToast.success(t('updateSuccess'));
+        if (updatedSlot) {
+          showToast.success(t('updateSuccess'));
+          onClose();
+        }
       } else {
-        await createSlot(formData);
-        showToast.success(t('createSuccess'));
+        const newSlot: any = await createSlot(formData);
+        if (newSlot) {
+          showToast.success(t('createSuccess'));
+          onClose();
+        }
       }
-
-      onClose();
     } catch (error) {
       console.error("Error guardando slot:", error);
       showToast.error(t('saveError'));

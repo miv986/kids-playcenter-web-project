@@ -1,5 +1,6 @@
-import { Calendar, X, Clock } from 'lucide-react';
+import { Calendar, X, Clock, Users } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useDaycareSlots } from '../../contexts/DaycareSlotContext';
 import { useDaycareBookings } from '../../contexts/DaycareBookingContext';
 import { useChildren } from '../../contexts/ChildrenContext';
@@ -14,9 +15,11 @@ interface NewDaycareBookingModalProps {
     isOpen: boolean;
     onClose: () => void;
     existingBooking?: DaycareBooking | null;
+    hasChildren?: boolean;
 }
 
-export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: NewDaycareBookingModalProps) {
+export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasChildren = true }: NewDaycareBookingModalProps) {
+    const router = useRouter();
     const t = useTranslation('NewDaycareBookingModal');
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -109,6 +112,11 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
     }, [selectedDate, fetchAvailableSlotsByDate]);
 
     const handleDateSelect = async (date: Date) => {
+        if (!hasChildren && !existingBooking) {
+            showToast.error(t.t('mustAddChildFirst') || 'Debes añadir al menos un hijo antes de seleccionar una fecha');
+            return;
+        }
+        
         setSelectedDate(date);
         setSelectedSlots(new Set());
         setHasExistingBookingError(false);
@@ -331,14 +339,31 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking }: New
                 <div className="p-8">
                     <div className="grid lg:grid-cols-2 gap-8">
                         <div>
-                            <CalendarComponent
-                                currentMonth={currentMonth}
-                                setCurrentMonth={setCurrentMonth}
-                                selectedDate={selectedDate || undefined}
-                                onSelectDate={handleDateSelect}
-                                availableDaysDB={availableDays}
-                                bookedDaysDB={bookedDays}
-                            />
+                            {!hasChildren && !existingBooking ? (
+                                <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-8 text-center">
+                                    <Users className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                                    <h4 className="text-xl font-semibold text-gray-800 mb-2">{t.t('mustAddChildFirst') || 'Debes añadir al menos un hijo'}</h4>
+                                    <p className="text-gray-600 mb-4">{t.t('mustAddChildFirstDesc') || 'Para realizar una reserva, primero debes añadir al menos un hijo en tu perfil.'}</p>
+                                    <button
+                                        onClick={() => {
+                                            onClose();
+                                            router.push('/dashboard?tab=profile');
+                                        }}
+                                        className="bg-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-600 transition-all"
+                                    >
+                                        {t.t('goToProfile') || 'Ir a mi perfil'}
+                                    </button>
+                                </div>
+                            ) : (
+                                <CalendarComponent
+                                    currentMonth={currentMonth}
+                                    setCurrentMonth={setCurrentMonth}
+                                    selectedDate={selectedDate || undefined}
+                                    onSelectDate={handleDateSelect}
+                                    availableDaysDB={availableDays}
+                                    bookedDaysDB={bookedDays}
+                                />
+                            )}
                         </div>
 
                         <div className="space-y-6">

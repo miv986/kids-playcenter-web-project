@@ -1,7 +1,7 @@
 import React from "react";
 import { BirthdayBooking } from "../../types/auth";
 import { formatDateTime } from "../../lib/formatDate";
-import { Phone, Users, Glasses, Calendar, Clock, Package, MessageSquare } from "lucide-react";
+import { Phone, Users, Glasses, Calendar, Clock, Package, MessageSquare, User } from "lucide-react";
 import { format } from "date-fns";
 import { useTranslation } from "../../contexts/TranslationContext";
 
@@ -31,6 +31,8 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, openModal }) 
         }
     };
 
+    console.log(booking);
+
     return (
         <div className="bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -45,25 +47,39 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, openModal }) 
 
                     {/* Información principal - Compacta */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-                        <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-gray-500" />
-                            <div>
-                                <p className="text-xs text-gray-500">{t('date')}</p>
-                                <p className="text-sm font-semibold text-gray-800">
-                                    {format(new Date(booking.slot!.startTime), "dd/MM/yyyy")}
-                                </p>
-                            </div>
-                        </div>
+                        {booking.slot ? (
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-gray-500" />
+                                    <div>
+                                        <p className="text-xs text-gray-500">{t('date')}</p>
+                                        <p className="text-sm font-semibold text-gray-800">
+                                            {format(new Date(booking.slot.startTime), "dd/MM/yyyy")}
+                                        </p>
+                                    </div>
+                                </div>
 
-                        <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-gray-500" />
-                            <div>
-                                <p className="text-xs text-gray-500">{t('schedule')}</p>
-                                <p className="text-sm font-semibold text-gray-800">
-                                    {format(new Date(booking.slot!.startTime), "HH:mm")} - {format(new Date(booking.slot!.endTime), "HH:mm")}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-gray-500" />
+                                    <div>
+                                        <p className="text-xs text-gray-500">{t('schedule')}</p>
+                                        <p className="text-sm font-semibold text-gray-800">
+                                            {format(new Date(booking.slot.startTime), "HH:mm")} - {format(new Date(booking.slot.endTime), "HH:mm")}
+                                        </p>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="flex items-center gap-2 col-span-2">
+                                <Calendar className="w-4 h-4 text-gray-400" />
+                                <div>
+                                    <p className="text-xs text-gray-500">{t('date')}</p>
+                                    <p className="text-sm font-semibold text-gray-400 italic">
+                                        {t('noSlot') || 'Sin slot asignado'}
+                                    </p>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="flex items-center gap-2">
                             <Phone className="w-4 h-4 text-gray-500" />
@@ -82,11 +98,11 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, openModal }) 
                         </div>
                     </div>
 
-                    {/* Pack y comentarios en línea */}
+                    {/* Invitado y comentarios en línea */}
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-2">
-                            <Package className="w-4 h-4 text-blue-600" />
-                            <span className="text-sm font-medium text-blue-800">{booking.packageType}</span>
+                            <User className="w-4 h-4 text-blue-600" />
+                            <span className="text-sm font-medium text-blue-800">{booking.guest}</span>
                         </div>
                         {booking.comments && (
                             <div className="flex items-center gap-2">

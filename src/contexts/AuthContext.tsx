@@ -5,6 +5,7 @@ import { User, AuthContextType } from "../types/auth";
 import { useHttp } from "./HttpContext";
 import { useToken } from "./TokenContext";
 import { showToast } from "../lib/toast";
+import { useTranslation } from "./TranslationContext";
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const httpProvider = useHttp();
   const tokenProvider = useToken();
   const router = useRouter();
+  const t = useTranslation('Auth');
 
   useEffect(() => {
     const initAuth = async () => {
@@ -96,12 +98,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await httpProvider.post('/api/auth/logout');
       setUser(null);
       tokenProvider.setToken(null);
-      showToast.success("Sesión cerrada correctamente.");
+      showToast.success(t.t('logoutSuccess'));
       router.push('/');
     } catch (error) {
       console.error("Logout error", error);
       setUser(null);
       tokenProvider.setToken(null);
+      showToast.success(t.t('logoutSuccess'));
       router.push('/');
     }
   };

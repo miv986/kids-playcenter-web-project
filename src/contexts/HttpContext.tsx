@@ -29,6 +29,7 @@ export function HttpProvider({ children }: HttpProviderProps) {
   const tokenProvider = useToken();
   const isRefreshingRef = useRef(false);
   const sessionExpiredRef = useRef(false);
+  const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
 
   // Resetear el flag cuando se establece un nuevo token
   useEffect(() => {
@@ -37,37 +38,53 @@ export function HttpProvider({ children }: HttpProviderProps) {
     }
   }, [tokenProvider.token]);
 
-  const refreshToken = async (): Promise<boolean> => {
-    if (isRefreshingRef.current) return false;
-    if (sessionExpiredRef.current) return false;
+  const refreshToken = async (): Promise<string | null> => {
+    if (sessionExpiredRef.current) return null;
+    
+    // Si ya hay un refresh en curso, esperar a que termine
+    if (isRefreshingRef.current && refreshPromiseRef.current) {
+      return refreshPromiseRef.current;
+    }
     
     isRefreshingRef.current = true;
     
-    try {
-      const response = await fetch(`${baseUrl}/api/auth/refresh`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        tokenProvider.setToken(data.accessToken);
+    const refreshPromise = (async (): Promise<string | null> => {
+      try {
+        const response = await fetch(`${baseUrl}/api/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const newToken = data.accessToken;
+          if (newToken) {
+            tokenProvider.setToken(newToken);
+            isRefreshingRef.current = false;
+            refreshPromiseRef.current = null;
+            return newToken;
+          }
+        }
+        
+        // Si falla el refresh, marcar como expirado
+        sessionExpiredRef.current = true;
+        tokenProvider.setToken(null);
+        window.dispatchEvent(new CustomEvent('sessionExpired'));
+      } catch (error) {
+        console.error('Error refreshing token:', error);
+        sessionExpiredRef.current = true;
+        tokenProvider.setToken(null);
+        window.dispatchEvent(new CustomEvent('sessionExpired'));
+      } finally {
         isRefreshingRef.current = false;
-        return true;
+        refreshPromiseRef.current = null;
       }
       
-      // Si falla el refresh, marcar como expirado
-      sessionExpiredRef.current = true;
-      tokenProvider.setToken(null);
-      window.dispatchEvent(new CustomEvent('sessionExpired'));
-    } catch (error) {
-      console.error('Error refreshing token:', error);
-      sessionExpiredRef.current = true;
-      tokenProvider.setToken(null);
-    }
+      return null;
+    })();
     
-    isRefreshingRef.current = false;
-    return false;
+    refreshPromiseRef.current = refreshPromise;
+    return refreshPromise;
   };
 
   const makeRequest = async (
@@ -97,12 +114,12 @@ export function HttpProvider({ children }: HttpProviderProps) {
     });
 
     if (response.status === 401 && tokenProvider.token) {
-      const refreshed = await refreshToken();
-      if (refreshed && tokenProvider.token) {
+      const newToken = await refreshToken();
+      if (newToken) {
         sessionExpiredRef.current = false; // Reset si el refresh fue exitoso
         const newHeaders = {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${tokenProvider.token}`,
+          Authorization: `Bearer ${newToken}`,
           ...options.headers
         };
         const retryResponse = await fetch(`${baseUrl}${url}`, {
@@ -114,6 +131,7 @@ export function HttpProvider({ children }: HttpProviderProps) {
       } else {
         // Si el refresh falló, marcar como expirado
         sessionExpiredRef.current = true;
+        throw new Error('Session expired');
       }
     }
 

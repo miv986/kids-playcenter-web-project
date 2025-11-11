@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Calendar, Clock, Users, Package, MessageSquare, Edit, Trash2, Phone, XCircle, User } from 'lucide-react';
 import { useBookings } from '../../contexts/BookingContext';
 import { BirthdayBooking, Child } from '../../types/auth';
@@ -12,6 +13,8 @@ export function UserDashboard() {
   const { user } = useAuth();
   const { fetchMyBookings, updateBookingStatus, deleteBooking } = useBookings();
   const t = useTranslation('Dashboard');
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get('tab');
 
   const [bookings, setBookings] = useState([] as Array<BirthdayBooking>)
   const [kids, setKids] = useState<Child[]>([]);
@@ -24,6 +27,13 @@ export function UserDashboard() {
     }
   }, [user])
 
+  // Mapear el tab del query param al id del tab
+  const getDefaultTab = () => {
+    if (tabParam === 'profile') {
+      return 'userProfile';
+    }
+    return 'daycareBookings';
+  };
 
   const tabs = [
     { id: "daycareBookings", label: t.t('user.myReservations'), icon: Calendar, content: <UserDaycareBookings /> },
@@ -32,7 +42,7 @@ export function UserDashboard() {
 
   return (
     <div>
-      <TabComponent tabs={tabs} defaultTab="daycareBookings"></TabComponent>
+      <TabComponent tabs={tabs} defaultTab={getDefaultTab()}></TabComponent>
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { useHttp } from '../../contexts/HttpContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/TranslationContext';
 import { showToast } from '../../lib/toast';
+import { Spinner } from '../shared/Spinner';
+import { useRouter, usePathname } from 'next/navigation';
 
 interface BirthdayPackage {
   id: number;
@@ -12,35 +14,82 @@ interface BirthdayPackage {
   duration: string;
   price: string;
   priceValue: number;
-  features: string[];
+  featuresEs: string[];
+  featuresVa: string[];
+  perChildTextEs?: string | null;
+  perChildTextVa?: string | null;
   isPopular: boolean;
   isActive: boolean;
 }
 
+interface TranslatedPackage extends BirthdayPackage {
+  features: string[];
+  perChildText: string;
+}
+
 // Helper function to translate package data
-function translatePackage(pack: BirthdayPackage, t: ReturnType<typeof useTranslation>['t']): BirthdayPackage {
+function translatePackage(pack: BirthdayPackage, t: ReturnType<typeof useTranslation>['t'], locale: 'es' | 'ca'): TranslatedPackage {
   const packType = pack.type.toLowerCase() as 'alegria' | 'fiesta' | 'especial';
   const packKey = `pack${packType.charAt(0).toUpperCase() + packType.slice(1)}` as 'packAlegria' | 'packFiesta' | 'packEspecial';
 
-  // Get translated name
-  const translatedName = t(`${packKey}.name`) || pack.name;
+  // Default names in Spanish (from seed)
+  const defaultNames = {
+    packAlegria: 'Pack Alegría',
+    packFiesta: 'Pack Fiesta',
+    packEspecial: 'Pack Especial',
+  };
 
-  // Get translated duration
-  const translatedDuration = t(`${packKey}.duration`) || pack.duration;
+  // Only translate name if it matches the default Spanish name (hasn't been customized)
+  // Otherwise, use the custom name from database
+  const isDefaultName = pack.name === defaultNames[packKey];
+  const translatedName = isDefaultName ? (t(`${packKey}.name`) || pack.name) : pack.name;
 
-  // Get translated features
-  const translatedFeatures = pack.features.map((_, index) => {
-    const featureKey = `${packKey}.feature${index + 1}`;
-    const translated = t(featureKey);
-    // If translation exists and is different from the key, use it, otherwise use original
-    return translated && translated !== featureKey ? translated : pack.features[index];
-  });
+  // Get translated duration suffix
+  const translatedDuration = t(`${packKey}.duration`) || '';
+
+  // Use features based on locale (ES or VA)
+  const features = locale === 'ca' ? pack.featuresVa : pack.featuresEs;
+
+  // Use perChildText based on locale, or fallback to translation
+  const perChildText = locale === 'ca' 
+    ? (pack.perChildTextVa || t('perChild'))
+    : (pack.perChildTextEs || t('perChild'));
+
+  // Handle duration: extract number and use singular if 1
+  let finalDuration = pack.duration;
+  
+  if (!pack.duration.includes('horas') && !pack.duration.includes('hores') && !pack.duration.includes('hora')) {
+    // Extract number from duration (e.g., "2" from "2 horas" or just "2")
+    const durationMatch = pack.duration.match(/^(\d+)/);
+    if (durationMatch) {
+      const hours = parseInt(durationMatch[1], 10);
+      const hourWord = hours === 1 
+        ? (locale === 'ca' ? ' hora' : ' hora')
+        : (locale === 'ca' ? ' hores' : ' horas');
+      finalDuration = hours + hourWord;
+    } else {
+      finalDuration = pack.duration + translatedDuration;
+    }
+  } else {
+    // Duration already has "horas" or "hores", check if we need to change to singular
+    const durationMatch = pack.duration.match(/^(\d+)\s*(horas|hores|hora)/);
+    if (durationMatch) {
+      const hours = parseInt(durationMatch[1], 10);
+      if (hours === 1) {
+        finalDuration = pack.duration.replace(/(horas|hores)/, 'hora');
+      }
+    }
+  }
+
+  const price = pack.price.includes('€') ? pack.price : pack.price + '€';
 
   return {
     ...pack,
     name: translatedName,
-    duration: pack.duration + translatedDuration,
-    features: translatedFeatures,
+    duration: finalDuration,
+    features: features,
+    price: price,
+    perChildText: perChildText,
   };
 }
 
@@ -51,23 +100,37 @@ export function PackagesAndPrices() {
   const tCommon = useTranslation('Common');
   const { get, put } = useHttp();
   const { user } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   const [packages, setPackages] = useState<BirthdayPackage[]>([]);
   const [editingPackage, setEditingPackage] = useState<BirthdayPackage | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Translated packages for display (only translate when not editing)
-  const translatedPackages = packages.map(pack => {
+  const translatedPackages: TranslatedPackage[] = packages.map(pack => {
     if (editingPackage?.id === pack.id) {
-      return pack; // Don't translate while editing
+      // Don't translate while editing, but add features and perChildText properties
+      const locale = tHook.locale;
+      return {
+        ...pack,
+        features: locale === 'ca' ? pack.featuresVa : pack.featuresEs,
+        perChildText: locale === 'ca' 
+          ? (pack.perChildTextVa || t('perChild'))
+          : (pack.perChildTextEs || t('perChild'))
+      };
     }
-    return translatePackage(pack, t);
+    return translatePackage(pack, t, tHook.locale);
   });
+
+  // Filter visible packages (active ones, or all for admin)
+  const visiblePackages = translatedPackages.filter(p => p.isActive || user?.role === 'ADMIN');
 
   useEffect(() => {
     fetchPackages();
   }, [user?.role]);
 
   const fetchPackages = async () => {
+    setLoading(true);
     try {
       // Los admins ven todos los packs (activos e inactivos), los usuarios solo los activos
       const endpoint = user?.role === 'ADMIN' ? '/api/packages/all' : '/api/packages';
@@ -80,7 +143,6 @@ export function PackagesAndPrices() {
     }
   };
 
-  console.log("PACKS: ", packages);
 
   const handleEdit = (pkg: BirthdayPackage) => {
     setEditingPackage({ ...pkg });
@@ -89,7 +151,6 @@ export function PackagesAndPrices() {
   const handleSave = async () => {
     if (!editingPackage) return;
 
-    setLoading(true);
     try {
       await put(`/api/packages/${editingPackage.type}`, editingPackage);
       await fetchPackages();
@@ -98,7 +159,6 @@ export function PackagesAndPrices() {
     } catch (err) {
       console.error('Error guardando pack:', err);
       showToast.error('Error al guardar el pack');
-    } finally {
       setLoading(false);
     }
   };
@@ -146,7 +206,17 @@ export function PackagesAndPrices() {
     }
   };
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <section id="precios" className="py-20 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-center py-20">
+            <Spinner size="lg" text={t('loadingPackages')} />
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section id="precios" className="py-20 bg-white">
@@ -170,24 +240,28 @@ export function PackagesAndPrices() {
           </div>
           {user?.role === 'ADMIN' && (
             <div className="mt-4 text-sm text-blue-600 font-medium">
-              {services.t('adminMode')}
+              {tHook.t('adminMode')}
             </div>
           )}
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          {translatedPackages.map((pack) => {
+        <div className={`grid gap-8 max-w-6xl mx-auto ${
+          visiblePackages.length === 1 
+            ? 'md:grid-cols-1 justify-items-center' 
+            : visiblePackages.length === 2 
+            ? 'md:grid-cols-2 justify-items-center' 
+            : 'md:grid-cols-3'
+        }`}>
+          {visiblePackages.map((pack) => {
             const IconComponent = getPackageIcon(pack.type);
             const color = getPackageColor(pack.type);
             const bgColor = getPackageBgColor(pack.type);
             const isEditing = editingPackage?.id === pack.id;
 
-            console.log("DURACION PACKS: ", pack.duration);
-
             return (
               <div
                 key={pack.id}
-                className={`relative p-8 bg-gradient-to-br ${!pack.isActive ? 'from-gray-100 to-gray-200 opacity-70' : bgColor} rounded-3xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col ${pack.isPopular && !isEditing ? 'ring-4 ring-yellow-300 ring-opacity-50' : ''
+                className={`relative p-8 bg-gradient-to-br ${!pack.isActive ? 'from-gray-100 to-gray-200 opacity-70' : bgColor} rounded-3xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col max-w-sm w-full ${pack.isPopular && !isEditing ? 'ring-4 ring-yellow-300 ring-opacity-50' : ''
                   } ${user?.role === 'ADMIN' ? 'cursor-pointer' : ''}`}
                 onClick={() => user?.role === 'ADMIN' && !isEditing && handleEdit(pack)}
               >
@@ -248,7 +322,7 @@ export function PackagesAndPrices() {
                         {pack.price}
                       </div>
                       <div className="text-gray-600">
-                        {t('perChild')}
+                        {pack.perChildText}
                       </div>
                     </>
                   )}
@@ -257,13 +331,59 @@ export function PackagesAndPrices() {
                 {isEditing ? (
                   <div className="space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('features')}</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('features')} (ES)</label>
                       <textarea
                         rows={6}
-                        value={editingPackage.features.join('\n')}
-                        onChange={(e) => setEditingPackage({ ...editingPackage, features: e.target.value.split('\n').filter(f => f.trim()) })}
+                        value={editingPackage.featuresEs.join('\n')}
+                        onChange={(e) => {
+                          const lines = e.target.value.split('\n');
+                          setEditingPackage({ ...editingPackage, featuresEs: lines });
+                        }}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        onFocus={(e) => e.stopPropagation()}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('features')} (VA)</label>
+                      <textarea
+                        rows={6}
+                        value={editingPackage.featuresVa.join('\n')}
+                        onChange={(e) => {
+                          const lines = e.target.value.split('\n');
+                          setEditingPackage({ ...editingPackage, featuresVa: lines });
+                        }}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}
+                        onFocus={(e) => e.stopPropagation()}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Texto "por celebración" (ES)</label>
+                      <input
+                        type="text"
+                        value={editingPackage.perChildTextEs || ''}
+                        onChange={(e) => setEditingPackage({ ...editingPackage, perChildTextEs: e.target.value })}
+                        placeholder={t('perChild')}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Texto "por celebración" (VA)</label>
+                      <input
+                        type="text"
+                        value={editingPackage.perChildTextVa || ''}
+                        onChange={(e) => setEditingPackage({ ...editingPackage, perChildTextVa: e.target.value })}
+                        placeholder={t('perChild')}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(e) => e.stopPropagation()}
                       />
                     </div>
 
@@ -339,9 +459,15 @@ export function PackagesAndPrices() {
                       onClick={(e) => {
                         e.stopPropagation();
                         if (pack.isActive) {
-                          const calendarSection = document.getElementById('calendario');
-                          if (calendarSection) {
-                            calendarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          // Si estamos en la página principal, hacer scroll a la sección
+                          if (pathname === '/') {
+                            const calendarSection = document.getElementById('calendario');
+                            if (calendarSection) {
+                              calendarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          } else {
+                            // Si estamos en otra página, navegar a la página de calendario
+                            router.push('/calendario');
                           }
                         }
                       }}

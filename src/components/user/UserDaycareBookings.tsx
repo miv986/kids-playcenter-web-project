@@ -2,7 +2,8 @@ import { Calendar, Users, Clock, Package, Phone, MessageSquare, Plus, Copy, Chec
 import { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useDaycareBookings } from "../../contexts/DaycareBookingContext";
-import { DaycareBooking } from "../../types/auth";
+import { useChildren } from "../../contexts/ChildrenContext";
+import { DaycareBooking, Child } from "../../types/auth";
 import {NewDaycareBookingModal} from "../shared/NewDaycareBookingModal";
 import { useTranslation } from "../../contexts/TranslationContext";
 import { Spinner } from "../shared/Spinner";
@@ -12,10 +13,13 @@ import { useConfirm } from "../../hooks/useConfirm";
 export function UserDaycareBookings() {
     const { user } = useAuth();
     const { fetchMyBookings, cancelBooking } = useDaycareBookings();
+    const { fetchMyChildren } = useChildren();
     const t = useTranslation('UserDaycareBookings');
     const locale = t.locale;
     const { confirm, ConfirmComponent } = useConfirm();
     const [bookings, setBookings] = useState<DaycareBooking[]>([]);
+    const [children, setChildren] = useState<Child[]>([]);
+    const [isLoadingChildren, setIsLoadingChildren] = useState(true);
     const [filter, setFilter] = useState<'all' | 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'CLOSED'>('all');
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState<DaycareBooking | null>(null);
@@ -40,6 +44,14 @@ export function UserDaycareBookings() {
                 setIsLoadingBookings(false);
             }).catch(() => {
                 setIsLoadingBookings(false);
+            });
+
+            setIsLoadingChildren(true);
+            fetchMyChildren().then(data => {
+                setChildren(data);
+                setIsLoadingChildren(false);
+            }).catch(() => {
+                setIsLoadingChildren(false);
             });
         }
     }, [user]);
@@ -277,11 +289,13 @@ export function UserDaycareBookings() {
                     isOpen={isNewModalOpen}
                     onClose={() => setIsNewModalOpen(false)}
                     existingBooking={null}
+                    hasChildren={children.length > 0}
                 />
                 <NewDaycareBookingModal
                     isOpen={isEditModalOpen}
                     onClose={handleCloseEditModal}
                     existingBooking={editingBooking}
+                    hasChildren={children.length > 0}
                 />
                 {ConfirmComponent}
             </div>

@@ -62,7 +62,7 @@ export interface BirthdayBooking {
   number_of_kids: number;
   contact_number: string;
   comments: string;
-  packageType: Package;
+  packageType?: Package;
   status: Status;
   createdAt?: string;
   upstringdAt?: string;
