@@ -286,43 +286,43 @@ export function AdminDaycareBookings() {
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
-                <p className="text-gray-600">{t.t('subtitle')}</p>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
+                <p className="text-sm sm:text-base text-gray-600">{t.t('subtitle')}</p>
             </div>
 
             {/* Controles superiores */}
-            <div className="mb-4 flex flex-wrap gap-4 items-center justify-between">
-                <div className="flex gap-2">
+            <div className="mb-4 flex flex-wrap gap-2 sm:gap-4 items-center justify-between">
+                <div className="flex gap-2 w-full sm:w-auto">
                     <button
                         onClick={() => setViewMode("calendar")}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${viewMode === "calendar"
+                        className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${viewMode === "calendar"
                             ? "bg-blue-500 text-white"
                             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                             }`}
                     >
-                        <CalendarDays className="w-4 h-4" />
-                        {t.t('calendarView')}
+                        <CalendarDays className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">{t.t('calendarView')}</span>
                     </button>
                     <button
                         onClick={() => setViewMode("list")}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${viewMode === "list"
+                        className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${viewMode === "list"
                             ? "bg-blue-500 text-white"
                             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                             }`}
                     >
-                        <Calendar className="w-4 h-4" />
-                        {t.t('listView')}
+                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">{t.t('listView')}</span>
                     </button>
                 </div>
             </div>
 
             {/* Panel de filtros - Siempre visible y compacto */}
-            <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-sm font-medium text-gray-700">{t.t('filterByStatus')}:</span>
+            <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg px-3 sm:px-4 py-2">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <span className="text-xs sm:text-sm font-medium text-gray-700 w-full sm:w-auto mb-1 sm:mb-0">{t.t('filterByStatus')}:</span>
                     <button
                         onClick={() => setFilter('all')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'all'
+                        className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'all'
                             ? 'bg-blue-500 text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                             }`}
@@ -331,7 +331,7 @@ export function AdminDaycareBookings() {
                     </button>
                     <button
                         onClick={() => setFilter('CONFIRMED')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CONFIRMED'
+                        className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'CONFIRMED'
                             ? 'bg-green-500 text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                             }`}
@@ -340,7 +340,7 @@ export function AdminDaycareBookings() {
                     </button>
                     <button
                         onClick={() => setFilter('CANCELLED')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CANCELLED'
+                        className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'CANCELLED'
                             ? 'bg-red-500 text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                             }`}
@@ -356,15 +356,15 @@ export function AdminDaycareBookings() {
 
                     {viewMode === "calendar" ? (
                         <div>
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">{t.t('calendarView')}</h2>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4">
+                                <h2 className="text-xl sm:text-2xl font-semibold">{t.t('calendarView')}</h2>
                                 {selectedDate && (
                                     <button
                                         onClick={() => {
                                             setSelectedDate(undefined);
                                             setDailyBookings([]);
                                         }}
-                                        className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
+                                        className="bg-blue-500 text-white px-3 sm:px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200 text-sm sm:text-base w-full sm:w-auto min-w-[48px]"
                                     >
                                         {t.t('viewAll')}
                                     </button>
@@ -407,13 +407,15 @@ export function AdminDaycareBookings() {
                                                         <div className="flex gap-2">
                                                             <button
                                                                 onClick={() => openModal(booking)}
-                                                                className="bg-blue-500 text-white px-3 py-1 rounded-xl hover:bg-blue-600"
+                                                                className="bg-blue-500 text-white px-2 sm:px-3 py-1 rounded-xl hover:bg-blue-600 text-xs sm:text-sm min-w-[48px] flex items-center justify-center"
                                                             >
-                                                                {t.t('view')}
+                                                                <span className="hidden sm:inline">{t.t('view')}</span>
+                                                                <span className="sm:hidden">👁</span>
                                                             </button>
                                                             <button
                                                                 onClick={() => handleDeleteBooking(booking.id)}
-                                                                className="bg-red-500 text-white px-3 py-1 rounded-xl hover:bg-red-600"
+                                                                className="bg-red-500 text-white px-2 sm:px-3 py-1 rounded-xl hover:bg-red-600 min-w-[48px] flex items-center justify-center"
+                                                                title={t.t('delete')}
                                                             >
                                                                 <Trash2 className="w-4 h-4" />
                                                             </button>
@@ -438,9 +440,9 @@ export function AdminDaycareBookings() {
                         </div>
                     ) : (
                         <div>
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-semibold">{t.t('allReservations')}</h2>
-                                <div className="text-sm text-gray-500">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4 mb-4">
+                                <h2 className="text-xl sm:text-2xl font-semibold">{t.t('allReservations')}</h2>
+                                <div className="text-xs sm:text-sm text-gray-500">
                                     {bookingsToShow.length} {t.t('reservations')} {filter !== 'all' ? t.t('filtered') : t.t('total')}
                                 </div>
                             </div>
@@ -546,17 +548,18 @@ export function AdminDaycareBookings() {
                                                                          t.t('pending')}
                                                                     </div>
                                                                 </div>
-                                                                <div className="flex gap-2 ml-4">
+                                                                <div className="flex gap-2 ml-2 sm:ml-4">
                                                                     <button
                                                                         onClick={() => openModal(booking)}
-                                                                        className="bg-blue-500 text-white px-3 py-1 rounded-xl hover:bg-blue-600 transition-colors"
+                                                                        className="bg-blue-500 text-white px-2 sm:px-3 py-1 rounded-xl hover:bg-blue-600 transition-colors text-xs sm:text-sm min-w-[48px] flex items-center justify-center"
                                                                         title={t.t('view')}
                                                                     >
-                                                                        {t.t('view')}
+                                                                        <span className="hidden sm:inline">{t.t('view')}</span>
+                                                                        <span className="sm:hidden">👁</span>
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleDeleteBooking(booking.id)}
-                                                                        className="bg-red-500 text-white px-3 py-1 rounded-xl hover:bg-red-600 transition-colors"
+                                                                        className="bg-red-500 text-white px-2 sm:px-3 py-1 rounded-xl hover:bg-red-600 transition-colors min-w-[48px] flex items-center justify-center"
                                                                         title={t.t('delete')}
                                                                     >
                                                                         <Trash2 className="w-4 h-4" />
@@ -639,11 +642,12 @@ export function AdminDaycareBookings() {
             {isModalOpen && selectedBooking && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
-                            <h3 className="text-2xl font-bold text-gray-800">{t.t('reservationDetails')} #{selectedBooking.id}</h3>
+                        <div className="sticky top-0 bg-white border-b px-4 sm:px-6 py-4 flex justify-between items-center gap-4">
+                            <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800">{t.t('reservationDetails')} #{selectedBooking.id}</h3>
                             <button
                                 onClick={closeModal}
-                                className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
+                                className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors flex-shrink-0 min-w-[48px]"
+                                title={t.t('close')}
                             >
                                 <X className="w-5 h-5 text-gray-600" />
                             </button>
@@ -843,7 +847,7 @@ export function AdminDaycareBookings() {
                                 </div>
                             )}
                             {/* Botones de cambio de estado */}
-                            <div className="flex gap-3">
+                            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                                 {selectedBooking.status !== 'CONFIRMED' && (
                                     <button
                                         onClick={async () => {
@@ -856,7 +860,7 @@ export function AdminDaycareBookings() {
                                                 closeModal();
                                             }
                                         }}
-                                        className="flex-1 bg-green-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-green-600 transition-all duration-200"
+                                        className="flex-1 bg-green-500 text-white px-3 sm:px-4 py-2 rounded-xl font-medium hover:bg-green-600 transition-all duration-200 text-sm sm:text-base min-w-[48px]"
                                     >
                                         {t.t('confirmReservation')}
                                     </button>
@@ -873,14 +877,14 @@ export function AdminDaycareBookings() {
                                                 closeModal();
                                             }
                                         }}
-                                        className="flex-1 bg-yellow-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-yellow-600 transition-all duration-200"
+                                        className="flex-1 bg-yellow-500 text-white px-3 sm:px-4 py-2 rounded-xl font-medium hover:bg-yellow-600 transition-all duration-200 text-sm sm:text-base min-w-[48px]"
                                     >
                                         {t.t('cancelReservation')}
                                     </button>
                                 )}
                                 <button
                                     onClick={closeModal}
-                                    className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-medium hover:bg-gray-300 transition-all duration-200"
+                                    className="flex-1 bg-gray-200 text-gray-700 px-3 sm:px-4 py-2 rounded-xl font-medium hover:bg-gray-300 transition-all duration-200 text-sm sm:text-base min-w-[48px]"
                                 >
                                     {t.t('close')}
                                 </button>

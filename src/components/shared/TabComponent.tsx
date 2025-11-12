@@ -27,25 +27,25 @@ export default function TabComponent({ tabs, defaultTab }: TabComponentProps) {
         <div className="w-full">
             {/* Barra de Tabs - Diseño moderno */}
             <div className="bg-white border-b border-gray-200 shadow-sm">
-                <div className="flex flex-wrap gap-1 px-4 justify-center">
+                <div className="flex flex-wrap gap-1 px-2 sm:px-4 justify-center">
                     {tabs.map((tab) => {
                         const Icon = tab.icon;
                         return (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`relative px-4 md:px-6 py-3.5 text-sm font-medium transition-all duration-300 rounded-t-xl flex items-center gap-2 ${
+                                className={`relative px-3 sm:px-4 md:px-6 py-2.5 sm:py-3.5 text-xs sm:text-sm font-medium transition-all duration-300 rounded-t-xl flex items-center justify-center gap-1.5 sm:gap-2 min-w-[48px] ${
                                     activeTab === tab.id
                                         ? "text-blue-600 bg-blue-50 shadow-sm"
                                         : "text-gray-600 hover:text-gray-800 hover:bg-gray-50"
                                 }`}
                                 title={tab.label}
                             >
-                                <span className="relative z-10 flex items-center gap-2">
+                                <span className="relative z-10 flex items-center gap-1.5 sm:gap-2">
                                     {Icon && (
-                                        <Icon className={`w-5 h-5 flex-shrink-0 ${activeTab === tab.id ? 'text-blue-600' : 'text-gray-600'}`} />
+                                        <Icon className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ${activeTab === tab.id ? 'text-blue-600' : 'text-gray-600'}`} />
                                     )}
-                                    <span className="hidden md:inline">{tab.label}</span>
+                                    <span className="hidden sm:inline">{tab.label}</span>
                                 </span>
                                 {activeTab === tab.id && (
                                     <>

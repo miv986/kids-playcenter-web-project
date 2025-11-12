@@ -34,7 +34,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, openModal }) 
     console.log(booking);
 
     return (
-        <div className="bg-white p-4 rounded-xl shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100">
+        <div className="bg-white p-4 rounded-xl shadow-soft hover:shadow-soft-lg transform hover:scale-[1.02] active:scale-95 transition-all duration-200 border border-gray-100 animate-fade-in">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 <div className="flex-1">
                     {/* Header con ID y estado */}
@@ -117,7 +117,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, openModal }) 
                 <div className="lg:w-auto">
                     <button
                         onClick={() => openModal(booking)}
-                        className="w-full lg:w-auto bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-all duration-200 flex items-center justify-center gap-2"
+                        className="w-full lg:w-auto bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 hover:shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200 flex items-center justify-center gap-2"
                     >
                         <Glasses className="w-4 h-4" />
                         <span>{t('viewDetails')}</span>

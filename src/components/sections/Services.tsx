@@ -68,13 +68,14 @@ export function Services() {
             return (
               <div
                 key={index}
-                className={`p-8 bg-gradient-to-br ${service.bgColor} rounded-3xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 group`}
+                className={`p-8 bg-gradient-to-br ${service.bgColor} rounded-3xl shadow-soft hover:shadow-soft-lg transform hover:scale-105 active:scale-95 transition-all duration-300 group animate-fade-in`}
+                style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <div className={`w-16 h-16 bg-gradient-to-br ${service.color} rounded-2xl flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                <div className={`w-16 h-16 bg-gradient-to-br ${service.color} rounded-2xl flex items-center justify-center mb-6 shadow-soft group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
                   <IconComponent className="w-8 h-8 text-white" />
                 </div>
                 
-                <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                <h3 className="text-2xl font-bold text-gray-800 mb-4 group-hover:text-gray-900 transition-colors">
                   {service.title}
                 </h3>
                 
@@ -83,7 +84,7 @@ export function Services() {
                 </p>
                 
                 <div className="mt-6">
-                  <button className={`text-transparent bg-clip-text bg-gradient-to-r ${service.color} font-semibold hover:underline transition-all duration-200`}>
+                  <button className={`text-transparent bg-clip-text bg-gradient-to-r ${service.color} font-semibold hover:underline transition-all duration-200 hover:scale-105 inline-block`}>
                     {t.t('moreInfo')}
                   </button>
                 </div>

@@ -1,5 +1,5 @@
 "use client";
-import React, { createContext, useContext, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useRef, useEffect, useCallback } from 'react';
 import { useToken } from './TokenContext';
 
 interface HttpContextType {
@@ -24,12 +24,23 @@ interface HttpProviderProps {
   token?: string | null;
 }
 
+// Función para decodificar JWT y obtener la fecha de expiración
+const getTokenExpiration = (token: string): number | null => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp ? payload.exp * 1000 : null; // Convertir a milisegundos
+  } catch {
+    return null;
+  }
+};
+
 export function HttpProvider({ children }: HttpProviderProps) {
   const baseUrl = process.env.NEXT_PUBLIC_API_URL;
   const tokenProvider = useToken();
   const isRefreshingRef = useRef(false);
   const sessionExpiredRef = useRef(false);
   const refreshPromiseRef = useRef<Promise<string | null> | null>(null);
+  const refreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Resetear el flag cuando se establece un nuevo token
   useEffect(() => {
@@ -38,7 +49,7 @@ export function HttpProvider({ children }: HttpProviderProps) {
     }
   }, [tokenProvider.token]);
 
-  const refreshToken = async (): Promise<string | null> => {
+  const refreshToken = useCallback(async (): Promise<string | null> => {
     if (sessionExpiredRef.current) return null;
     
     // Si ya hay un refresh en curso, esperar a que termine
@@ -85,7 +96,43 @@ export function HttpProvider({ children }: HttpProviderProps) {
     
     refreshPromiseRef.current = refreshPromise;
     return refreshPromise;
-  };
+  }, [baseUrl, tokenProvider]);
+
+  // Refresco proactivo del token antes de que expire
+  useEffect(() => {
+    // Limpiar timer anterior si existe
+    if (refreshTimerRef.current) {
+      clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+
+    if (!tokenProvider.token) return;
+
+    const expirationTime = getTokenExpiration(tokenProvider.token);
+    if (!expirationTime) return;
+
+    const now = Date.now();
+    const timeUntilExpiration = expirationTime - now;
+    
+    // Refrescar 1 minuto antes de que expire (14 minutos después de la emisión)
+    // Si el token expira en 15 minutos, lo refrescamos a los 14 minutos
+    const refreshTime = Math.max(timeUntilExpiration - 60 * 1000, 0);
+
+    if (refreshTime > 0) {
+      refreshTimerRef.current = setTimeout(() => {
+        if (!sessionExpiredRef.current && tokenProvider.token) {
+          refreshToken();
+        }
+      }, refreshTime);
+    }
+
+    return () => {
+      if (refreshTimerRef.current) {
+        clearTimeout(refreshTimerRef.current);
+        refreshTimerRef.current = null;
+      }
+    };
+  }, [tokenProvider.token, refreshToken]);
 
   const makeRequest = async (
     url: string,

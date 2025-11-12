@@ -21,6 +21,7 @@ interface DaycareSlotContextType {
         endHour?: string;
     }) => Promise<void>;
     fetchAvailableSlotsByDate: (date: Date) => Promise<DaycareSlot[]>;
+    fetchAvailableSlotsByDateRange: (startDate: Date, endDate: Date) => Promise<DaycareSlot[]>;
 }
 
 const DaycareSlotContext = createContext<DaycareSlotContextType | undefined>(undefined);
@@ -112,7 +113,7 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
         }
     };
 
-    // 📅 Obtener slots disponibles (abiertos y con plazas)
+    // 📅 Obtener slots disponibles (abiertos y con plazas) por fecha
     const fetchAvailableSlotsByDate = async (date: Date) => {
         const year = date.getFullYear();
         const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -124,6 +125,29 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error obteniendo slots disponibles:", err);
+            }
+            return [];
+        }
+    };
+
+    // 📅 Obtener slots disponibles por rango de fechas (mes completo)
+    const fetchAvailableSlotsByDateRange = async (startDate: Date, endDate: Date) => {
+        const startYear = startDate.getFullYear();
+        const startMonth = (startDate.getMonth() + 1).toString().padStart(2, "0");
+        const startDay = startDate.getDate().toString().padStart(2, "0");
+        const formattedStartDate = `${startYear}-${startMonth}-${startDay}`;
+
+        const endYear = endDate.getFullYear();
+        const endMonth = (endDate.getMonth() + 1).toString().padStart(2, "0");
+        const endDay = endDate.getDate().toString().padStart(2, "0");
+        const formattedEndDate = `${endYear}-${endMonth}-${endDay}`;
+
+        try {
+            const res = await http.get(`/api/daycareSlots/?startDate=${formattedStartDate}&endDate=${formattedEndDate}&availableOnly=true`);
+            return res.availableSlots || res || [];
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("❌ Error obteniendo slots disponibles por rango:", err);
             }
             return [];
         }
@@ -152,6 +176,7 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
                 deleteSlot,
                 deleteMultipleSlots,
                 fetchAvailableSlotsByDate,
+                fetchAvailableSlotsByDateRange,
             }}
         >
             {children}

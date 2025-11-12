@@ -47,8 +47,8 @@ export function AboutUs() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="text-center p-6 bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="text-center p-6 bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl shadow-soft hover:shadow-soft-lg transform hover:scale-105 active:scale-95 transition-all duration-300 animate-fade-in">
+            <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-soft hover:scale-110 transition-transform duration-300">
               <Users className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">{t.t('professionalTeam')}</h3>
@@ -57,8 +57,8 @@ export function AboutUs() {
             </p>
           </div>
 
-          <div className="text-center p-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="text-center p-6 bg-gradient-to-br from-green-50 to-blue-50 rounded-2xl shadow-soft hover:shadow-soft-lg transform hover:scale-105 active:scale-95 transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <div className="w-16 h-16 bg-gradient-to-br from-green-400 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-soft hover:scale-110 transition-transform duration-300">
               <Award className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">{t.t('quality')}</h3>
@@ -67,8 +67,8 @@ export function AboutUs() {
             </p>
           </div>
 
-          <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="text-center p-6 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl shadow-soft hover:shadow-soft-lg transform hover:scale-105 active:scale-95 transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-soft hover:scale-110 transition-transform duration-300">
               <Shield className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">{t.t('safe')}</h3>
@@ -77,8 +77,8 @@ export function AboutUs() {
             </p>
           </div>
 
-          <div className="text-center p-6 bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300">
-            <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <div className="text-center p-6 bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl shadow-soft hover:shadow-soft-lg transform hover:scale-105 active:scale-95 transition-all duration-300 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <div className="w-16 h-16 bg-gradient-to-br from-red-400 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-soft hover:scale-110 transition-transform duration-300">
               <Heart className="w-8 h-8 text-white" />
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">{t.t('withLove')}</h3>

@@ -41,7 +41,7 @@ export function Header() {
 
   return (
     <>
-      <header className="bg-white/90 backdrop-blur-sm shadow-lg sticky top-0 z-50">
+      <header className="bg-white/95 backdrop-blur-glass shadow-soft sticky top-0 z-50 transition-all duration-300 border-b border-gray-100/50">
         <div className="container mx-auto px-4">
           {/* Top bar with contact info */}
           <div className="hidden md:flex justify-between items-center py-2 text-sm text-gray-600 border-b border-gray-100">
@@ -69,13 +69,13 @@ export function Header() {
 
           {/* Main navigation */}
           <div className="flex justify-between items-center py-4">
-            <Link href="/" className="flex items-center space-x-3 hover:opacity-80 transition-opacity">
-              <div className="w-20 h-20 rounded-2xl flex items-center justify-center shadow-lg overflow-hidden">
-                <Image src="/logo.png" alt="Logo" width={80} height={80} />
+            <Link href="/" className="flex items-center space-x-2 sm:space-x-3 hover:opacity-80 transition-opacity">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg overflow-hidden flex-shrink-0">
+                <Image src="/logo.png" alt="Logo" width={80} height={80} className="w-full h-full object-contain" />
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-800">{t.t('Header.title')}</h1>
-                <p className="text-sm text-gray-600">{t.t('Header.subtitle')}</p>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 truncate">{t.t('Header.title')}</h1>
+                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">{t.t('Header.subtitle')}</p>
               </div>
             </Link>
 
@@ -127,23 +127,23 @@ export function Header() {
                   <div className="flex items-center space-x-2">
                     <Link
                       href="/"
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-colors duration-200 ${isHome
+                      className={`flex items-center space-x-2 px-2 sm:px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm sm:text-base ${isHome
                         ? 'bg-green-100 text-green-600'
                         : 'text-gray-600 hover:text-green-500'
                         }`}
                     >
-                      <Home className="w-4 h-4" />
-                      <span>{t.t('Header.home')}</span>
+                      <Home className="w-4 h-4 flex-shrink-0" />
+                      <span className="hidden sm:inline">{t.t('Header.home')}</span>
                     </Link>
                     <Link
                       href="/dashboard"
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-lg font-medium transition-colors duration-200 ${isDashboard
+                      className={`flex items-center space-x-2 px-2 sm:px-3 py-2 rounded-lg font-medium transition-colors duration-200 text-sm sm:text-base ${isDashboard
                         ? 'bg-blue-100 text-blue-600'
                         : 'text-gray-600 hover:text-blue-500'
                         }`}
                     >
-                      <LayoutDashboard className="w-4 h-4" />
-                      <span>{t.t('Header.myPanel')}</span>
+                      <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
+                      <span className="hidden sm:inline">{t.t('Header.myPanel')}</span>
                     </Link>
                   </div>
                   <div className="flex items-center space-x-2">
@@ -159,10 +159,10 @@ export function Header() {
                   </div>
                   <button
                     onClick={logout}
-                    className="flex items-center space-x-2 text-gray-600 hover:text-red-500 transition-colors duration-200"
+                    className="flex items-center space-x-2 text-gray-600 hover:text-red-500 transition-colors duration-200 text-sm sm:text-base"
                   >
-                    <LogOut className="w-4 h-4" />
-                    <span>{t.t('Header.logout')}</span>
+                    <LogOut className="w-4 h-4 flex-shrink-0" />
+                    <span className="hidden sm:inline">{t.t('Header.logout')}</span>
                   </button>
                 </div>
               ) : (
@@ -175,7 +175,7 @@ export function Header() {
                   </button>
                   <button
                     onClick={() => handleAuthClick('register')}
-                    className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-6 py-2 rounded-full font-medium hover:shadow-lg transform hover:scale-105 transition-all duration-200"
+                    className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-4 sm:px-6 py-2 rounded-full font-medium hover:shadow-colored hover:shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-200 text-sm sm:text-base whitespace-nowrap"
                   >
                     {t.t('Header.register')}
                   </button>

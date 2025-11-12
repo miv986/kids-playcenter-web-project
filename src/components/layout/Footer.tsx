@@ -31,10 +31,10 @@ export function Footer() {
             </p>
 
             <div className="flex space-x-4">
-              <a href="https://wa.me/+34627644212" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors duration-200">
+              <a href="https://wa.me/+34627644212" target="_blank" rel="noopener noreferrer" className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 hover:scale-110 active:scale-95 transition-all duration-200 shadow-soft">
                 <FaWhatsapp className="w-5 h-5" />
               </a>
-              <a href="https://www.instagram.com/somriuresicolors?igsh=MXZlZmdkYmRqejFzYw==" target='_blank' rel="noopener noreferrer" className="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700 transition-colors duration-200">
+              <a href="https://www.instagram.com/somriuresicolors?igsh=MXZlZmdkYmRqejFzYw==" target='_blank' rel="noopener noreferrer" className="w-10 h-10 bg-pink-600 rounded-full flex items-center justify-center hover:bg-pink-700 hover:scale-110 active:scale-95 transition-all duration-200 shadow-soft">
                 <Instagram className="w-5 h-5" />
               </a>
               {/*}

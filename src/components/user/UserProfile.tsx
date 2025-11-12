@@ -226,17 +226,17 @@ export function UserProfile() {
 
                 {/* Datos de los hijos */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-                    <div className="p-5 border-b border-gray-200 flex justify-between items-center">
+                    <div className="p-5 border-b border-gray-200 flex justify-between items-center gap-4">
                         <h2 className="text-lg font-semibold text-gray-800">
                             {t.t('children')}
                         </h2>
                         {!isAddingNew && !editingChild && (
                             <button
                                 onClick={handleAddNew}
-                                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-all duration-200 flex items-center gap-2 text-sm font-medium"
+                                className="bg-blue-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-600 transition-all duration-200 flex items-center justify-center gap-2 text-sm font-medium min-w-[48px] sm:min-w-0"
                             >
-                                <Plus className="w-4 h-4" />
-                                <span>{t.t('addChild')}</span>
+                                <Plus className="w-4 h-4 flex-shrink-0" />
+                                <span className="hidden sm:inline">{t.t('addChild')}</span>
                             </button>
                         )}
                     </div>
@@ -620,8 +620,9 @@ export function UserProfile() {
                                 <p className="text-sm text-gray-500 mb-4">
                                     {t.t('canAddChildren')}
                                 </p>
-                                <button onClick={handleAddNew} className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 transition-all duration-200 text-sm">
-                                    {t.t('addChild')}
+                                <button onClick={handleAddNew} className="bg-blue-500 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-600 transition-all duration-200 text-sm flex items-center justify-center gap-2 min-w-[48px]">
+                                    <Plus className="w-4 h-4 flex-shrink-0" />
+                                    <span className="hidden sm:inline">{t.t('addChild')}</span>
                                 </button>
                             </div>
                         )}

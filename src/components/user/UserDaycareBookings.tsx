@@ -9,6 +9,7 @@ import { useTranslation } from "../../contexts/TranslationContext";
 import { Spinner } from "../shared/Spinner";
 import { showToast } from "../../lib/toast";
 import { useConfirm } from "../../hooks/useConfirm";
+import { formatDateOnly, formatTimeOnly } from "../../lib/formatDate";
 
 export function UserDaycareBookings() {
     const { user } = useAuth();
@@ -20,7 +21,7 @@ export function UserDaycareBookings() {
     const [bookings, setBookings] = useState<DaycareBooking[]>([]);
     const [children, setChildren] = useState<Child[]>([]);
     const [isLoadingChildren, setIsLoadingChildren] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'CLOSED'>('all');
+    const [filter, setFilter] = useState<'all' | 'PENDING' | 'CONFIRMED' | 'CANCELLED' | 'CLOSED'>('CONFIRMED');
     const [isNewModalOpen, setIsNewModalOpen] = useState(false);
     const [editingBooking, setEditingBooking] = useState<DaycareBooking | null>(null);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -102,9 +103,17 @@ export function UserDaycareBookings() {
         setEditingBooking(null);
     };
 
-    const filteredBookings = bookings.filter(booking =>
-        filter === 'all' || booking.status === filter
-    );
+    const filteredBookings = bookings
+        .filter(booking => {
+            if (filter === 'CLOSED') {
+                return booking.status === 'CLOSED';
+            }
+            if (filter === 'all') {
+                return true;
+            }
+            return booking.status === filter;
+        })
+        .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
 
     const stats = {
         total: bookings.length,
@@ -117,24 +126,24 @@ export function UserDaycareBookings() {
     return (
         <div className="min-h-screen bg-gray-50 py-8">
             <div className="container mx-auto px-4">
-                <div className="mb-6 flex justify-between items-center">
+                <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-800 mb-1">{t.t('title')}</h1>
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">{t.t('title')}</h1>
                         <p className="text-gray-600 text-sm">{t.t('subtitle')}</p>
                     </div>
-                    <button onClick={() => setIsNewModalOpen(true)} className="bg-blue-500 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-blue-600 transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg">
-                        <Plus className="w-5 h-5" />
-                        <span>{t.t('newReservation')}</span>
+                    <button onClick={() => setIsNewModalOpen(true)} className="bg-blue-500 text-white px-4 sm:px-5 py-2.5 rounded-xl font-medium hover:bg-blue-600 transition-all duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg w-full sm:w-auto min-w-[48px] sm:min-w-0">
+                        <Plus className="w-5 h-5 flex-shrink-0" />
+                        <span className="hidden sm:inline">{t.t('newReservation')}</span>
                     </button>
                 </div>
 
                 {/* Panel de filtros - Siempre visible y compacto */}
-                <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
-                    <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-sm font-medium text-gray-700">{t.t('filterByStatus')}:</span>
+                <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg px-3 sm:px-4 py-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                        <span className="text-xs sm:text-sm font-medium text-gray-700 w-full sm:w-auto mb-1 sm:mb-0">{t.t('filterByStatus')}:</span>
                         <button
                             onClick={() => setFilter('all')}
-                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'all'
+                            className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'all'
                                 ? 'bg-blue-500 text-white'
                                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                                 }`}
@@ -143,7 +152,7 @@ export function UserDaycareBookings() {
                         </button>
                         <button
                             onClick={() => setFilter('PENDING')}
-                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'PENDING'
+                            className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'PENDING'
                                 ? 'bg-yellow-500 text-white'
                                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                                 }`}
@@ -152,7 +161,7 @@ export function UserDaycareBookings() {
                         </button>
                         <button
                             onClick={() => setFilter('CONFIRMED')}
-                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CONFIRMED'
+                            className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'CONFIRMED'
                                 ? 'bg-green-500 text-white'
                                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                                 }`}
@@ -161,7 +170,7 @@ export function UserDaycareBookings() {
                         </button>
                         <button
                             onClick={() => setFilter('CANCELLED')}
-                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CANCELLED'
+                            className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'CANCELLED'
                                 ? 'bg-red-500 text-white'
                                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                                 }`}
@@ -170,7 +179,7 @@ export function UserDaycareBookings() {
                         </button>
                         <button
                             onClick={() => setFilter('CLOSED')}
-                            className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CLOSED'
+                            className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'CLOSED'
                                 ? 'bg-gray-500 text-white'
                                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                                 }`}
@@ -224,11 +233,11 @@ export function UserDaycareBookings() {
                                                 <div className="grid md:grid-cols-2 gap-3 text-sm">
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Calendar className="w-4 h-4" />
-                                                        <span>{new Date(booking.createdAt!).toLocaleDateString(locale === 'ca' ? 'ca-ES' : 'es-ES')}</span>
+                                                        <span>{formatDateOnly(booking.startTime, locale)}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Clock className="w-4 h-4" />
-                                                        <span>{new Date(booking.startTime).toLocaleTimeString(locale === 'ca' ? 'ca-ES' : 'es-ES', { hour: '2-digit', minute: '2-digit' })} - {new Date(booking.endTime).toLocaleTimeString(locale === 'ca' ? 'ca-ES' : 'es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                                                        <span>{formatTimeOnly(booking.startTime, locale)} - {formatTimeOnly(booking.endTime, locale)}</span>
                                                     </div>
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Users className="w-4 h-4" />
@@ -256,19 +265,19 @@ export function UserDaycareBookings() {
                                                 {booking.status !== 'CANCELLED' && booking.status !== 'CLOSED' && (
                                                     <button
                                                         onClick={() => handleEdit(booking)}
-                                                        className="flex-1 lg:flex-none bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-all duration-200 flex items-center justify-center gap-1.5"
+                                                        className="flex-1 lg:flex-none bg-blue-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 transition-all duration-200 flex items-center justify-center gap-1.5 min-w-[48px]"
                                                     >
-                                                        <Calendar className="w-4 h-4" />
-                                                        <span>{t.t('modify')}</span>
+                                                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                                                        <span className="hidden sm:inline">{t.t('modify')}</span>
                                                     </button>
                                                 )}
                                                 {booking.status !== 'CANCELLED' && booking.status !== 'CLOSED' && (
                                                     <button
                                                         onClick={() => handleCancel(booking.id)}
-                                                        className="flex-1 lg:flex-none bg-yellow-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-yellow-600 transition-all duration-200 flex items-center justify-center gap-1.5"
+                                                        className="flex-1 lg:flex-none bg-yellow-500 text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-yellow-600 transition-all duration-200 flex items-center justify-center gap-1.5 min-w-[48px]"
                                                     >
-                                                        <Clock className="w-4 h-4" />
-                                                        <span>{t.t('cancelReservation')}</span>
+                                                        <Clock className="w-4 h-4 flex-shrink-0" />
+                                                        <span className="hidden sm:inline">{t.t('cancelReservation')}</span>
                                                     </button>
                                                 )}
                                                 {booking.status === 'CLOSED' && (

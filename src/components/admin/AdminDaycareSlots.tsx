@@ -385,86 +385,86 @@ export function AdminDaycareSlots() {
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
-                <p className="text-gray-600">{t.t('subtitle')}</p>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
+                <p className="text-sm sm:text-base text-gray-600">{t.t('subtitle')}</p>
             </div>
 
             {/* Controles superiores */}
-            <div className="mb-6 flex flex-wrap gap-4 items-center justify-between">
-                <div className="flex gap-2">
+            <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center justify-between">
+                <div className="flex gap-2 w-full sm:w-auto">
                     <button
                         onClick={() => setViewMode("calendar")}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${viewMode === "calendar"
+                        className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${viewMode === "calendar"
                                 ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                             }`}
                     >
-                        <CalendarDays className="w-4 h-4" />
-                        {t.t('calendarView')}
+                        <CalendarDays className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">{t.t('calendarView')}</span>
                     </button>
                     <button
                         onClick={() => setViewMode("list")}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${viewMode === "list"
+                        className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${viewMode === "list"
                                 ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                             }`}
                     >
-                        <Calendar className="w-4 h-4" />
-                        {t.t('listView')}
+                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">{t.t('listView')}</span>
                     </button>
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     <button
                         onClick={() => setShowDateFilter(!showDateFilter)}
-                        className="flex items-center gap-2 bg-purple-500 text-white px-4 py-2 rounded-xl hover:bg-purple-600"
+                        className="flex items-center justify-center gap-2 bg-purple-500 text-white px-3 sm:px-4 py-2 rounded-xl hover:bg-purple-600 flex-1 sm:flex-none min-w-[48px]"
                     >
-                        <Filter className="w-4 h-4" />
-                        {t.t('filterDates')}
+                        <Filter className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">{t.t('filterDates')}</span>
                     </button>
                     <button
                         onClick={() => setShowBulkActions(!showBulkActions)}
-                        className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2 rounded-xl hover:bg-orange-600"
+                        className="flex items-center justify-center gap-2 bg-orange-500 text-white px-3 sm:px-4 py-2 rounded-xl hover:bg-orange-600 flex-1 sm:flex-none min-w-[48px]"
                     >
-                        <Settings className="w-4 h-4" />
-                        {t.t('bulkActions')}
+                        <Settings className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">{t.t('bulkActions')}</span>
                     </button>
                     <button
                         onClick={() => openModal()}
-                        className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-xl hover:bg-green-600"
+                        className="flex items-center justify-center gap-2 bg-green-500 text-white px-3 sm:px-4 py-2 rounded-xl hover:bg-green-600 flex-1 sm:flex-none min-w-[48px]"
                     >
-                        <Plus className="w-4 h-4" />
-                        {t.t('generateSlots')}
+                        <Plus className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">{t.t('generateSlots')}</span>
                     </button>
                 </div>
             </div>
 
             {/* Filtro de fechas */}
             {showDateFilter && (
-                <div className="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-4">
-                    <h3 className="text-lg font-semibold text-purple-800 mb-3">{t.t('filterByDates')}</h3>
-                    <div className="flex flex-wrap gap-4">
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium">{t.t('from')}</label>
+                <div className="mb-6 bg-purple-50 border border-purple-200 rounded-xl p-3 sm:p-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-purple-800 mb-3">{t.t('filterByDates')}</h3>
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 sm:flex-none">
+                            <label className="text-xs sm:text-sm font-medium whitespace-nowrap">{t.t('from')}</label>
                             <input
                                 type="date"
                                 value={dateFilter.start ? dateFilter.start.toISOString().split('T')[0] : ''}
                                 onChange={(e) => setDateFilter(prev => ({ ...prev, start: e.target.value ? new Date(e.target.value) : null }))}
-                                className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                                className="px-3 py-1.5 sm:py-1 border border-gray-300 rounded-lg text-sm w-full sm:w-auto"
                             />
                         </div>
-                        <div className="flex items-center gap-2">
-                            <label className="text-sm font-medium">{t.t('to')}</label>
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 flex-1 sm:flex-none">
+                            <label className="text-xs sm:text-sm font-medium whitespace-nowrap">{t.t('to')}</label>
                             <input
                                 type="date"
                                 value={dateFilter.end ? dateFilter.end.toISOString().split('T')[0] : ''}
                                 onChange={(e) => setDateFilter(prev => ({ ...prev, end: e.target.value ? new Date(e.target.value) : null }))}
-                                className="px-3 py-1 border border-gray-300 rounded-lg text-sm"
+                                className="px-3 py-1.5 sm:py-1 border border-gray-300 rounded-lg text-sm w-full sm:w-auto"
                             />
                         </div>
                         <button
                             onClick={() => setDateFilter({ start: null, end: null })}
-                            className="bg-gray-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-600"
+                            className="bg-gray-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-gray-600 w-full sm:w-auto min-w-[48px]"
                         >
                             {t.t('clearFilter')}
                         </button>
@@ -474,35 +474,36 @@ export function AdminDaycareSlots() {
 
             {/* Acciones masivas */}
             {showBulkActions && (
-                <div className="mb-6 bg-orange-50 border border-orange-200 rounded-xl p-4">
-                    <h3 className="text-lg font-semibold text-orange-800 mb-3">{t.t('bulkActions')}</h3>
-                    <div className="flex flex-wrap gap-4 items-center">
-                        <div className="flex gap-2">
+                <div className="mb-6 bg-orange-50 border border-orange-200 rounded-xl p-3 sm:p-4">
+                    <h3 className="text-base sm:text-lg font-semibold text-orange-800 mb-3">{t.t('bulkActions')}</h3>
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-start sm:items-center">
+                        <div className="flex gap-2 w-full sm:w-auto">
                             <button
                                 onClick={selectAllSlots}
-                                className="flex items-center gap-2 bg-blue-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-blue-600"
+                                className="flex items-center justify-center gap-2 bg-blue-500 text-white px-3 py-1.5 sm:py-1 rounded-lg text-sm hover:bg-blue-600 flex-1 sm:flex-none min-w-[48px]"
                             >
-                                <CheckSquare className="w-4 h-4" />
-                                {t.t('selectAll')}
+                                <CheckSquare className="w-4 h-4 flex-shrink-0" />
+                                <span className="hidden sm:inline">{t.t('selectAll')}</span>
                             </button>
                             <button
                                 onClick={deselectAllSlots}
-                                className="flex items-center gap-2 bg-gray-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-gray-600"
+                                className="flex items-center justify-center gap-2 bg-gray-500 text-white px-3 py-1.5 sm:py-1 rounded-lg text-sm hover:bg-gray-600 flex-1 sm:flex-none min-w-[48px]"
                             >
-                                <Square className="w-4 h-4" />
-                                {t.t('deselect')}
+                                <Square className="w-4 h-4 flex-shrink-0" />
+                                <span className="hidden sm:inline">{t.t('deselect')}</span>
                             </button>
                         </div>
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-gray-600 w-full sm:w-auto">
                             {selectedSlots.size} {t.t('selected')}
                         </div>
                         {selectedSlots.size > 0 && (
                             <button
                                 onClick={handleDeleteMultipleSlots}
-                                className="flex items-center gap-2 bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600"
+                                className="flex items-center justify-center gap-2 bg-red-500 text-white px-3 py-1.5 sm:py-1 rounded-lg text-sm hover:bg-red-600 w-full sm:w-auto min-w-[48px]"
                             >
-                                <Trash2 className="w-4 h-4" />
-                                {t.t('deleteSelected')} ({selectedSlots.size})
+                                <Trash2 className="w-4 h-4 flex-shrink-0" />
+                                <span className="hidden sm:inline">{t.t('deleteSelected')} ({selectedSlots.size})</span>
+                                <span className="sm:hidden">{t.t('deleteSelected')}</span>
                             </button>
                         )}
                     </div>

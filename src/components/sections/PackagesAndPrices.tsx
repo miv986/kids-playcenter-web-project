@@ -261,8 +261,9 @@ export function PackagesAndPrices() {
             return (
               <div
                 key={pack.id}
-                className={`relative p-8 bg-gradient-to-br ${!pack.isActive ? 'from-gray-100 to-gray-200 opacity-70' : bgColor} rounded-3xl shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex flex-col max-w-sm w-full ${pack.isPopular && !isEditing ? 'ring-4 ring-yellow-300 ring-opacity-50' : ''
-                  } ${user?.role === 'ADMIN' ? 'cursor-pointer' : ''}`}
+                className={`relative p-8 bg-gradient-to-br ${!pack.isActive ? 'from-gray-100 to-gray-200 opacity-70' : bgColor} rounded-3xl shadow-soft hover:shadow-soft-lg transform hover:scale-105 active:scale-95 transition-all duration-300 flex flex-col max-w-sm w-full ${pack.isPopular && !isEditing ? 'ring-4 ring-yellow-300 ring-opacity-50' : ''
+                  } ${user?.role === 'ADMIN' ? 'cursor-pointer' : ''} animate-fade-in`}
+                style={{ animationDelay: `${pack.id * 0.1}s` }}
                 onClick={() => user?.role === 'ADMIN' && !isEditing && handleEdit(pack)}
               >
                 {pack.isPopular && !isEditing && pack.isActive && (
@@ -453,7 +454,7 @@ export function PackagesAndPrices() {
                     <button
                       disabled={!pack.isActive}
                       className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 mt-auto ${pack.isActive
-                        ? `bg-gradient-to-r ${color} text-white hover:shadow-lg transform hover:scale-105`
+                        ? `bg-gradient-to-r ${color} text-white hover:shadow-colored hover:shadow-lg transform hover:scale-105 active:scale-95`
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                         }`}
                       onClick={(e) => {

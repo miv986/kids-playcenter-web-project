@@ -305,34 +305,34 @@ export function AdminBookings() {
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">
-                <h1 className="text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
-                <p className="text-gray-600">{t.t('subtitle')}</p>
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-800 mb-2">{t.t('title')}</h1>
+                <p className="text-sm sm:text-base text-gray-600">{t.t('subtitle')}</p>
             </div>
 
             {/* Controles superiores */}
-            <div className="mb-4 flex flex-wrap gap-4 items-center justify-between">
-                <div className="flex gap-2">
+            <div className="mb-4 flex flex-wrap gap-2 sm:gap-4 items-center justify-between">
+                <div className="flex gap-2 w-full sm:w-auto">
                     <button
                         onClick={() => setViewMode("calendar")}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
+                        className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${
                             viewMode === "calendar" 
                                 ? "bg-blue-500 text-white" 
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                         }`}
                     >
-                        <CalendarDays className="w-4 h-4" />
-                        {t.t('calendarView')}
+                        <CalendarDays className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">{t.t('calendarView')}</span>
                     </button>
                     <button
                         onClick={() => setViewMode("list")}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl transition ${
+                        className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${
                             viewMode === "list" 
                                 ? "bg-blue-500 text-white" 
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
                         }`}
                     >
-                        <Calendar className="w-4 h-4" />
-                        {t.t('listView')}
+                        <Calendar className="w-4 h-4 flex-shrink-0" />
+                        <span className="hidden sm:inline">{t.t('listView')}</span>
                     </button>
                 </div>
             </div>
@@ -350,12 +350,12 @@ export function AdminBookings() {
             )}
 
             {/* Panel de filtros - Siempre visible y compacto */}
-            <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg px-4 py-2">
-                <div className="flex flex-wrap items-center gap-3">
-                    <span className="text-sm font-medium text-gray-700">{t.t('filterByStatus')}:</span>
+            <div className="mb-4 bg-gray-50 border border-gray-200 rounded-lg px-3 sm:px-4 py-2">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <span className="text-xs sm:text-sm font-medium text-gray-700 w-full sm:w-auto mb-1 sm:mb-0">{t.t('filterByStatus')}:</span>
                     <button
                         onClick={() => setFilter('all')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'all'
+                        className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'all'
                             ? 'bg-blue-500 text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                             }`}
@@ -364,7 +364,7 @@ export function AdminBookings() {
                     </button>
                     <button
                         onClick={() => setFilter('PENDING')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'PENDING'
+                        className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'PENDING'
                             ? 'bg-yellow-500 text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                             }`}
@@ -373,7 +373,7 @@ export function AdminBookings() {
                     </button>
                     <button
                         onClick={() => setFilter('CONFIRMED')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CONFIRMED'
+                        className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'CONFIRMED'
                             ? 'bg-green-500 text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                             }`}
@@ -382,7 +382,7 @@ export function AdminBookings() {
                     </button>
                     <button
                         onClick={() => setFilter('CANCELLED')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-all duration-200 ${filter === 'CANCELLED'
+                        className={`px-2 sm:px-3 py-1.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 min-w-[48px] ${filter === 'CANCELLED'
                             ? 'bg-red-500 text-white'
                             : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                             }`}
@@ -399,15 +399,15 @@ export function AdminBookings() {
 
                     {viewMode === "calendar" ? (
                         <div>
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-2xl font-semibold">{t.t('calendarView')}</h2>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4">
+                                <h2 className="text-xl sm:text-2xl font-semibold">{t.t('calendarView')}</h2>
                                 {selectedDate && (
                                     <button
                                         onClick={() => {
                                             setSelectedDate(undefined);
                                             setDailyBookings([]);
                                         }}
-                                        className="bg-blue-500 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200"
+                                        className="bg-blue-500 text-white px-3 sm:px-4 py-2 rounded-xl font-medium hover:bg-blue-600 transition-colors duration-200 text-sm sm:text-base w-full sm:w-auto min-w-[48px]"
                                     >
                                         {t.t('viewAll')}
                                     </button>
@@ -446,9 +446,9 @@ export function AdminBookings() {
                         </div>
                     ) : (
                         <div>
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-semibold">{t.t('allReservations')}</h2>
-                                <div className="text-sm text-gray-500">
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4 mb-4">
+                                <h2 className="text-xl sm:text-2xl font-semibold">{t.t('allReservations')}</h2>
+                                <div className="text-xs sm:text-sm text-gray-500">
                                     {bookingsToShow.length} {t.t('reservations')} {(filter !== 'all' || searchQuery) ? t.t('filtered') : t.t('total')}
                                 </div>
                             </div>

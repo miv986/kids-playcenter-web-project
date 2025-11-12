@@ -21,7 +21,6 @@ export function CalendarComponent({
 }: CalendarProps) {
 
   const handleDayClick = (day: number) => {
-    console.log("day clicked", day);
     const date = new Date(
       currentMonth.getFullYear(),
       currentMonth.getMonth(),

@@ -33,8 +33,9 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
     const [hasExistingBookingError, setHasExistingBookingError] = useState(false);
     const [isLoadingSlots, setIsLoadingSlots] = useState(false);
     const [isLoadingChildren, setIsLoadingChildren] = useState(false);
+    const [monthSlotsCache, setMonthSlotsCache] = useState<Map<string, DaycareSlot[]>>(new Map());
 
-    const { fetchAvailableSlotsByDate } = useDaycareSlots();
+    const { fetchAvailableSlotsByDate, fetchAvailableSlotsByDateRange } = useDaycareSlots();
     const { addBooking, updateBooking, fetchMyBookings } = useDaycareBookings();
     const { fetchMyChildren } = useChildren();
     const { user } = useAuth();
@@ -76,40 +77,65 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
                 setComments('');
             }
             loadMonthData();
+        } else {
+            setMonthSlotsCache(new Map());
+            setAllDaysData(new Map());
         }
     }, [isOpen, currentMonth, existingBooking]);
 
-    useEffect(() => {
-        if (selectedDate) {
-            setIsLoadingSlots(true);
-            fetchAvailableSlotsByDate(selectedDate).then(fetchedSlots => {
-                setSlots(fetchedSlots);
-                setIsLoadingSlots(false);
-            }).catch(() => {
-                setIsLoadingSlots(false);
-            });
-        }
-    }, [selectedDate, fetchAvailableSlotsByDate]);
-
     const loadMonthData = async () => {
         const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
-        const data = new Map<string, { available: number, total: number }>();
+        const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+        const endDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), daysInMonth);
 
-        for (let day = 1; day <= daysInMonth; day++) {
-            const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-            const slots = await fetchAvailableSlotsByDate(date);
-            const available = slots.filter(s => s.availableSpots > 0).length;
-            const total = slots.length;
-            data.set(date.toDateString(), { available, total });
+        try {
+            const allSlots = await fetchAvailableSlotsByDateRange(startDate, endDate);
+            
+            const cache = new Map<string, DaycareSlot[]>();
+            const data = new Map<string, { available: number, total: number }>();
+
+            allSlots.forEach(slot => {
+                const dateKey = slot.date;
+                if (!cache.has(dateKey)) {
+                    cache.set(dateKey, []);
+                }
+                cache.get(dateKey)!.push(slot);
+            });
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
+                const dateKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+                const daySlots = cache.get(dateKey) || [];
+                const available = daySlots.filter(s => s.availableSpots > 0).length;
+                const total = daySlots.length;
+                data.set(date.toDateString(), { available, total });
+            }
+
+            setMonthSlotsCache(cache);
+            setAllDaysData(data);
+        } catch (err) {
+            console.error('Error cargando datos del mes:', err);
         }
-        setAllDaysData(data);
     };
 
     useEffect(() => {
         if (selectedDate) {
-            fetchAvailableSlotsByDate(selectedDate).then(setSlots);
+            const dateKey = `${selectedDate.getFullYear()}-${(selectedDate.getMonth() + 1).toString().padStart(2, '0')}-${selectedDate.getDate().toString().padStart(2, '0')}`;
+            const cachedSlots = monthSlotsCache.get(dateKey);
+            
+            if (cachedSlots) {
+                setSlots(cachedSlots);
+            } else {
+                setIsLoadingSlots(true);
+                fetchAvailableSlotsByDate(selectedDate).then(fetchedSlots => {
+                    setSlots(fetchedSlots);
+                    setIsLoadingSlots(false);
+                }).catch(() => {
+                    setIsLoadingSlots(false);
+                });
+            }
         }
-    }, [selectedDate, fetchAvailableSlotsByDate]);
+    }, [selectedDate, monthSlotsCache, fetchAvailableSlotsByDate]);
 
     const handleDateSelect = async (date: Date) => {
         if (!hasChildren && !existingBooking) {
