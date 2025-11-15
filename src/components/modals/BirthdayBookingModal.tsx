@@ -80,7 +80,7 @@ export function BirthdayBookingModal({
                     }
                 } catch (error) {
                     console.error('Error loading slots:', error);
-                    showToast.error(t('errorLoadingSlots') || 'Error cargando slots');
+                    showToast.error(t('errorLoadingSlots'));
                 } finally {
                     setIsLoadingSlots(false);
                 }
@@ -130,7 +130,7 @@ export function BirthdayBookingModal({
             
             if (isDateChanged) {
                 if (!selectedSlotId) {
-                    showToast.error(t('selectSlotRequired') || 'Debes seleccionar un slot para la nueva fecha');
+                    showToast.error(t('selectSlotRequired'));
                     return;
                 }
                 backendData.slotId = selectedSlotId;
@@ -262,7 +262,7 @@ export function BirthdayBookingModal({
                                                 {isLoadingSlots ? (
                                                     <div className="flex items-center justify-center py-2">
                                                         <Spinner size="sm" />
-                                                        <span className="ml-2 text-xs text-gray-500">{t('loadingSlots') || 'Cargando slots...'}</span>
+                                                        <span className="ml-2 text-xs text-gray-500">{t('loadingSlots')}</span>
                                                     </div>
                                                 ) : availableSlots.length > 0 ? (
                                                     <select
@@ -270,16 +270,16 @@ export function BirthdayBookingModal({
                                                         onChange={e => setSelectedSlotId(Number(e.target.value))}
                                                         className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                                     >
-                                                        <option value="">{t('selectSlot') || 'Seleccionar slot'}</option>
+                                                        <option value="">{t('selectSlot')}</option>
                                                         {availableSlots.map((slot) => (
                                                             <option key={slot.id} value={slot.id}>
                                                                 {format(new Date(slot.startTime), "HH:mm")} - {format(new Date(slot.endTime), "HH:mm")} 
-                                                                {slot.id === booking.slot?.id ? ` (${t('current') || 'Actual'})` : ''}
+                                                                {slot.id === booking.slot?.id ? ` (${t('current')})` : ''}
                                                             </option>
                                                         ))}
                                                     </select>
                                                 ) : (
-                                                    <p className="text-xs text-red-500">{t('noSlotsAvailable') || 'No hay slots disponibles para esta fecha'}</p>
+                                                    <p className="text-xs text-red-500">{t('noSlotsAvailable')}</p>
                                                 )}
                                             </div>
                                         )}

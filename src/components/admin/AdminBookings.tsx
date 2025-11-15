@@ -343,9 +343,9 @@ export function AdminBookings() {
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}
                     total={filteredBookings.length}
-                    resultsLabel={t.t('reservation') || 'reserva'}
-                    resultsPluralLabel={t.t('reservations') || 'reservas'}
-                    placeholder={t.t('searchBookings') || "Buscar por ID, nombre, email, teléfono, fecha..."}
+                    resultsLabel={t.t('reservation')}
+                    resultsPluralLabel={t.t('reservations')}
+                    placeholder={t.t('searchBookings')}
                 />
             )}
 
@@ -466,13 +466,13 @@ export function AdminBookings() {
                                     <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
                                         {searchQuery 
-                                            ? (t.t('noResults') || 'No se encontraron resultados')
+                                            ? t.t('noResults')
                                             : t.t('noReservations')
                                         }
                                     </h3>
                                     <p className="text-gray-500">
                                         {searchQuery 
-                                            ? (t.t('tryDifferentSearch') || 'Intenta con otros términos de búsqueda')
+                                            ? t.t('tryDifferentSearch')
                                             : (filter !== 'all' 
                                                 ? t.t('noReservationsFilter')
                                                 : t.t('noReservationsRegistered'))

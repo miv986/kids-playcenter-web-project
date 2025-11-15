@@ -154,7 +154,7 @@ export function AdminTutors() {
           content: data.content,
           images: data.images
         });
-        showToast.success(t.t('noteUpdated') || 'Nota actualizada correctamente');
+        showToast.success(t.t('noteUpdated'));
         // Refrescar notas del hijo
         if (childNotes[selectedChild.id]) {
           await fetchChildNotes(selectedChild.id);
@@ -192,7 +192,7 @@ export function AdminTutors() {
       setChildNotes(prev => ({ ...prev, [childId]: adminNotes }));
     } catch (error) {
       console.error("Error fetching child notes:", error);
-      showToast.error(t.t('errorLoadingNotes') || 'Error cargando notas');
+      showToast.error(t.t('errorLoadingNotes'));
     } finally {
       setLoadingNotes(prev => ({ ...prev, [childId]: false }));
     }
@@ -217,7 +217,7 @@ export function AdminTutors() {
 
     try {
       await http.delete(`/api/childNote/${noteId}`);
-      showToast.success(t.t('noteDeleted') || 'Nota eliminada correctamente');
+      showToast.success(t.t('noteDeleted'));
       // Actualizar estado local
       setChildNotes(prev => ({
         ...prev,
@@ -225,7 +225,7 @@ export function AdminTutors() {
       }));
     } catch (error) {
       console.error("Error eliminando nota:", error);
-      showToast.error(t.t('errorDeletingNote') || 'Error eliminando la nota');
+      showToast.error(t.t('errorDeletingNote'));
     }
   };
 
@@ -408,11 +408,11 @@ export function AdminTutors() {
                             noAllergies: t.t('noAllergies'),
                             noNotes: t.t('noNotes'),
                             noMedicalNotes: t.t('noMedicalNotes'),
-                            viewNotes: t.t('viewNotes') || 'Ver notas',
+                            viewNotes: t.t('viewNotes'),
                             addNote: t.t('addNote'),
                             copyPhone: t.t('copyPhone'),
-                            loadingNotes: t.t('loadingNotes') || 'Cargando notas...',
-                            noNotesYet: t.t('noNotesYet') || 'No hay notas aún'
+                            loadingNotes: t.t('loadingNotes'),
+                            noNotesYet: t.t('noNotesYet')
                           }}
                         />
                       ))}

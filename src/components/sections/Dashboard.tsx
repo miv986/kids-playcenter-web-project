@@ -18,7 +18,7 @@ export function Dashboard() {
   useEffect(() => {
     const handleSessionExpired = () => {
       setSessionExpired(true);
-      showToast.error(t.t('sessionExpired') || 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      showToast.error(t.t('sessionExpired'));
       // Redirigir al inicio después de un breve delay
       setTimeout(() => {
         router.push('/');
@@ -44,10 +44,7 @@ export function Dashboard() {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">{t.t('loading') || 'Cargando...'}</p>
-        </div>
+        <Spinner size="lg" text={t.t('loading')} />
       </div>
     );
   }
@@ -62,8 +59,8 @@ export function Dashboard() {
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
             {sessionExpired 
-              ? (t.t('sessionExpired') || 'Sesión Expirada')
-              : (t.t('mustLogin') || 'Debes iniciar sesión')
+              ? t.t('sessionExpired')
+              : t.t('mustLogin')
             }
           </h2>
           <p className="text-gray-600 mb-6">
@@ -84,7 +81,7 @@ export function Dashboard() {
   return isAdmin ? <AdminDashboard /> : (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Spinner size="lg" text={t.t('loading') || 'Cargando...'} />
+        <Spinner size="lg" text={t.t('loading')} />
       </div>
     }>
       <UserDashboard />

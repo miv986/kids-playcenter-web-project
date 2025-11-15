@@ -198,7 +198,7 @@ export function HttpProvider({ children }: HttpProviderProps) {
       if (response.status === 401 && !tokenProvider.token && !url.includes('/auth/login') && !url.includes('/auth/register')) {
         throw new Error('No token provided');
       }
-      throw new Error(data.error || 'Error en la petición');
+      throw new Error(data.error || 'Request error');
     }
     return data;
   };

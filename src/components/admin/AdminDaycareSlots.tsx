@@ -252,7 +252,7 @@ export function AdminDaycareSlots() {
             showToast.success(t.t('createSuccess'));
         } catch (err) {
             console.error("❌ Error creando slot:", err);
-            showToast.error(t.t('createError') || 'Error al crear el slot');
+            showToast.error(t.t('createError'));
         }
     };
 
@@ -731,10 +731,10 @@ export function AdminDaycareSlots() {
                                                                 : 'bg-yellow-100 text-yellow-800'
                                                         }`}>
                                                             {week.availableSlots === 0 
-                                                                ? t.t('full') || 'Completo'
+                                                                ? t.t('full')
                                                                 : week.availableSlots === week.totalSlots
-                                                                ? t.t('available') || 'Disponible'
-                                                                : t.t('partial') || 'Parcial'
+                                                                ? t.t('available')
+                                                                : t.t('partial')
                                                             }
                                                         </div>
                                                     </div>
@@ -800,14 +800,14 @@ export function AdminDaycareSlots() {
                                                                     <button
                                                                         onClick={() => openModal(slot)}
                                                                         className="bg-yellow-500 text-white px-3 py-1 rounded-xl hover:bg-yellow-600 transition-colors"
-                                                                        title={t.t('edit') || 'Editar'}
+                                                                        title={t.t('edit')}
                                                                     >
                                                                         <Edit3 className="w-4 h-4" />
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleDeleteSlot(slot.id)}
                                                                         className="bg-red-500 text-white px-3 py-1 rounded-xl hover:bg-red-600 transition-colors"
-                                                                        title={t.t('delete') || 'Eliminar'}
+                                                                        title={t.t('delete')}
                                                                     >
                                                                         <Trash2 className="w-4 h-4" />
                                                                     </button>

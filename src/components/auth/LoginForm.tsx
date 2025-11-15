@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LogIn, Eye, EyeOff, User, Lock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from '../../contexts/TranslationContext';
+import { Spinner } from '../shared/Spinner';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -97,9 +98,16 @@ export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white py-3 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
+          className="w-full bg-gradient-to-r from-green-400 to-blue-500 text-white py-3 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:transform-none flex items-center justify-center gap-2"
         >
-          {isLoading ? t.t('loggingIn') : t.t('loginButton')}
+          {isLoading ? (
+            <>
+              <Spinner size="sm" />
+              <span>{t.t('loggingIn')}</span>
+            </>
+          ) : (
+            t.t('loginButton')
+          )}
         </button>
       </form>
 
@@ -112,14 +120,6 @@ export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }
           >
             {t.t('registerHere')}
           </button>
-        </p>
-      </div>
-
-      <div className="mt-6 p-4 bg-blue-50 rounded-xl">
-        <p className="text-sm text-blue-600 font-medium mb-2">Cuentas de prueba:</p>
-        <p className="text-xs text-blue-500">
-          Admin: admin@prueba.com / admin123<br />
-          Usuario: cualquier@email.com / user123
         </p>
       </div>
     </div>

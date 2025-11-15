@@ -338,9 +338,9 @@ export function AdminBirthdaySlots() {
                     searchQuery={searchQuery}
                     onSearchChange={setSearchQuery}
                     total={filteredSlots.length}
-                    resultsLabel={t.t('slot') || 'slot'}
-                    resultsPluralLabel={t.t('slots') || 'slots'}
-                    placeholder={t.t('searchSlots') || "Buscar por ID, fecha, hora..."}
+                    resultsLabel={t.t('slot')}
+                    resultsPluralLabel={t.t('slots')}
+                    placeholder={t.t('searchSlots')}
                 />
             )}
 
@@ -454,10 +454,10 @@ export function AdminBirthdaySlots() {
                                 <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
                                     <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        {t.t('noResults') || 'No se encontraron resultados'}
+                                        {t.t('noResults')}
                                     </h3>
                                     <p className="text-gray-500">
-                                        {t.t('tryDifferentSearch') || 'Intenta con otros términos de búsqueda'}
+                                        {t.t('tryDifferentSearch')}
                                     </p>
                                 </div>
                             ) : (

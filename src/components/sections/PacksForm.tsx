@@ -7,6 +7,7 @@ import { BirthdayBooking, BirthdaySlot } from "../../types/auth";
 import { format } from "date-fns";
 import { useTranslation } from '../../contexts/TranslationContext';
 import { showToast } from '../../lib/toast';
+import { Spinner } from '../shared/Spinner';
 
 
 export function PacksForm({
@@ -85,6 +86,13 @@ export function PacksForm({
                 setLoading(false);
                 return;
             }
+
+            if (Number(formData.kids) < 1) {
+                showToast.error(t.t('minKidsError'));
+                setLoading(false);
+                return;
+            }
+
             const bookingData: Omit<BirthdayBooking, "id" | "createdAt" | "updatedAt" | "status" | "slot"> = {
                 guest: formData.name,
                 guestEmail: formData.email,
@@ -114,7 +122,7 @@ export function PacksForm({
                 comments: "",
             });
         } catch (err: any) {
-            showToast.error(err.message || 'Error al crear la reserva');
+            showToast.error(err.message || t.t('errorCreating'));
         } finally {
             setLoading(false);
         }
@@ -198,11 +206,13 @@ export function PacksForm({
                     <input
                         name="kids"
                         type="number"
+                        min="1"
                         value={formData.kids}
                         onChange={handleChange}
                         className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                        placeholder={t.t('kidsPlaceholder')}>
-                    </input>
+                        placeholder={t.t('kidsPlaceholder')}
+                        required
+                    />
                 </div>
 
                 <div>
@@ -221,9 +231,17 @@ export function PacksForm({
 
                 <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-pink-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                    disabled={loading}
+                    className="w-full bg-gradient-to-r from-pink-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                    {loading ? tForm.t('processing') : tForm.t('confirmBooking')}
+                    {loading ? (
+                        <>
+                            <Spinner size="sm" />
+                            <span>{tForm.t('processing')}</span>
+                        </>
+                    ) : (
+                        tForm.t('confirmBooking')
+                    )}
                 </button>
             </form></>
 

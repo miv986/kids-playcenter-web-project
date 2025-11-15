@@ -376,6 +376,11 @@ export function CalendarSection() {
                       </p>
                     </div>
                   )}
+                  <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-lg">
+                    <p className="text-sm text-amber-800 font-medium">
+                      {t('depositInfo')}
+                    </p>
+                  </div>
                   <PacksForm data={birthdaySlots} selectedDay={selectedDay} onBookingCreated={reloadSlots} />
                 </div>
               }
@@ -433,6 +438,11 @@ export function CalendarSection() {
                       </p>
                     </div>
                   )}
+                  <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-lg">
+                    <p className="text-sm text-amber-800 font-medium">
+                      {t('depositInfo')}
+                    </p>
+                  </div>
                   <PacksForm data={birthdaySlots} selectedDay={selectedDay} onBookingCreated={reloadSlots} />
                 </div>
               }

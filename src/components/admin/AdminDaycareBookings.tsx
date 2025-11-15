@@ -11,6 +11,7 @@ import { Spinner } from '../shared/Spinner';
 import { showToast } from '../../lib/toast';
 import { useConfirm } from '../../hooks/useConfirm';
 import { Pagination } from '../shared/Pagination';
+import { SearchBar } from '../shared/SearchBar';
 
 export function AdminDaycareBookings() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -29,6 +30,7 @@ export function AdminDaycareBookings() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
     const [isLoadingBookings, setIsLoadingBookings] = useState(true);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const openModal = (booking: DaycareBooking) => {
         setSelectedBooking(booking);
@@ -72,9 +74,37 @@ export function AdminDaycareBookings() {
         }
     }, [user]);
 
-    const filteredBookings = bookings.filter(booking =>
-        filter === 'all' || booking.status === filter
-    );
+    const filteredBookings = useMemo(() => {
+        let result = bookings.filter(booking =>
+            filter === 'all' || booking.status === filter
+        );
+
+        // Aplicar búsqueda
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            result = result.filter(booking => {
+                const bookingId = booking.id.toString();
+                const userName = booking.user?.name?.toLowerCase() || "";
+                const userEmail = booking.user?.email?.toLowerCase() || "";
+                const comments = booking.comments?.toLowerCase() || "";
+                const startTime = booking.startTime ? format(new Date(booking.startTime), "dd/MM/yyyy HH:mm", { locale: dateFnsLocale }) : "";
+                const endTime = booking.endTime ? format(new Date(booking.endTime), "HH:mm", { locale: dateFnsLocale }) : "";
+                const status = booking.status.toLowerCase();
+                const childrenNames = booking.children?.map(c => `${c.name} ${c.surname}`).join(" ").toLowerCase() || "";
+                
+                return bookingId.includes(query) ||
+                       userName.includes(query) ||
+                       userEmail.includes(query) ||
+                       comments.includes(query) ||
+                       startTime.includes(query) ||
+                       endTime.includes(query) ||
+                       status.includes(query) ||
+                       childrenNames.includes(query);
+            });
+        }
+
+        return result;
+    }, [bookings, filter, searchQuery, dateFnsLocale]);
 
     const bookedDays = useMemo(() => {
         return bookings
@@ -176,7 +206,32 @@ export function AdminDaycareBookings() {
         CANCELLED: bookings.filter(b => b.status === 'CANCELLED').length
     };
 
-    const bookingsToShow = selectedDate ? dailyBookings : filteredBookings;
+    // Aplicar filtro de búsqueda también a dailyBookings si hay una fecha seleccionada
+    const filteredDailyBookings = useMemo(() => {
+        if (!searchQuery.trim()) return dailyBookings;
+        const query = searchQuery.toLowerCase().trim();
+        return dailyBookings.filter(booking => {
+            const bookingId = booking.id.toString();
+            const userName = booking.user?.name?.toLowerCase() || "";
+            const userEmail = booking.user?.email?.toLowerCase() || "";
+            const comments = booking.comments?.toLowerCase() || "";
+            const startTime = booking.startTime ? format(new Date(booking.startTime), "dd/MM/yyyy HH:mm", { locale: dateFnsLocale }) : "";
+            const endTime = booking.endTime ? format(new Date(booking.endTime), "HH:mm", { locale: dateFnsLocale }) : "";
+            const status = booking.status.toLowerCase();
+            const childrenNames = booking.children?.map(c => `${c.name} ${c.surname}`).join(" ").toLowerCase() || "";
+            
+            return bookingId.includes(query) ||
+                   userName.includes(query) ||
+                   userEmail.includes(query) ||
+                   comments.includes(query) ||
+                   startTime.includes(query) ||
+                   endTime.includes(query) ||
+                   status.includes(query) ||
+                   childrenNames.includes(query);
+        });
+    }, [dailyBookings, searchQuery, dateFnsLocale]);
+
+    const bookingsToShow = selectedDate ? filteredDailyBookings : filteredBookings;
 
     // Agrupar reservas por semana
     const bookingsByWeek = useMemo(() => {
@@ -376,14 +431,27 @@ export function AdminDaycareBookings() {
                                     <h3 className="text-xl font-semibold mb-4">
                                         {t.t('reservationsOf')} {format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
                                     </h3>
-                                    {dailyBookings.length === 0 ? (
+                                    <SearchBar
+                                        searchQuery={searchQuery}
+                                        onSearchChange={setSearchQuery}
+                                        total={filteredDailyBookings.length}
+                                        resultsLabel={t.t('reservation')}
+                                        resultsPluralLabel={t.t('reservations')}
+                                        placeholder={t.t('searchBookings')}
+                                        clearLabel={t.t('clearSearch')}
+                                    />
+                                    {filteredDailyBookings.length === 0 ? (
                                         <div className="text-center py-8">
                                             <Users className="w-12 h-12 text-gray-300 mx-auto mb-2" />
-                                            <p className="text-gray-500">{t.t('noReservationsDay')}</p>
+                                            <p className="text-gray-500">
+                                                {searchQuery 
+                                                    ? t.t('noResults')
+                                                    : t.t('noReservationsDay')}
+                                            </p>
                                         </div>
                                     ) : (
                                         <div className="space-y-4">
-                                            {dailyBookings.map((booking) => (
+                                            {filteredDailyBookings.map((booking) => (
                                                 <div key={booking.id} className="bg-gray-50 p-4 rounded-xl border">
                                                     <div className="flex justify-between items-start">
                                                         <div className="flex-1">
@@ -395,7 +463,7 @@ export function AdminDaycareBookings() {
                                                             </div>
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 <Users className="w-4 h-4 text-gray-600" />
-                                                                <span className="text-gray-700">{booking.user?.name || 'Usuario'}</span>
+                                                                <span className="text-gray-700">{booking.user?.name || t.t('user')}</span>
                                                             </div>
                                                             <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'CONFIRMED'
                                                                 ? 'bg-green-100 text-green-800'
@@ -443,9 +511,18 @@ export function AdminDaycareBookings() {
                             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4 mb-4">
                                 <h2 className="text-xl sm:text-2xl font-semibold">{t.t('allReservations')}</h2>
                                 <div className="text-xs sm:text-sm text-gray-500">
-                                    {bookingsToShow.length} {t.t('reservations')} {filter !== 'all' ? t.t('filtered') : t.t('total')}
+                                    {bookingsToShow.length} {t.t('reservations')} {(filter !== 'all' || searchQuery) ? t.t('filtered') : t.t('total')}
                                 </div>
                             </div>
+                            <SearchBar
+                                searchQuery={searchQuery}
+                                onSearchChange={setSearchQuery}
+                                total={bookingsToShow.length}
+                                resultsLabel={t.t('reservation')}
+                                resultsPluralLabel={t.t('reservations')}
+                                placeholder={t.t('searchBookings')}
+                                clearLabel={t.t('clearSearch')}
+                            />
                         </div>
                     )}
 
@@ -460,12 +537,16 @@ export function AdminDaycareBookings() {
                                 <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
                                     <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                                        {t.t('noReservations')}
+                                        {searchQuery 
+                                            ? t.t('noResults')
+                                            : t.t('noReservations')}
                                     </h3>
                                     <p className="text-gray-500">
-                                        {filter !== 'all'
-                                            ? t.t('noReservationsFilter')
-                                            : t.t('noReservationsRegistered')}
+                                        {searchQuery 
+                                            ? t.t('tryDifferentSearch')
+                                            : (filter !== 'all'
+                                                ? t.t('noReservationsFilter')
+                                                : t.t('noReservationsRegistered'))}
                                     </p>
                                 </div>
                             ) : (
@@ -535,7 +616,7 @@ export function AdminDaycareBookings() {
                                                                     </div>
                                                                     <div className="flex items-center gap-2 mb-2">
                                                                         <Users className="w-4 h-4 text-gray-600" />
-                                                                        <span className="text-gray-700">{booking.user?.name || 'Usuario'}</span>
+                                                                        <span className="text-gray-700">{booking.user?.name || t.t('user')}</span>
                                                                     </div>
                                                                     <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'CONFIRMED'
                                                                         ? 'bg-green-100 text-green-800'
@@ -663,7 +744,7 @@ export function AdminDaycareBookings() {
                                 <div className="space-y-2 text-sm">
                                     <div className="flex items-center gap-2">
                                         <span className="font-medium">{t.t('name')}:</span>
-                                        <span>{selectedBooking.user?.name || 'N/A'}</span>
+                                        <span>{selectedBooking.user?.name || t.t('notAvailable')}</span>
                                     </div>
                                     {selectedBooking.user?.phone_number && (
                                         <button
@@ -788,9 +869,9 @@ export function AdminDaycareBookings() {
                                                                 const updated = await markAttendance(selectedBooking.id, 'ATTENDED');
                                                                 setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updated : b));
                                                                 setSelectedBooking(updated);
-                                                                showToast.success(t.t('attendanceMarked') || 'Asistencia marcada como asistió');
+                                                                showToast.success(t.t('attendanceMarked'));
                                                             } catch (err: any) {
-                                                                showToast.error(err.message || t.t('errorMarkingAttendance') || 'Error al marcar asistencia');
+                                                                showToast.error(err.message || t.t('errorMarkingAttendance'));
                                                             }
                                                         }
                                                     }}
@@ -821,9 +902,9 @@ export function AdminDaycareBookings() {
                                                                 const updated = await markAttendance(selectedBooking.id, 'NOT_ATTENDED');
                                                                 setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updated : b));
                                                                 setSelectedBooking(updated);
-                                                                showToast.success(t.t('attendanceMarked') || 'Asistencia marcada como no asistió');
+                                                                showToast.success(t.t('attendanceMarked'));
                                                             } catch (err: any) {
-                                                                showToast.error(err.message || t.t('errorMarkingAttendance') || 'Error al marcar asistencia');
+                                                                showToast.error(err.message || t.t('errorMarkingAttendance'));
                                                             }
                                                         }
                                                     }}

@@ -114,7 +114,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
             setMonthSlotsCache(cache);
             setAllDaysData(data);
         } catch (err) {
-            console.error('Error cargando datos del mes:', err);
+            console.error('Error loading month data:', err);
         }
     };
 
@@ -139,7 +139,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
 
     const handleDateSelect = async (date: Date) => {
         if (!hasChildren && !existingBooking) {
-            showToast.error(t.t('mustAddChildFirst') || 'Debes añadir al menos un hijo antes de seleccionar una fecha');
+            showToast.error(t.t('mustAddChildFirst'));
             return;
         }
         
@@ -163,7 +163,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
                     setHasExistingBookingError(true);
                 }
             } catch (err) {
-                console.error('Error verificando reservas:', err);
+                console.error('Error checking bookings:', err);
             }
         }
     };
@@ -243,7 +243,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
 
         // ✅ No permitir modificar reservas CLOSED
         if (existingBooking && existingBooking.status === 'CLOSED') {
-            showToast.error(t.t('cannotModifyClosed') || 'No se puede modificar una reserva cerrada.');
+            showToast.error(t.t('cannotModifyClosed'));
             return;
         }
 
@@ -330,7 +330,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
                                 <p className="text-gray-600 text-sm">{t.t('selectDateAndTimes')}</p>
                                 {isClosed && (
                                     <div className="mt-2 bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium">
-                                        {t.t('closedReservation') || 'Esta reserva está cerrada y no se puede modificar.'}
+                                        {t.t('closedReservation')}
                                     </div>
                                 )}
                                 {existingBooking && !isClosed && (
@@ -368,8 +368,8 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
                             {!hasChildren && !existingBooking ? (
                                 <div className="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-8 text-center">
                                     <Users className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-                                    <h4 className="text-xl font-semibold text-gray-800 mb-2">{t.t('mustAddChildFirst') || 'Debes añadir al menos un hijo'}</h4>
-                                    <p className="text-gray-600 mb-4">{t.t('mustAddChildFirstDesc') || 'Para realizar una reserva, primero debes añadir al menos un hijo en tu perfil.'}</p>
+                                    <h4 className="text-xl font-semibold text-gray-800 mb-2">{t.t('mustAddChildFirst')}</h4>
+                                    <p className="text-gray-600 mb-4">{t.t('mustAddChildFirstDesc')}</p>
                                     <button
                                         onClick={() => {
                                             onClose();
@@ -377,7 +377,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
                                         }}
                                         className="bg-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-600 transition-all"
                                     >
-                                        {t.t('goToProfile') || 'Ir a mi perfil'}
+                                        {t.t('goToProfile')}
                                     </button>
                                 </div>
                             ) : (
@@ -484,20 +484,35 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
                                         <label className="block text-gray-700 font-medium mb-2">{t.t('comments')}</label>
                                         <textarea
                                             value={comments}
-                                            onChange={e => setComments(e.target.value)}
+                                            onChange={e => {
+                                                if (e.target.value.length <= 500) {
+                                                    setComments(e.target.value);
+                                                }
+                                            }}
                                             disabled={isClosed}
+                                            maxLength={500}
                                             className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:bg-gray-100 disabled:cursor-not-allowed"
                                             rows={3}
                                             placeholder={t.t('additionalComments')}
                                         />
+                                        <p className={`text-xs mt-1 ${comments.length > 450 ? 'text-amber-600' : 'text-gray-500'}`}>
+                                            {comments.length}/500 {t.t('characters')}
+                                        </p>
                                     </div>
 
                                     <button
                                         onClick={handleSubmit}
                                         disabled={loading || isClosed || selectedSlots.size === 0 || (hasExistingBookingError && !existingBooking)}
-                                        className="w-full bg-gradient-to-r from-blue-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="w-full bg-gradient-to-r from-blue-400 to-purple-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                     >
-                                        {loading ? t.t('processing') : (existingBooking ? t.t('modifyReservation') : t.t('confirmReservation'))}
+                                        {loading ? (
+                                            <>
+                                                <Spinner size="sm" />
+                                                <span>{t.t('processing')}</span>
+                                            </>
+                                        ) : (
+                                            existingBooking ? t.t('modifyReservation') : t.t('confirmReservation')
+                                        )}
                                     </button>
                                 </>
                             )}

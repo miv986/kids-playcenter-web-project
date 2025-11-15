@@ -80,7 +80,7 @@ export function ChildNoteModal({
     // Validar que sean imágenes
     const imageFiles = files.filter(file => file.type.startsWith('image/'));
     if (imageFiles.length !== files.length) {
-      showToast.error(t.t('onlyImagesAllowed') || 'Solo se permiten archivos de imagen');
+      showToast.error(t.t('onlyImagesAllowed'));
     }
 
     // Validar tamaño (max 10MB por imagen - se comprimirá después)
@@ -190,7 +190,7 @@ export function ChildNoteModal({
             base64Images.push(compressedBase64);
           } catch (error) {
             console.error('Error comprimiendo imagen:', error);
-            showToast.error(t.t('imageCompressionError') || 'Error al procesar la imagen');
+            showToast.error(t.t('imageCompressionError'));
             throw error;
           }
         }
@@ -298,8 +298,8 @@ export function ChildNoteModal({
               placeholder={t.t('noteContentPlaceholder')}
               disabled={isSaving}
             />
-            <p className="text-xs text-gray-500 mt-2">
-              {content.length} caracteres
+            <p className={`text-xs mt-2 ${content.length > 900 ? 'text-amber-600' : 'text-gray-500'}`}>
+              {content.length} {t.t('characters')}
             </p>
           </div>
 
@@ -307,7 +307,7 @@ export function ChildNoteModal({
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
               <ImageIcon className="w-4 h-4 text-green-600" />
-              {t.t('images') || 'Imágenes'} <span className="text-gray-500 text-xs font-normal">(opcional)</span>
+              {t.t('images')} <span className="text-gray-500 text-xs font-normal">(opcional)</span>
             </label>
             
             {/* Input de archivo oculto */}
@@ -328,7 +328,7 @@ export function ChildNoteModal({
               className="w-full px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors flex items-center justify-center gap-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed border-2 border-dashed border-green-300 mb-4"
             >
               <Upload className="w-5 h-5" />
-              <span>{t.t('selectImages') || 'Seleccionar imágenes'}</span>
+              <span>{t.t('selectImages')}</span>
             </button>
 
             {/* Preview de imágenes */}
@@ -348,7 +348,7 @@ export function ChildNoteModal({
                       onClick={() => handleRemoveImage(imageFile.id)}
                       disabled={isSaving}
                       className="absolute top-2 right-2 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                      title={t.t('removeImage') || 'Eliminar imagen'}
+                      title={t.t('removeImage')}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -364,7 +364,7 @@ export function ChildNoteModal({
 
             {imageFiles.length > 0 && (
               <p className="text-xs text-gray-500 mt-3">
-                {imageFiles.length} {imageFiles.length === 1 ? 'imagen' : 'imágenes'} {t.t('selected') || 'seleccionada'}{imageFiles.length === 1 ? '' : 's'} • {t.t('maxSize') || 'Máximo 10MB por imagen (se comprimirán automáticamente)'}
+                {imageFiles.length} {imageFiles.length === 1 ? t.t('image') : t.t('images')} {t.t('selected')} • {t.t('maxSize')}
               </p>
             )}
           </div>
@@ -387,12 +387,12 @@ export function ChildNoteModal({
             {isSaving ? (
               <>
                 <Loader2 className="w-5 h-5 animate-spin" />
-                <span>{t.t('saving') || 'Guardando...'}</span>
+                <span>{t.t('saving')}</span>
               </>
             ) : (
               <>
                 <Save className="w-5 h-5" />
-                <span>{isEditing ? (t.t('updateNote') || 'Actualizar') : t.t('saveNote')}</span>
+                <span>{isEditing ? t.t('updateNote') : t.t('saveNote')}</span>
               </>
             )}
           </button>

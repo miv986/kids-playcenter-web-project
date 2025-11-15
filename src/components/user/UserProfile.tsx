@@ -38,7 +38,7 @@ export function UserProfile() {
     if (!user) {
         return (
             <div className="min-h-screen flex items-center justify-center text-gray-500">
-                {t.t('loading')}
+                <Spinner size="lg" text={t.t('loading')} />
             </div>
         );
     }
@@ -131,7 +131,7 @@ export function UserProfile() {
             setChildNotes(prev => ({ ...prev, [childId]: notes }));
         } catch (error) {
             console.error("Error fetching child notes:", error);
-            showToast.error(t.t('errorLoadingNotes') || 'Error cargando notas');
+            showToast.error(t.t('errorLoadingNotes'));
         } finally {
             setLoadingNotes(prev => ({ ...prev, [childId]: false }));
         }
@@ -555,10 +555,10 @@ export function UserProfile() {
                                                                     ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
                                                                     : 'bg-purple-50 text-purple-700 hover:bg-purple-100'
                                                                 }`}
-                                                            title={t.t('adminNotes') || 'Notas del administrador'}
+                                                            title={t.t('adminNotes')}
                                                         >
                                                             <MessageSquare className="w-4 h-4" />
-                                                            <span className="hidden sm:inline">{t.t('adminNotes') || 'Notas'}</span>
+                                                            <span className="hidden sm:inline">{t.t('adminNotes')}</span>
                                                             {getUnreadCount(child.id) > 0 && (
                                                                 <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
                                                                     {getUnreadCount(child.id)}
@@ -601,8 +601,8 @@ export function UserProfile() {
                                                         childName={`${child.name} ${child.surname}`}
                                                         showActions={false}
                                                         onMarkAsRead={(noteId) => markNoteAsRead(noteId, child.id)}
-                                                        noNotesText={t.t('noNotes') || 'No hay notas del administrador'}
-                                                        loadingText={t.t('loadingNotes') || 'Cargando notas...'}
+                                                        noNotesText={t.t('noNotes')}
+                                                        loadingText={t.t('loadingNotes')}
                                                         showAdminName={true}
                                                     />
                                                 )}

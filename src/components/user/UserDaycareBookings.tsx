@@ -72,7 +72,7 @@ export function UserDaycareBookings() {
             case 'PENDING': return t.t('statusPending');
             case 'CONFIRMED': return t.t('statusConfirmed');
             case 'CANCELLED': return t.t('statusCancelled');
-            case 'CLOSED': return t.t('statusClosed') || 'Cerrada';
+            case 'CLOSED': return t.t('statusClosed');
             default: return status;
         }
     };
@@ -184,7 +184,7 @@ export function UserDaycareBookings() {
                                 : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-300'
                                 }`}
                         >
-                            {t.t('statusClosed') || 'Cerradas'} ({stats.CLOSED})
+                            {t.t('statusClosed')} ({stats.CLOSED})
                         </button>
                     </div>
                 </div>
@@ -206,6 +206,13 @@ export function UserDaycareBookings() {
                                 <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                 <h3 className="text-xl font-semibold text-gray-600 mb-2">{t.t('noReservations')}</h3>
                                 <p className="text-gray-500 mb-6">{t.t('firstReservation')}</p>
+                                <button
+                                    onClick={() => setIsNewModalOpen(true)}
+                                    className="bg-blue-500 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-600 transition-all inline-flex items-center gap-2"
+                                >
+                                    <Plus className="w-5 h-5" />
+                                    {t.t('newReservation')}
+                                </button>
                             </div>
                         ) : filteredBookings.length === 0 ? (
                             <div className="text-center py-12">
@@ -282,7 +289,7 @@ export function UserDaycareBookings() {
                                                 )}
                                                 {booking.status === 'CLOSED' && (
                                                     <div className="text-sm text-gray-500 italic">
-                                                        {t.t('closedReservation') || 'Reserva cerrada'}
+                                                        {t.t('closedReservation')}
                                                     </div>
                                                 )}
                                             </div>

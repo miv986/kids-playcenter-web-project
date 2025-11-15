@@ -75,7 +75,7 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, openModal }) 
                                 <div>
                                     <p className="text-xs text-gray-500">{t('date')}</p>
                                     <p className="text-sm font-semibold text-gray-400 italic">
-                                        {t('noSlot') || 'Sin slot asignado'}
+                                        {t('noSlot')}
                                     </p>
                                 </div>
                             </div>

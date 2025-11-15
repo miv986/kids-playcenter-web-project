@@ -25,7 +25,7 @@ export function ImageViewerModal({ isOpen, onClose, imageUrl, imageName }: Image
         </button>
         <img
           src={imageUrl}
-          alt={imageName || 'Imagen'}
+          alt={imageName || 'Image'}
           className="w-full h-full object-contain rounded-lg shadow-2xl"
         />
         {imageName && (

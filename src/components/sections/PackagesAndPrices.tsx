@@ -155,10 +155,10 @@ export function PackagesAndPrices() {
       await put(`/api/packages/${editingPackage.type}`, editingPackage);
       await fetchPackages();
       setEditingPackage(null);
-      showToast.success('Pack actualizado correctamente');
+      showToast.success(t('updateSuccess'));
     } catch (err) {
       console.error('Error guardando pack:', err);
-      showToast.error('Error al guardar el pack');
+      showToast.error(t('saveError'));
       setLoading(false);
     }
   };
