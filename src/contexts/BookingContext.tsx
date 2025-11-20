@@ -97,7 +97,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
   const deleteBooking = async (id: number) => {
     try {
-      await http.delete(`/api/bookings/${id}`);
+      await http.delete(`/api/bookings/deleteBirthdayBooking${id}`);
     } catch (err) {
       console.error("Error deleting booking:", err);
     }
