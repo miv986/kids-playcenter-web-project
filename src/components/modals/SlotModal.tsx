@@ -90,7 +90,6 @@ export function SlotModal<T extends GenericSlot>({
 
   if (!isOpen) return null;
 
-  console.log(slot);
 
   const handleChange = (field: keyof T, value: any) => {
     if (field === "date") {

@@ -21,7 +21,7 @@ const SlotContext = createContext<SlotContextType | undefined>(undefined);
 export function useSlots() {
     const context = useContext(SlotContext);
     if (context === undefined) {
-        throw new Error('useBookings must be used within a SlotProvider');
+        throw new Error('useSlots must be used within a SlotProvider');
     }
     return context;
 };
@@ -119,7 +119,7 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
             const nuevoSlot = await http.post("/api/birthdaySlots", data);
             return nuevoSlot;
         } catch (err: any) {
-            const backendMessage = err.response?.data?.error || err.message || "Error inesperado al crear slot";
+            const backendMessage = err.response?.data?.error || err.message || t('errors.serverError');
             const translatedMessage = translateError(backendMessage);
             const { showToast } = await import("../lib/toast");
             showToast.error(translatedMessage);
@@ -133,7 +133,7 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
             const data = await http.put(`/api/birthdaySlots/${id}`, dataSlot);
             return data;
         } catch (err: any) {
-            const backendMessage = err.response?.data?.error || err.message || "Error inesperado al actualizar slot";
+            const backendMessage = err.response?.data?.error || err.message || t('errors.serverError');
             const translatedMessage = translateError(backendMessage);
             const { showToast } = await import("../lib/toast");
             showToast.error(translatedMessage);

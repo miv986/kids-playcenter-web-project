@@ -116,9 +116,9 @@ export function AdminDaycareBookings() {
             .map(date => date.getDate());
     }, [bookings, currentMonth]);
 
-    const totalDaysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
-    const allDays = Array.from({ length: totalDaysInMonth }, (_, i) => i + 1);
-    const availableDaysDB = allDays.filter(d => !bookedDays.includes(d));
+    // Para bookings, mostramos días con reservas como parcialmente reservados
+    // (mitad rojo/mitad verde) ya que no tenemos información de disponibilidad de slots
+    const availableDaysDB = bookedDays; // Días con reservas también en available para mostrar como parcial
 
     const handleDeleteBooking = async (id: number) => {
         const confirmed = await confirm({ message: t.t('confirmDelete'), variant: 'danger' });
@@ -338,6 +338,9 @@ export function AdminDaycareBookings() {
         return Math.ceil(bookings.length / ITEMS_PER_PAGE);
     };
 
+
+    console.log(bookingsToShow.map(b => b.user?.children?.map(child => child.name).join(', ')));
+
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">
@@ -463,7 +466,7 @@ export function AdminDaycareBookings() {
                                                             </div>
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 <Users className="w-4 h-4 text-gray-600" />
-                                                                <span className="text-gray-700">{booking.user?.name || t.t('user')}</span>
+                                                                <span className="text-gray-700">{booking.user?.children?.map(child => child.name).join(', ') || t.t('user')}</span>
                                                             </div>
                                                             <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'CONFIRMED'
                                                                 ? 'bg-green-100 text-green-800'
@@ -616,7 +619,7 @@ export function AdminDaycareBookings() {
                                                                     </div>
                                                                     <div className="flex items-center gap-2 mb-2">
                                                                         <Users className="w-4 h-4 text-gray-600" />
-                                                                        <span className="text-gray-700">{booking.user?.name || t.t('user')}</span>
+                                                                        <span className="text-gray-700">{booking.children?.map(child => child.name).join(', ') || t.t('user')}</span>
                                                                     </div>
                                                                     <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'CONFIRMED'
                                                                         ? 'bg-green-100 text-green-800'

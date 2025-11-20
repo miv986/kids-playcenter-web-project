@@ -16,7 +16,7 @@ export function formatDateTime(input?: string | number | Date | null, p0?: strin
 }
 
 /**
- * Formatea solo la fecha usando UTC para evitar problemas de zona horaria
+ * Formatea solo la fecha usando hora local para mantener la fecha correcta
  */
 export function formatDateOnly(input?: string | number | Date | null, locale: string = 'es-ES'): string {
   if (!input) return '-';
@@ -25,17 +25,17 @@ export function formatDateOnly(input?: string | number | Date | null, locale: st
              : typeof input === 'string' ? new Date(input)
              : input;
 
-  // Usar UTC para evitar problemas de zona horaria
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth() + 1;
-  const day = date.getUTCDate();
+  // Usar hora local para mantener la fecha correcta tal como viene del backend
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
   const dateObj = new Date(year, month - 1, day);
   
   return dateObj.toLocaleDateString(locale === 'ca' ? 'ca-ES' : 'es-ES');
 }
 
 /**
- * Formatea solo la hora usando UTC para evitar problemas de zona horaria
+ * Formatea solo la hora usando hora local para mantener la hora correcta
  */
 export function formatTimeOnly(input?: string | number | Date | null, locale: string = 'es-ES'): string {
   if (!input) return '-';
@@ -44,9 +44,9 @@ export function formatTimeOnly(input?: string | number | Date | null, locale: st
              : typeof input === 'string' ? new Date(input)
              : input;
 
-  // Usar UTC para evitar problemas de zona horaria
-  const hours = date.getUTCHours();
-  const minutes = date.getUTCMinutes();
+  // Usar hora local para mantener la hora correcta tal como viene del backend
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
   const dateObj = new Date(2000, 0, 1, hours, minutes);
   
   return dateObj.toLocaleTimeString(locale === 'ca' ? 'ca-ES' : 'es-ES', { hour: '2-digit', minute: '2-digit' });

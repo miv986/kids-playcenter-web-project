@@ -200,12 +200,13 @@ export function BirthdayBookingModal({
                                 <X className="w-5 h-5 text-gray-600 group-hover:text-gray-800" />
                             </button>
                         </div>
-                        {/* Botón de editar/guardar */}
+                        {/* Botón de editar/guardar - Deshabilitado si está cancelada */}
                         <div className="flex justify-end">
                             {!isEditing ? (
                                 <button 
                                     onClick={() => setIsEditing(true)}
-                                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2"
+                                    disabled={booking.status === 'CANCELLED'}
+                                    className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     <Edit className="w-4 h-4" />
                                     <span>{t('edit')}</span>
@@ -213,7 +214,7 @@ export function BirthdayBookingModal({
                             ) : (
                                 <button
                                     onClick={handleSave}
-                                    disabled={isSaving}
+                                    disabled={isSaving || booking.status === 'CANCELLED'}
                                     className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     {isSaving ? (
@@ -243,7 +244,7 @@ export function BirthdayBookingModal({
                                     <Calendar className="w-4 h-4 text-blue-600" />
                                     <label className="font-semibold text-sm text-gray-700">{t('bookingDate')}</label>
                                 </div>
-                                {isEditing ? (
+                                {isEditing && booking.status !== 'CANCELLED' ? (
                                     <div className="space-y-2">
                                         <input
                                             type="date"
@@ -286,12 +287,20 @@ export function BirthdayBookingModal({
                                     </div>
                                 ) : (
                                     <div className="text-sm text-gray-700">
-                                        {formData?.slot?.date ? format(new Date(formData.slot.date), "dd-MM-yyyy") : ''}
-                                        {formData?.slot?.startTime && formData?.slot?.endTime && (
+                                        {formData?.slot?.date 
+                                            ? format(new Date(formData.slot.date), "dd-MM-yyyy")
+                                            : formData?.originalSlotDate 
+                                                ? format(new Date(formData.originalSlotDate), "dd-MM-yyyy")
+                                                : ''}
+                                        {(formData?.slot?.startTime && formData?.slot?.endTime) ? (
                                             <span className="ml-2 text-gray-500">
                                                 {format(new Date(formData.slot.startTime), "HH:mm")} - {format(new Date(formData.slot.endTime), "HH:mm")}
                                             </span>
-                                        )}
+                                        ) : (formData?.originalSlotStartTime && formData?.originalSlotEndTime) ? (
+                                            <span className="ml-2 text-gray-500">
+                                                {format(new Date(formData.originalSlotStartTime), "HH:mm")} - {format(new Date(formData.originalSlotEndTime), "HH:mm")}
+                                            </span>
+                                        ) : null}
                                     </div>
                                 )}
                             </div>
@@ -305,7 +314,7 @@ export function BirthdayBookingModal({
                                 <input
                                     type="text"
                                     value={formData.guest || ''}
-                                    disabled={!isEditing}
+                                    disabled={!isEditing || booking.status === 'CANCELLED'}
                                     onChange={e => handleChange('guest', e.target.value)}
                                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                                 />
@@ -320,7 +329,7 @@ export function BirthdayBookingModal({
                                 <input
                                     type="email"
                                     value={formData.guestEmail || ''}
-                                    disabled={!isEditing}
+                                    disabled={!isEditing || booking.status === 'CANCELLED'}
                                     onChange={e => handleChange('guestEmail', e.target.value)}
                                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                                 />
@@ -335,7 +344,7 @@ export function BirthdayBookingModal({
                                 <input
                                     type="text"
                                     value={formData.contact_number || ''}
-                                    disabled={!isEditing}
+                                    disabled={!isEditing || booking.status === 'CANCELLED'}
                                     onChange={e => handleChange('contact_number', e.target.value)}
                                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                                 />
@@ -350,7 +359,7 @@ export function BirthdayBookingModal({
                                 <input
                                     type="number"
                                     value={formData.number_of_kids || ''}
-                                    disabled={!isEditing}
+                                    disabled={!isEditing || booking.status === 'CANCELLED'}
                                     onChange={e => handleChange('number_of_kids', Number(e.target.value))}
                                     className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
                                 />
@@ -380,7 +389,7 @@ export function BirthdayBookingModal({
                                 </div>
                                 <select
                                     value={formData.packageType || ''}
-                                    disabled={!isEditing}
+                                    disabled={!isEditing || booking.status === 'CANCELLED'}
                                     onChange={e => handleChange('packageType', e.target.value as Package)}
                                     className="w-full px-3 py-2 text-sm border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-blue-100 bg-white"
                                 >
@@ -401,7 +410,7 @@ export function BirthdayBookingModal({
                                 </div>
                                 <textarea
                                     value={formData.comments || ''}
-                                    disabled={!isEditing}
+                                    disabled={!isEditing || booking.status === 'CANCELLED'}
                                     onChange={e => handleChange('comments', e.target.value)}
                                     rows={3}
                                     className="w-full px-3 py-2 text-sm border border-yellow-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent disabled:bg-yellow-100"
@@ -411,65 +420,71 @@ export function BirthdayBookingModal({
 
                         {/* Botones de acción */}
                         <div className="sticky bottom-0 bg-white border-t border-gray-200 -mx-6 px-6 py-4 mt-6 space-y-3">
-                            {/* Botones de cambio de estado */}
-                            <div className="flex gap-3">
-                                {(() => {
-                                    const actions: { label: string; status?: BirthdayBooking['status']; color: string; bgColor: string; hoverColor: string }[] = [];
+                            {/* Botones de cambio de estado - Ocultos si está cancelada */}
+                            {booking.status !== 'CANCELLED' && (
+                                <div className="flex gap-3">
+                                    {(() => {
+                                        const actions: { label: string; status?: BirthdayBooking['status']; color: string; bgColor: string; hoverColor: string }[] = [];
 
-                                    if (booking.status === "PENDING") {
-                                        actions.push(
-                                            { label: t('confirm'), status: "CONFIRMED", color: "emerald", bgColor: "bg-emerald-500", hoverColor: "hover:bg-emerald-600" },
-                                            { label: t('cancel'), status: "CANCELLED", color: "orange", bgColor: "bg-orange-500", hoverColor: "hover:bg-orange-600" }
-                                        );
-                                    } else if (booking.status === "CONFIRMED") {
-                                        actions.push(
-                                            { label: t('pending'), status: "PENDING", color: "amber", bgColor: "bg-amber-500", hoverColor: "hover:bg-amber-600" },
-                                            { label: t('cancel'), status: "CANCELLED", color: "orange", bgColor: "bg-orange-500", hoverColor: "hover:bg-orange-600" }
-                                        );
-                                    } else if (booking.status === "CANCELLED") {
-                                        actions.push(
-                                            { label: t('pending'), status: "PENDING", color: "amber", bgColor: "bg-amber-500", hoverColor: "hover:bg-amber-600" },
-                                            { label: t('confirm'), status: "CONFIRMED", color: "emerald", bgColor: "bg-emerald-500", hoverColor: "hover:bg-emerald-600" }
-                                        );
-                                    }
+                                        if (booking.status === "PENDING") {
+                                            actions.push(
+                                                { label: t('confirm'), status: "CONFIRMED", color: "emerald", bgColor: "bg-emerald-500", hoverColor: "hover:bg-emerald-600" },
+                                                { label: t('cancel'), status: "CANCELLED", color: "orange", bgColor: "bg-orange-500", hoverColor: "hover:bg-orange-600" }
+                                            );
+                                        } else if (booking.status === "CONFIRMED") {
+                                            actions.push(
+                                                { label: t('pending'), status: "PENDING", color: "amber", bgColor: "bg-amber-500", hoverColor: "hover:bg-amber-600" },
+                                                { label: t('cancel'), status: "CANCELLED", color: "orange", bgColor: "bg-orange-500", hoverColor: "hover:bg-orange-600" }
+                                            );
+                                        }
 
-                                    return actions.map((action) => (
-                                        <button
-                                            key={action.label}
-                                            onClick={async () => {
-                                                if (action.status) {
-                                                    let confirmMessage = '';
-                                                    let variant: 'danger' | 'warning' | 'info' = 'info';
-                                                    
-                                                    if (action.status === 'CONFIRMED') {
-                                                        confirmMessage = t('confirmReservationQuestion');
-                                                        variant = 'info';
-                                                    } else if (action.status === 'CANCELLED') {
-                                                        confirmMessage = t('cancelReservationQuestion');
-                                                        variant = 'warning';
-                                                    } else if (action.status === 'PENDING') {
-                                                        confirmMessage = t('setPendingQuestion');
-                                                        variant = 'warning';
+                                        return actions.map((action) => (
+                                            <button
+                                                key={action.label}
+                                                onClick={async () => {
+                                                    if (action.status) {
+                                                        let confirmMessage = '';
+                                                        let variant: 'danger' | 'warning' | 'info' = 'info';
+                                                        
+                                                        if (action.status === 'CONFIRMED') {
+                                                            confirmMessage = t('confirmReservationQuestion');
+                                                            variant = 'info';
+                                                        } else if (action.status === 'CANCELLED') {
+                                                            confirmMessage = t('cancelReservationQuestion');
+                                                            variant = 'warning';
+                                                        } else if (action.status === 'PENDING') {
+                                                            confirmMessage = t('setPendingQuestion');
+                                                            variant = 'warning';
+                                                        }
+                                                        
+                                                        const confirmed = await confirm({ 
+                                                            message: confirmMessage,
+                                                            variant
+                                                        });
+                                                        if (confirmed) {
+                                                            updateBookingStatus(booking.id, action.status);
+                                                        }
+                                                    } else {
+                                                        deleteBooking(booking.id);
                                                     }
-                                                    
-                                                    const confirmed = await confirm({ 
-                                                        message: confirmMessage,
-                                                        variant
-                                                    });
-                                                    if (confirmed) {
-                                                        updateBookingStatus(booking.id, action.status);
-                                                    }
-                                                } else {
-                                                    deleteBooking(booking.id);
-                                                }
-                                            }}
-                                            className={`${action.bgColor} ${action.hoverColor} text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 flex-1`}
-                                        >
-                                            {action.label}
-                                        </button>
-                                    ));
-                                })()}
-                            </div>
+                                                }}
+                                                className={`${action.bgColor} ${action.hoverColor} text-white px-4 py-2 rounded-xl font-medium transition-all duration-200 flex-1`}
+                                            >
+                                                {action.label}
+                                            </button>
+                                        ));
+                                    })()}
+                                </div>
+                            )}
+                            
+                            {/* Mensaje informativo si está cancelada */}
+                            {booking.status === 'CANCELLED' && (
+                                <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 text-center">
+                                    <p className="text-sm text-orange-800 font-medium">
+                                        {t('cancelledReservationInfo') || 'Esta reserva está cancelada y no se puede modificar. Solo se puede consultar como información.'}
+                                    </p>
+                                </div>
+                            )}
 
                             {/* Botón de eliminación - Menos accesible */}
                             <div className="pt-2 border-t border-gray-200">

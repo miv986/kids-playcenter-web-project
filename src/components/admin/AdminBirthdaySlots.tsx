@@ -35,6 +35,7 @@ export function AdminBirthdaySlots() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const openModal = (slot?: BirthdaySlot) => {
+        console.log("slot", slot);
         setSelectedSlot(slot || null);
         setIsModalOpen(true);
     };
@@ -550,7 +551,8 @@ export function AdminBirthdaySlots() {
                                                                     <div className="flex gap-2 ml-2 sm:ml-4">
                                                                         <button
                                                                             onClick={() => openModal(slot)}
-                                                                            className="bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded-xl hover:bg-yellow-600 transition-colors min-w-[48px] flex items-center justify-center"
+                                                                            disabled={slot.date < new Date().toISOString()}
+                                                                            className="bg-yellow-500 text-white px-2 sm:px-3 py-1 rounded-xl hover:bg-yellow-600 transition-colors min-w-[48px] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                                                                             title={t.t('edit')}
                                                                         >
                                                                             <Edit3 className="w-4 h-4" />
@@ -588,10 +590,20 @@ export function AdminBirthdaySlots() {
                 {/* Calendario mejorado */}
                 <div className="relative">
                     <CalendarComponent
-                        availableDaysDB={Array.from({ length: 31 }, (_, i) => i + 1).filter(
-                            (d) => !calendarData.bookedDays.includes(d)
-                        )}
-                        bookedDaysDB={calendarData.bookedDays}
+                        availableDaysDB={Object.keys(calendarData.dayStats)
+                            .map(Number)
+                            .filter(day => {
+                                const stats = calendarData.dayStats[day];
+                                // Verde: disponible, Mixto: parcial (debe estar en ambos arrays)
+                                return stats.status === 'available' || stats.status === 'partial';
+                            })}
+                        bookedDaysDB={Object.keys(calendarData.dayStats)
+                            .map(Number)
+                            .filter(day => {
+                                const stats = calendarData.dayStats[day];
+                                // Rojo: totalmente reservado, Mixto: parcial (debe estar en ambos arrays)
+                                return stats.status === 'full' || stats.status === 'partial';
+                            })}
                         currentMonth={currentMonth}
                         setCurrentMonth={setCurrentMonth}
                         selectedDate={selectedDate}

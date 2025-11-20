@@ -58,7 +58,13 @@ export function PacksForm({
 
     useEffect(() => {
         if (user?.email) {
-            setFormData(prev => ({ ...prev, email: user.email || '' }));
+            setFormData(prev => {
+                // Solo actualizar si el email está vacío o es diferente al del usuario
+                if (!prev.email || prev.email !== user.email) {
+                    return { ...prev, email: user.email };
+                }
+                return prev;
+            });
         }
     }, [user?.email]);
 
@@ -95,7 +101,7 @@ export function PacksForm({
 
             const bookingData: Omit<BirthdayBooking, "id" | "createdAt" | "updatedAt" | "status" | "slot"> = {
                 guest: formData.name,
-                guestEmail: formData.email,
+                guestEmail: formData.email || user?.email || '',
                 number_of_kids: Number(formData.kids),
                 contact_number: formData.contact_number,
                 comments: formData.comments,
@@ -112,12 +118,12 @@ export function PacksForm({
             }
 
             showToast.success(t.t('successMessage'));
-            // limpiar
+            // limpiar (pero mantener email si el usuario está logueado)
             setFormData({
                 selectedSlot: "",
                 name: "",
                 contact_number: "",
-                email: "",
+                email: user?.email || "",
                 kids: 0,
                 comments: "",
             });

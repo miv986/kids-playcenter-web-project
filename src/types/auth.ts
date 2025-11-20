@@ -68,6 +68,9 @@ export interface BirthdayBooking {
   upstringdAt?: string;
   slotId: number;
   slot?: BirthdaySlot;
+  originalSlotDate?: string;
+  originalSlotStartTime?: string;
+  originalSlotEndTime?: string;
 }
 
 

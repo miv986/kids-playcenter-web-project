@@ -191,6 +191,7 @@ export function AdminDaycareSlots() {
         const bookedDays: number[] = [];
         const dayStats: Record<number, { total: number; available: number; status: string }> = {};
 
+        // Primero, contar slots por día
         slotsToUse.forEach((slot) => {
             const d = new Date(slot.date);
             if (isNaN(d.getTime())) return;
@@ -206,20 +207,42 @@ export function AdminDaycareSlots() {
                 }
 
                 dayStats[day].total++;
-                if (slot.status === 'OPEN') {
-                    dayStats[day].available++;
-                }
+            }
+        });
 
-                // Determinar estado del día
-                if (dayStats[day].total > 0) {
-                    if (dayStats[day].available === 0) {
-                        dayStats[day].status = 'full';
-                    } else if (dayStats[day].available === dayStats[day].total) {
-                        dayStats[day].status = 'available';
-                    } else {
-                        dayStats[day].status = 'partial';
-                    }
-                }
+        // Luego, determinar el estado de cada día basándose en reservas y disponibilidad
+        Object.keys(dayStats).forEach(dayStr => {
+            const day = Number(dayStr);
+            const daySlots = slotsToUse.filter(s => {
+                const slotDate = new Date(s.date);
+                return slotDate.getDate() === day &&
+                       slotDate.getMonth() === currentMonth.getMonth() &&
+                       slotDate.getFullYear() === currentMonth.getFullYear();
+            });
+
+            // Contar slots con reservas (availableSpots < capacity significa que hay reservas)
+            const slotsWithBookings = daySlots.filter(s => s.availableSpots < s.capacity).length;
+            
+            // Contar slots completamente disponibles (sin reservas, completamente libres)
+            const slotsFullyAvailable = daySlots.filter(s => 
+                s.status === 'OPEN' && s.availableSpots === s.capacity
+            ).length;
+            
+            // Contar slots totalmente reservados (sin disponibilidad)
+            const slotsFullyBooked = daySlots.filter(s => 
+                s.availableSpots === 0
+            ).length;
+
+            // Determinar estado del día
+            if (slotsWithBookings === 0 && slotsFullyAvailable === dayStats[day].total) {
+                // Todos los slots están completamente disponibles (sin reservas) → verde
+                dayStats[day].status = 'available';
+            } else if (slotsFullyBooked === dayStats[day].total) {
+                // Todos los slots están totalmente reservados → rojo
+                dayStats[day].status = 'full';
+            } else {
+                // Hay mezcla: algunos con reservas, algunos disponibles, o slots parcialmente reservados → parcial
+                dayStats[day].status = 'partial';
             }
         });
 
@@ -236,8 +259,9 @@ export function AdminDaycareSlots() {
         }
 
         try {
-            // Convertir la fecha al formato YYYY-MM-DD
-            const startDate = new Date(data.date).toISOString().split('T')[0];
+            // Convertir la fecha al formato YYYY-MM-DD usando hora local
+            const d = new Date(data.date);
+            const startDate = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
             await generateSlots({
                 startDate: startDate,
@@ -574,7 +598,8 @@ export function AdminDaycareSlots() {
                                                         <div className="flex gap-1">
                                                             <button
                                                                 onClick={() => openModal(slot)}
-                                                                className="p-1 text-yellow-600 hover:bg-yellow-100 rounded"
+                                                                disabled={slot.date < new Date().toISOString()}
+                                                                className="p-1 text-yellow-600 hover:bg-yellow-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                                                             >
                                                                 <Edit3 className="w-4 h-4" />
                                                             </button>
@@ -674,7 +699,8 @@ export function AdminDaycareSlots() {
                                             <div className="flex gap-2">
                                                 <button
                                                     onClick={() => openModal(slot)}
-                                                    className="bg-yellow-500 text-white px-3 py-1 rounded-xl hover:bg-yellow-600"
+                                                    disabled={slot.date < new Date().toISOString()}
+                                                    className="bg-yellow-500 text-white px-3 py-1 rounded-xl hover:bg-yellow-600 disabled:opacity-50 disabled:cursor-not-allowed"
                                                 >
                                                     <Edit3 className="w-4 h-4" />
                                                 </button>
@@ -799,7 +825,8 @@ export function AdminDaycareSlots() {
                                                                 <div className="flex gap-2 ml-4">
                                                                     <button
                                                                         onClick={() => openModal(slot)}
-                                                                        className="bg-yellow-500 text-white px-3 py-1 rounded-xl hover:bg-yellow-600 transition-colors"
+                                                                        disabled={slot.date < new Date().toISOString()}
+                                                                        className="bg-yellow-500 text-white px-3 py-1 rounded-xl hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                                         title={t.t('edit')}
                                                                     >
                                                                         <Edit3 className="w-4 h-4" />
@@ -852,10 +879,20 @@ export function AdminDaycareSlots() {
                 {/* Calendario mejorado */}
                 <div className="relative">
                     <CalendarComponent
-                        availableDaysDB={Array.from({ length: daysInMonth }, (_, i) => i + 1).filter(
-                            (d) => !calendarData.bookedDays.includes(d)
-                        )}
-                        bookedDaysDB={calendarData.bookedDays}
+                        availableDaysDB={Object.keys(calendarData.dayStats)
+                            .map(Number)
+                            .filter(day => {
+                                const stats = calendarData.dayStats[day];
+                                // Verde: disponible, Mixto: parcial (debe estar en ambos arrays)
+                                return stats.status === 'available' || stats.status === 'partial';
+                            })}
+                        bookedDaysDB={Object.keys(calendarData.dayStats)
+                            .map(Number)
+                            .filter(day => {
+                                const stats = calendarData.dayStats[day];
+                                // Rojo: totalmente reservado, Mixto: parcial (debe estar en ambos arrays)
+                                return stats.status === 'full' || stats.status === 'partial';
+                            })}
                         currentMonth={currentMonth}
                         setCurrentMonth={setCurrentMonth}
                         selectedDate={selectedDate}

@@ -250,10 +250,7 @@ export function UserDaycareBookings() {
                                                         <Users className="w-4 h-4" />
                                                         <span>{booking?.children?.map(child => child.name).join(', ') || t.t('notAvailable')}</span>
                                                     </div>
-                                                    <div className="flex items-center space-x-2 text-gray-600">
-                                                        <Package className="w-4 h-4" />
-                                                        <span>{booking.slots.length} {t.t('slots')}</span>
-                                                    </div>
+                                         
                                                     <div className="flex items-center space-x-2 text-gray-600">
                                                         <Phone className="w-4 h-4" />
                                                         <span>{booking.user?.phone_number || t.t('notAvailable')}</span>

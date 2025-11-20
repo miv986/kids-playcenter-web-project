@@ -110,31 +110,58 @@ export function CalendarComponent({
             selectedDate.getMonth() === currentMonth.getMonth() &&
             selectedDate.getDate() === day;
 
-          const isBooked = bookedDaysDB.includes(day);
-          const isAvailable = availableDaysDB.includes(day);
-          
+
+          const availableDays = availableDaysDB.includes(day);
+          const bookedDays = bookedDaysDB.includes(day);
+
+          // Lógica según datos de BD:
+          // - Parcial: está en bookedDaysDB Y en availableDaysDB → mitad rojo mitad verde
+          // - Totalmente reservado: está en bookedDaysDB pero NO en availableDaysDB → rojo
+          // - Disponible: está en availableDaysDB pero NO en bookedDaysDB → verde
+          // - Sin slot: no está en ninguno → gris
+          const isSlotPartiallyBooked = bookedDays && availableDays;
+          const isSlotTotallyBooked = bookedDays && !availableDays;
+          const isSlotAvailable = !bookedDays && availableDays;
+
+          // Determinar clases de estilo según el estado
+          let buttonClasses = "w-full h-full rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden";
+
+          if (isSlotPartiallyBooked) {
+            // Mitad rojo mitad verde: parcialmente reservado
+            buttonClasses += selected
+              ? " bg-gray-50 text-gray-800 border-2 border-white ring-2 ring-gray-400 font-bold"
+              : " bg-gray-50 text-gray-700 border-2 border-transparent";
+          } else if (isSlotTotallyBooked) {
+            // Rojo: totalmente reservado
+            buttonClasses += selected
+              ? " bg-red-200 text-red-800 border-2 border-white ring-2 ring-red-400 font-bold"
+              : " bg-red-100 text-red-600 hover:bg-red-200 border-2 border-transparent";
+          } else if (isSlotAvailable) {
+            // Verde: disponible
+            buttonClasses += selected
+              ? " bg-green-200 text-green-800 border-2 border-white ring-2 ring-green-400 font-bold"
+              : " bg-green-100 text-green-600 hover:bg-green-200 border-2 border-transparent";
+          } else {
+            // Gris: sin slot
+            buttonClasses += selected
+              ? " bg-gray-200 text-gray-600 border-2 border-white ring-2 ring-gray-400 font-bold"
+              : " bg-gray-100 text-gray-400 border-2 border-transparent";
+          }
+
           return (
             <div key={idx} className="aspect-square">
               <button
                 onClick={() => handleDayClick(day)}
-                disabled={!isAvailable && !isBooked}
                 type="button"
-                className={clsx(
-                  "w-full h-full rounded-lg text-sm font-medium transition-all duration-200",
-                  selected
-                    ? isBooked
-                      ? "bg-red-200 text-red-800 border-2 border-white ring-2 ring-red-400 font-bold"
-                      : isAvailable
-                        ? "bg-green-200 text-green-800 border-2 border-white ring-2 ring-green-400 font-bold"
-                        : ""
-                    : isBooked
-                      ? "bg-red-100 text-red-600 hover:bg-red-200 border-2 border-transparent"
-                      : isAvailable
-                        ? "bg-green-100 text-green-600 hover:bg-green-200 border-2 border-transparent"
-                        : "bg-gray-100 text-gray-400 cursor-not-allowed border-2 border-transparent"
-                )}
+                className={buttonClasses}
               >
-                {day}
+                {isSlotPartiallyBooked && (
+                  <div className="absolute inset-0 flex">
+                    <div className="w-1/2 bg-red-100"></div>
+                    <div className="w-1/2 bg-green-100"></div>
+                  </div>
+                )}
+                <span className="relative z-10">{day}</span>
               </button>
             </div>
           );
@@ -144,16 +171,21 @@ export function CalendarComponent({
 
 
       {/* Leyenda */}
-      <div className="mt-6 flex justify-center gap-4 text-xs">
+      <div className="mt-6 flex justify-center gap-4 text-xs flex-wrap">
         <div className="flex items-center gap-1">
           <span className="w-3 h-3 bg-green-100 rounded"></span> Disponible
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 bg-red-100 rounded"></span> Ocupado
+          <span className="w-3 h-3 bg-red-100 rounded"></span> Totalmente reservado
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-3 h-3 bg-gray-100 rounded"></span> 
-          <span className="text-gray-600">No disponible</span>
+        <div className="flex items-center gap-1">
+          <span className="w-3 h-3 rounded flex">
+            <span className="w-1/2 bg-red-100 rounded-l"></span>
+            <span className="w-1/2 bg-green-100 rounded-r"></span>
+          </span> Parcialmente reservado
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-3 h-3 bg-gray-100 rounded"></span> Sin slot
         </div>
       </div>
     </div>

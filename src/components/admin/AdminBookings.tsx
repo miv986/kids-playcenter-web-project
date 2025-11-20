@@ -3,6 +3,7 @@ import { Calendar, Users, Trash2, Phone, Clock, Glasses, CalendarDays, Settings,
 import { useBookings } from '../../contexts/BookingContext';
 import { BirthdayBooking } from '../../types/auth';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSlots } from '../../contexts/SlotContext';
 import { BirthdayBookingModal } from '../modals/BirthdayBookingModal';
 import { CalendarComponent } from '../shared/Calendar';
 import { useMemo } from "react";
@@ -23,13 +24,14 @@ export function AdminBookings() {
 
     const [bookings, setBookings] = useState([] as Array<BirthdayBooking>)
     const { fetchBookings, updateBookingStatus, deleteBooking, updateBooking, fetchBookingByDate } = useBookings();
+    const { fetchSlots } = useSlots();
+    const [slots, setSlots] = useState([] as Array<any>);
     const [filter, setFilter] = useState<'all' | 'PENDING' | 'CONFIRMED' | 'CANCELLED'>('all');
     const { user } = useAuth();
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
     const [dailyBookings, setDailyBookings] = useState<BirthdayBooking[]>([]);
     const [viewMode, setViewMode] = useState<"calendar" | "list">("list");
 
-    const [bookedDaysDB, setBookedDaysDB] = useState<number[]>([]);
 
     const [selectedBooking, setSelectedBooking] = useState<BirthdayBooking | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,6 +63,17 @@ export function AdminBookings() {
             });
         }
     }, [user, refreshTrigger]);
+
+    // Cargar slots del mes actual
+    useEffect(() => {
+        if (!!user) {
+            fetchSlots().then((slotsData) => {
+                setSlots(slotsData || []);
+            }).catch(() => {
+                setSlots([]);
+            });
+        }
+    }, [user, currentMonth, refreshTrigger]);
 
     // Recargar reservas del día si hay fecha seleccionada
     useEffect(() => {
@@ -111,15 +124,19 @@ export function AdminBookings() {
     const bookingsByWeek = useMemo(() => {
         if (!filteredBookings || filteredBookings.length === 0 || selectedDate) return [];
 
-        // Obtener todas las fechas únicas de las reservas
+        // Obtener todas las fechas únicas de las reservas (usar slot.startTime si existe, sino createdAt)
         const uniqueDates = Array.from(
-            new Set(filteredBookings
-                .filter(booking => booking.slot) // Filtrar reservas sin slot
-                .map(booking => {
-                    const date = new Date(booking.slot!.startTime);
-                    date.setHours(0, 0, 0, 0);
-                    return date.getTime();
-                }))
+            new Set(filteredBookings.map(booking => {
+                let date: Date;
+                if (booking.slot) {
+                    date = new Date(booking.slot.startTime);
+                } else {
+                    // Para reservas sin slot (canceladas), usar fecha de creación
+                    date = new Date(booking.createdAt || new Date());
+                }
+                date.setHours(0, 0, 0, 0);
+                return date.getTime();
+            }))
         ).map(timestamp => new Date(timestamp));
 
         if (uniqueDates.length === 0) return [];
@@ -138,16 +155,21 @@ export function AdminBookings() {
         const weeksData = weeks.map(weekStart => {
             const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
             const weekBookings = filteredBookings.filter(booking => {
-                if (!booking.slot) return false;
-                const bookingDate = new Date(booking.slot.startTime);
+                let bookingDate: Date;
+                if (booking.slot) {
+                    bookingDate = new Date(booking.slot.startTime);
+                } else {
+                    // Para reservas sin slot (canceladas), usar fecha de creación
+                    bookingDate = new Date(booking.createdAt || new Date());
+                }
                 bookingDate.setHours(0, 0, 0, 0);
                 return isWithinInterval(bookingDate, { start: weekStart, end: weekEnd });
             });
 
             // Ordenar reservas por fecha descendente (más recientes primero)
             const sortedBookings = weekBookings.sort((a, b) => {
-                const dateA = a.slot ? new Date(a.slot.startTime).getTime() : 0;
-                const dateB = b.slot ? new Date(b.slot.startTime).getTime() : 0;
+                const dateA = a.slot ? new Date(a.slot.startTime).getTime() : new Date(a.createdAt || new Date()).getTime();
+                const dateB = b.slot ? new Date(b.slot.startTime).getTime() : new Date(b.createdAt || new Date()).getTime();
                 return dateB - dateA;
             });
 
@@ -187,13 +209,20 @@ export function AdminBookings() {
                 date.getFullYear() === currentMonth.getFullYear() &&
                 date.getMonth() === currentMonth.getMonth()
             )
-            .map(date => date.getUTCDate());
+            .map(date => date.getDate());
     }, [bookings, currentMonth]);
 
-
-    const totalDaysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
-    const allDays = Array.from({ length: totalDaysInMonth }, (_, i) => i + 1);
-    const availableDaysDB = allDays.filter(d => !bookedDays.includes(d));
+    // Calcular días disponibles basándose en los slots del mes actual
+    const availableDaysDB = useMemo(() => {
+        return slots
+            .filter(slot => slot.status === 'OPEN') // Solo slots disponibles
+            .map(slot => new Date(slot.startTime))
+            .filter(date =>
+                date.getFullYear() === currentMonth.getFullYear() &&
+                date.getMonth() === currentMonth.getMonth()
+            )
+            .map(date => date.getDate());
+    }, [slots, currentMonth]);
 
     const handleUpdateBookingStatus = async (id: number, status: BirthdayBooking['status']) => {
         let confirmMessage = '';
