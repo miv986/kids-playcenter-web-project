@@ -167,58 +167,62 @@ export function PacksForm({
 
                     </select>
                 </div>
-                <div>
-                    <label className="block text-gray-700 font-medium mb-2">
-                        {t.t('responsibleName')}
-                    </label>
-                    <input
-                        name="name"
-                        type="text"
-                        value={formData.name}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                        placeholder={t.t('namePlaceholder')} />
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label className="block text-gray-700 font-medium mb-2">
+                            {t.t('responsibleName')}
+                        </label>
+                        <input
+                            name="name"
+                            type="text"
+                            value={formData.name}
+                            onChange={handleChange}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                            placeholder={t.t('namePlaceholder')} />
+                    </div>
 
-                <div>
-                    <label className="block text-gray-700 font-medium mb-2">
-                        {t.t('contactPhone')}
-                    </label>
-                    <input
-                        name="contact_number"
-                        type="tel"
-                        value={formData.contact_number}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                        placeholder={t.t('phonePlaceholder')} />
-                </div>
-                <div>
-                    <label className="block text-gray-700 font-medium mb-2">
-                        {tAuth.t('email')}
-                    </label>
-                    <input
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        disabled={!!user?.email}
-                        className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200 ${user?.email ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-                        placeholder={tAuth.t('emailPlaceholder')} />
-                </div>
-                <div>
-                    <label className="block text-gray-700 font-medium mb-2">
-                        {t.t('numberOfKids')}
-                    </label>
-                    <input
-                        name="kids"
-                        type="number"
-                        min="1"
-                        value={formData.kids}
-                        onChange={handleChange}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
-                        placeholder={t.t('kidsPlaceholder')}
-                        required
-                    />
+                    <div>
+                        <label className="block text-gray-700 font-medium mb-2">
+                            {tAuth.t('email')}
+                        </label>
+                        <input
+                            name="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            disabled={!!user?.email}
+                            className={`w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200 ${user?.email ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                            placeholder={tAuth.t('emailPlaceholder')} />
+                    </div>
+
+                    <div>
+                        <label className="block text-gray-700 font-medium mb-2">
+                            {t.t('contactPhone')}
+                        </label>
+                        <input
+                            name="contact_number"
+                            type="tel"
+                            value={formData.contact_number}
+                            onChange={handleChange}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                            placeholder={t.t('phonePlaceholder')} />
+                    </div>
+
+                    <div>
+                        <label className="block text-gray-700 font-medium mb-2">
+                            {t.t('numberOfKids')}
+                        </label>
+                        <input
+                            name="kids"
+                            type="number"
+                            min="1"
+                            value={formData.kids}
+                            onChange={handleChange}
+                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                            placeholder={t.t('kidsPlaceholder')}
+                            required
+                        />
+                    </div>
                 </div>
 
                 <div>

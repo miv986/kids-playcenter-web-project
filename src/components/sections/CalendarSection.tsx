@@ -19,6 +19,7 @@ export function CalendarSection() {
   const { fetchSlotsAvailable } = useSlots();
   const { fetchSlots } = useDaycareSlots();
 
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [birthdaySlots, setBirthdaySlots] = useState([] as Array<BirthdaySlot>);
   const [allDaycareSlots, setAllDaycareSlots] = useState([] as Array<DaycareSlot>); // Todos los slots cargados
@@ -260,9 +261,9 @@ export function CalendarSection() {
               <Spinner size="lg" text={t('loadingCalendar')} />
             </div>
           ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <div className="flex flex-col lg:flex-row gap-12 items-start">
             {/* Calendar */}
-            <div className="bg-white rounded-3xl shadow-xl p-8">
+            <div className="bg-white rounded-3xl shadow-xl p-8 lg:flex-shrink-0">
               <div className="flex items-center justify-between mb-8">
                 <button
                   onClick={() => navigateMonth('prev')}
@@ -381,6 +382,13 @@ export function CalendarSection() {
                       {t('depositInfo')}
                     </p>
                   </div>
+                  <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-semibold text-blue-600">💳 {t('bizumInfo')}</span>{' '}
+                      al número <span className="font-semibold text-blue-600">{t('bizumPhone')}</span>{' '}
+                      {t('bizumSendReceipt')} <span className="font-semibold text-blue-600">{t('bizumEmail')}</span>
+                    </p>
+                  </div>
                   <PacksForm data={birthdaySlots} selectedDay={selectedDay} onBookingCreated={reloadSlots} />
                 </div>
               }
@@ -441,6 +449,11 @@ export function CalendarSection() {
                   <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-lg">
                     <p className="text-sm text-amber-800 font-medium">
                       {t('depositInfo')}
+                    </p>
+                  </div>
+                  <div className="mb-4 p-2 rounded-lg" style={{ backgroundColor: '#E5C8A9' }}>
+                    <p className="text-sm text-amber-700">
+                      {t('bizumInfo')}
                     </p>
                   </div>
                   <PacksForm data={birthdaySlots} selectedDay={selectedDay} onBookingCreated={reloadSlots} />
