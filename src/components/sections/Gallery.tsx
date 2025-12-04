@@ -6,38 +6,74 @@ import { useTranslation } from '../../contexts/TranslationContext';
 export function Gallery() {
   const t = useTranslation('Gallery');
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
-  
+  const [showAll, setShowAll] = useState(false);
+
   const images = [
     {
-      src: 'https://images.pexels.com/photos/8613089/pexels-photo-8613089.jpeg?auto=compress&cs=tinysrgb&w=800',
-      alt: 'Niños jugando en la ludoteca',
-      category: t.t('games')
+      src: 'gallery/image-2.jpeg',
+      alt: 'Peluqueria',
+      category: t.t('hairSalon')
     },
     {
-      src: 'https://images.pexels.com/photos/8613090/pexels-photo-8613090.jpeg?auto=compress&cs=tinysrgb&w=800',
-      alt: 'Taller de manualidades',
-      category: t.t('workshops')
+      src: 'gallery/image-3.jpeg',
+      alt: 'Peluquería',
+      category: t.t('hairSalon')
     },
     {
-      src: 'https://images.pexels.com/photos/8613091/pexels-photo-8613091.jpeg?auto=compress&cs=tinysrgb&w=800',
-      alt: 'Fiesta de cumpleaños',
-      category: t.t('parties')
-    },
-    {
-      src: 'https://images.pexels.com/photos/8613092/pexels-photo-8613092.jpeg?auto=compress&cs=tinysrgb&w=800',
-      alt: 'Actividades grupales',
-      category: t.t('activities')
-    },
-    {
-      src: 'https://images.pexels.com/photos/8613093/pexels-photo-8613093.jpeg?auto=compress&cs=tinysrgb&w=800',
-      alt: 'Zona de lectura',
-      category: t.t('reading')
-    },
-    {
-      src: 'https://images.pexels.com/photos/8613094/pexels-photo-8613094.jpeg?auto=compress&cs=tinysrgb&w=800',
-      alt: 'Espacio de juegos',
+      src: 'gallery/image-4.jpeg',
+      alt: 'Instalaciones',
       category: t.t('facilities')
-    }
+    },
+    {
+      src: 'gallery/image-5.jpeg',
+      alt: 'Cafeteria',
+      category: t.t('parkCafeteria')
+    },
+    {
+      src: 'gallery/image-6.jpeg',
+      alt: 'Parque/Cafetería',
+      category: t.t('parkCafeteria')
+    },
+    {
+      src: 'gallery/image-7.jpeg',
+      alt: 'Cocina',
+      category: t.t('parkCafeteria')
+    },
+    {
+      src: 'gallery/image-8.jpeg',
+      alt: 'Mercado',
+      category: t.t('market')
+    },
+    {
+      src: 'gallery/image-9.jpeg',
+      alt: 'Instalaciones',
+      category: t.t('facilities')
+    },
+    {
+      src: 'gallery/image-11.jpeg',
+      alt: 'Hospital',
+      category: t.t('hospital')
+    },
+    {
+      src: 'gallery/image-12.jpeg',
+      alt: 'Hospital',
+      category: t.t('hospital')
+    },
+    {
+      src: 'gallery/image-13.jpeg',
+      alt: 'Estación de Policía',
+      category: t.t('policeStation')
+    },
+    {
+      src: 'gallery/image-14.jpeg',
+      alt: 'Mercado',
+      category: t.t('market')
+    },
+    {
+      src: 'gallery/image-16.jpeg',
+      alt: 'Mercado',
+      category: t.t('market')
+    },
   ];
 
   const nextImage = () => {
@@ -65,12 +101,15 @@ export function Gallery() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {images.map((image, index) => (
+          {(showAll ? images : images.slice(0, 3)).map((image, index) => (
             <div
               key={index}
               className="group relative overflow-hidden rounded-3xl shadow-soft hover:shadow-soft-lg transform hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer animate-fade-in"
               style={{ animationDelay: `${index * 0.1}s` }}
-              onClick={() => setSelectedImage(index)}
+              onClick={() => {
+                const actualIndex = showAll ? index : images.findIndex(img => img.src === image.src);
+                setSelectedImage(actualIndex);
+              }}
             >
               <div className="aspect-square bg-gradient-to-br from-pink-100 to-purple-100">
                 <img
@@ -79,7 +118,7 @@ export function Gallery() {
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
               </div>
-              
+
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <div className="absolute bottom-4 left-4 right-4">
                   <div className="bg-white/20 backdrop-blur-glass rounded-full px-3 py-1 text-white text-sm font-medium mb-2 inline-block">
@@ -92,37 +131,55 @@ export function Gallery() {
           ))}
         </div>
 
+        {!showAll && images.length > 3 && (
+          <div className="mt-12 text-center">
+            <button
+              onClick={() => setShowAll(true)}
+              className="bg-gradient-to-r from-pink-400 to-purple-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-colored hover:shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-300"
+            >
+              {t.t('viewMore') || 'Ver más'}
+            </button>
+          </div>
+        )}
+
         {/* Modal */}
         {selectedImage !== null && (
-          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-            <div className="relative max-w-4xl max-h-full animate-scale-in">
+          <div
+            className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+            onClick={() => setSelectedImage(null)}
+          >
+            <div
+              className="relative max-w-4xl max-h-full animate-scale-in"
+              onClick={(e) => e.stopPropagation()}
+            >
               <img
                 src={images[selectedImage].src}
                 alt={images[selectedImage].alt}
                 className="max-w-full max-h-full object-contain rounded-2xl shadow-soft-lg"
+                onClick={(e) => e.stopPropagation()}
               />
-              
+
               <button
                 onClick={() => setSelectedImage(null)}
                 className="absolute top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-glass rounded-full flex items-center justify-center text-white hover:bg-white/30 hover:scale-110 active:scale-95 transition-all duration-200"
               >
                 <X className="w-6 h-6" />
               </button>
-              
+
               <button
                 onClick={prevImage}
                 className="absolute left-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-glass rounded-full flex items-center justify-center text-white hover:bg-white/30 hover:scale-110 active:scale-95 transition-all duration-200"
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
-              
+
               <button
                 onClick={nextImage}
                 className="absolute right-4 top-1/2 transform -translate-y-1/2 w-12 h-12 bg-white/20 backdrop-blur-glass rounded-full flex items-center justify-center text-white hover:bg-white/30 hover:scale-110 active:scale-95 transition-all duration-200"
               >
                 <ChevronRight className="w-6 h-6" />
               </button>
-              
+
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/20 backdrop-blur-glass rounded-full px-4 py-2 text-white">
                 {selectedImage + 1} / {images.length}
               </div>
