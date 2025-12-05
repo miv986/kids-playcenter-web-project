@@ -86,6 +86,32 @@ export interface BirthdaySlot {
 
 }
 
+export interface MeetingSlot {
+  id: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  capacity: number;
+  availableSpots: number;
+  status: Status;
+  createdAt?: string;
+  updatedAt?: string;
+  bookings?: MeetingBooking[];
+}
+
+export interface MeetingBooking {
+  id: number;
+  email: string;
+  name: string;
+  phone?: string | null;
+  comments?: string | null;
+  status: Status;
+  slotId: number;
+  slot?: MeetingSlot;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface ChildNote {
   id: number;
   childId: number;

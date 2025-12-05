@@ -2,15 +2,15 @@ import React, { useEffect, useState, useMemo } from "react";
 import { Calendar, Plus, Trash2, Edit3, CalendarDays, Clock, Settings, Filter, CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
 import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval } from "date-fns";
 import { es, ca } from "date-fns/locale";
-import { useAuth } from "../../contexts/AuthContext";
-import { useDaycareSlots } from "../../contexts/DaycareSlotContext";
-import { DaycareSlot } from "../../types/auth";
-import {SlotModal} from "../modals/SlotModal";
-import { CalendarComponent } from "../shared/Calendar";
-import { useTranslation } from "../../contexts/TranslationContext";
-import { showToast } from "../../lib/toast";
-import { useConfirm } from "../../hooks/useConfirm";
-import { Pagination } from "../shared/Pagination";
+import { useAuth } from "../../../contexts/AuthContext";
+import { useDaycareSlots } from "../../../contexts/DaycareSlotContext";
+import { DaycareSlot } from "../../../types/auth";
+import {SlotModal} from "../../modals/SlotModal";
+import { CalendarComponent } from "../../shared/Calendar";
+import { useTranslation } from "../../../contexts/TranslationContext";
+import { showToast } from "../../../lib/toast";
+import { useConfirm } from "../../../hooks/useConfirm";
+import { Pagination } from "../../shared/Pagination";
 
 export function AdminDaycareSlots() {
     const { user } = useAuth();

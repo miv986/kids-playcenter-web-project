@@ -1,17 +1,17 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Calendar, Plus, Trash2, Edit3, CalendarDays, Clock, ChevronDown, ChevronRight } from "lucide-react";
-import { BirthdaySlot } from "../../types/auth";
-import { useAuth } from "../../contexts/AuthContext";
-import { useSlots } from "../../contexts/SlotContext";
+import { BirthdaySlot } from "../../../types/auth";
+import { useAuth } from "../../../contexts/AuthContext";
+import { useSlots } from "../../../contexts/SlotContext";
 import { format, startOfWeek, endOfWeek, eachWeekOfInterval, startOfMonth, endOfMonth, isWithinInterval } from "date-fns";
 import { es, ca } from "date-fns/locale";
-import { SlotModal } from "../modals/SlotModal";
-import { CalendarComponent } from "../shared/Calendar";
-import { useTranslation } from "../../contexts/TranslationContext";
-import { showToast } from "../../lib/toast";
-import { useConfirm } from "../../hooks/useConfirm";
-import { Spinner } from "../shared/Spinner";
-import { SearchBar } from "../shared/SearchBar";
+import { SlotModal } from "../../modals/SlotModal";
+import { CalendarComponent } from "../../shared/Calendar";
+import { useTranslation } from "../../../contexts/TranslationContext";
+import { showToast } from "../../../lib/toast";
+import { useConfirm } from "../../../hooks/useConfirm";
+import { Spinner } from "../../shared/Spinner";
+import { SearchBar } from "../../shared/SearchBar";
 
 
 export function AdminBirthdaySlots() {

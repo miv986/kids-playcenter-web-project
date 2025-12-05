@@ -57,7 +57,9 @@ export function Footer() {
               */}
               <div className="flex items-center space-x-3">
                 <Mail className="w-5 h-5 text-blue-400" />
-                <span className="text-gray-300">somriuresicolors@gmail.com</span>
+                <Link href="mailto:somriuresicolors@gmail.com" className="text-gray-300 hover:text-blue-400 transition-colors">
+                  somriuresicolors@gmail.com
+                </Link>
               </div>
               <div className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 text-pink-400 mt-1" />

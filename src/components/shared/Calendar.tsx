@@ -9,6 +9,7 @@ interface CalendarProps {
   onSelectDate: (date: Date) => void;
   currentMonth: Date;
   setCurrentMonth: React.Dispatch<React.SetStateAction<Date>>;
+  simpleLegend?: boolean;
 }
 
 export function CalendarComponent({
@@ -18,6 +19,7 @@ export function CalendarComponent({
   availableDaysDB,
   bookedDaysDB,
   onSelectDate,
+  simpleLegend = false,
 }: CalendarProps) {
 
   const handleDayClick = (day: number) => {
@@ -171,6 +173,16 @@ export function CalendarComponent({
 
 
       {/* Leyenda */}
+      {simpleLegend ? (
+        <div className="mt-6 flex justify-center gap-4 text-xs flex-wrap">
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 bg-green-100 rounded"></span> Disponible
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 bg-gray-100 rounded"></span> No disponible
+          </div>
+        </div>
+      ) : (
       <div className="mt-6 flex justify-center gap-4 text-xs flex-wrap">
         <div className="flex items-center gap-1">
           <span className="w-3 h-3 bg-green-100 rounded"></span> Disponible
@@ -188,6 +200,7 @@ export function CalendarComponent({
           <span className="w-3 h-3 bg-gray-100 rounded"></span> Sin slot
         </div>
       </div>
+      )}
     </div>
   );
 }
