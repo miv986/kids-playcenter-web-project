@@ -35,18 +35,13 @@ export function VisitBookingModal({
   useEffect(() => {
     if (isOpen) {
       loadSlots();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (user) {
-      setName(user.name || "");
-      setEmail(user.email || "");
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (!isOpen) {
+      // Cargar datos del usuario cuando el modal se abre
+      if (user) {
+        setName(user.name || "");
+        setEmail(user.email || "");
+      }
+    } else {
+      // Resetear formulario cuando el modal se cierra
       setSelectedDate(undefined);
       setName("");
       setEmail("");
@@ -55,7 +50,7 @@ export function VisitBookingModal({
       setSelectedSlotId(null);
       setCurrentMonth(new Date());
     }
-  }, [isOpen]);
+  }, [isOpen, user]);
 
   const loadSlots = async () => {
     try {
