@@ -1,17 +1,17 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Calendar, Users, Trash2, Phone, Clock, CalendarDays, Mail, MessageSquare, X, Copy, Check, ChevronDown, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
-import { useDaycareBookings } from '../../contexts/DaycareBookingContext';
-import { DaycareBooking } from '../../types/auth';
-import { useAuth } from '../../contexts/AuthContext';
+import { useDaycareBookings } from '../../../contexts/DaycareBookingContext';
+import { DaycareBooking } from '../../../types/auth';
+import { useAuth } from '../../../contexts/AuthContext';
 import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval } from 'date-fns';
 import { es, ca } from 'date-fns/locale';
-import { CalendarComponent } from '../shared/Calendar';
-import { useTranslation } from '../../contexts/TranslationContext';
-import { Spinner } from '../shared/Spinner';
-import { showToast } from '../../lib/toast';
-import { useConfirm } from '../../hooks/useConfirm';
-import { Pagination } from '../shared/Pagination';
-import { SearchBar } from '../shared/SearchBar';
+import { CalendarComponent } from '../../shared/Calendar';
+import { useTranslation } from '../../../contexts/TranslationContext';
+import { Spinner } from '../../shared/Spinner';
+import { showToast } from '../../../lib/toast';
+import { useConfirm } from '../../../hooks/useConfirm';
+import { Pagination } from '../../shared/Pagination';
+import { SearchBar } from '../../shared/SearchBar';
 
 export function AdminDaycareBookings() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -20,6 +20,7 @@ export function AdminDaycareBookings() {
     const [filter, setFilter] = useState<'all' | 'CONFIRMED' | 'CANCELLED'>('all');
     const { user } = useAuth();
     const t = useTranslation('AdminDaycareBookings');
+    const tCommon = useTranslation('Common');
     const locale = t.locale;
     const dateFnsLocale = locale === 'ca' ? ca : es;
     const { confirm, ConfirmComponent } = useConfirm();
@@ -130,7 +131,7 @@ export function AdminDaycareBookings() {
                 setDailyBookings(prev => prev.filter(b => b.id !== id));
             }
             await deleteBooking(id);
-            showToast.success(`${t.t('deleteSuccess')} ${id}`);
+            showToast.success(tCommon.t('deleteSuccessWithEmail'));
         } catch (err) {
             console.error(err);
             showToast.error(t.t('deleteError'));
@@ -147,7 +148,7 @@ export function AdminDaycareBookings() {
         }
         try {
             await updateBooking(id, data);
-            showToast.success(t.t('updateSuccess'));
+            showToast.success(tCommon.t('modifySuccessWithEmail'));
         } catch (err) {
             console.error(err);
             showToast.error(t.t('updateError'));
@@ -170,7 +171,7 @@ export function AdminDaycareBookings() {
             if (selectedBooking?.id === id) {
                 setSelectedBooking(prev => prev ? { ...prev, status: 'CANCELLED' as any } : prev);
             }
-            showToast.success(`${t.t('cancelSuccess')} ${id}`);
+            showToast.success(tCommon.t('cancelSuccessWithEmail'));
         } catch (err) {
             console.error(err);
             showToast.error(t.t('cancelError'));
@@ -193,7 +194,7 @@ export function AdminDaycareBookings() {
             if (selectedBooking?.id === id) {
                 setSelectedBooking(prev => prev ? { ...prev, status: 'CONFIRMED' as any } : prev);
             }
-            showToast.success(`${t.t('confirmSuccess')} ${id}`);
+            showToast.success(tCommon.t('confirmSuccessWithEmail'));
         } catch (err) {
             console.error(err);
             showToast.error(t.t('confirmError'));

@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Star, Heart, Sparkles } from 'lucide-react';
 import { useTranslation } from '../../contexts/TranslationContext';
 import Link from 'next/link';
 import Image from 'next/image';
+import { VisitBookingModal } from '../modals/VisitBookingModal';
 
 export function Hero() {
   const t = useTranslation('Hero');
+  const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
 
   return (
     <section id="inicio" className="relative py-20 overflow-hidden animate-fade-in">
@@ -42,9 +44,12 @@ export function Hero() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center lg:justify-start">
-              <button className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg hover:shadow-colored hover:shadow-xl transform hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center space-x-2 w-full sm:w-auto">
+              <button
+                onClick={() => setIsVisitModalOpen(true)}
+                className="bg-gradient-to-r from-green-400 to-blue-500 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg hover:shadow-colored hover:shadow-xl transform hover:scale-105 active:scale-95 transition-all duration-300 flex items-center justify-center space-x-2 w-full sm:w-auto"
+              >
                 <Heart className="w-5 h-5 flex-shrink-0" />
-                <Link href={'/calendario'} className="whitespace-nowrap">{t.t('bookVisit')}</Link>
+                <span className="whitespace-nowrap">{t.t('bookVisit')}</span>
               </button>
               <button className="bg-white text-gray-700 px-6 sm:px-8 py-3 sm:py-4 rounded-2xl font-bold text-base sm:text-lg border-2 border-gray-200 hover:border-pink-300 hover:text-pink-500 hover:bg-pink-50 active:scale-95 transition-all duration-300 flex items-center justify-center space-x-2 w-full sm:w-auto shadow-soft hover:shadow-soft-lg">
                 <Sparkles className="w-5 h-5 flex-shrink-0" />
@@ -93,6 +98,11 @@ export function Hero() {
           </div>
         </div>
       </div>
+
+      <VisitBookingModal
+        isOpen={isVisitModalOpen}
+        onClose={() => setIsVisitModalOpen(false)}
+      />
     </section>
   );
 }

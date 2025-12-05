@@ -1,24 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { Calendar, Users, Trash2, Phone, Clock, Glasses, CalendarDays, Settings, ChevronDown, ChevronRight } from 'lucide-react';
-import { useBookings } from '../../contexts/BookingContext';
-import { BirthdayBooking } from '../../types/auth';
-import { useAuth } from '../../contexts/AuthContext';
-import { useSlots } from '../../contexts/SlotContext';
-import { BirthdayBookingModal } from '../modals/BirthdayBookingModal';
-import { CalendarComponent } from '../shared/Calendar';
+import { useBookings } from '../../../contexts/BookingContext';
+import { BirthdayBooking } from '../../../types/auth';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useSlots } from '../../../contexts/SlotContext';
+import { BirthdayBookingModal } from '../../modals/BirthdayBookingModal';
+import { CalendarComponent } from '../../shared/Calendar';
 import { useMemo } from "react";
-import { BookingCard } from '../shared/BookingCard';
-import { useTranslation } from '../../contexts/TranslationContext';
-import { Spinner } from '../shared/Spinner';
-import { showToast } from '../../lib/toast';
-import { useConfirm } from '../../hooks/useConfirm';
-import { SearchBar } from '../shared/SearchBar';
+import { BookingCard } from '../../shared/BookingCard';
+import { useTranslation } from '../../../contexts/TranslationContext';
+import { Spinner } from '../../shared/Spinner';
+import { showToast } from '../../../lib/toast';
+import { useConfirm } from '../../../hooks/useConfirm';
+import { SearchBar } from '../../shared/SearchBar';
 import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval } from "date-fns";
 import { es, ca } from "date-fns/locale";
 
 export function AdminBookings() {
     const [currentMonth, setCurrentMonth] = useState(new Date()); // empieza en mes actual
     const t = useTranslation('AdminBookings');
+    const tCommon = useTranslation('Common');
     const locale = t.locale;
     const { confirm, ConfirmComponent } = useConfirm();
 
@@ -262,8 +263,16 @@ export function AdminBookings() {
             // Llamada al backend
             updateBookingStatus(id, status);
 
-            // Notificación opcional
-            showToast.success(`${t.t('updateSuccess')} ${status}`);
+            // Notificación con información de correo
+            let successMessage = '';
+            if (status === 'CONFIRMED') {
+                successMessage = tCommon.t('confirmSuccessWithEmail');
+            } else if (status === 'CANCELLED') {
+                successMessage = tCommon.t('cancelSuccessWithEmail');
+            } else {
+                successMessage = tCommon.t('updateSuccessWithEmail');
+            }
+            showToast.success(successMessage);
         } catch (err) {
             console.error(err);
             showToast.error(t.t('updateError'));
@@ -282,7 +291,7 @@ export function AdminBookings() {
             }
 
             deleteBooking(id);
-            showToast.success(`${t.t('deleteSuccess')} ${id}`);
+            showToast.success(tCommon.t('deleteSuccessWithEmail'));
         } catch (err) {
             console.error(err);
             showToast.error(t.t('deleteError'));
@@ -312,7 +321,7 @@ export function AdminBookings() {
                 setRefreshTrigger(prev => prev + 1);
             }
 
-            showToast.success(t.t('updateSuccess').replace(' a', ''));
+            showToast.success(tCommon.t('modifySuccessWithEmail'));
         } catch (err) {
             console.error(err);
             showToast.error(t.t('updateError'));

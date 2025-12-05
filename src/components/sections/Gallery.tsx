@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useTranslation } from '../../contexts/TranslationContext';
+import { VisitBookingModal } from '../modals/VisitBookingModal';
 
 export function Gallery() {
   const t = useTranslation('Gallery');
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
 
   const images = [
     {
@@ -195,12 +197,20 @@ export function Gallery() {
             <p className="text-gray-600 mb-6 text-lg">
               {t.t('visitDescription')}
             </p>
-            <Link href="/calendario" className="inline-block bg-gradient-to-r from-pink-400 to-purple-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-colored hover:shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-300">
+            <button
+              onClick={() => setIsVisitModalOpen(true)}
+              className="inline-block bg-gradient-to-r from-pink-400 to-purple-500 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:shadow-colored hover:shadow-lg transform hover:scale-105 active:scale-95 transition-all duration-300"
+            >
               {t.t('scheduleVisit')}
-            </Link>
+            </button>
           </div>
         </div>
       </div>
+
+      <VisitBookingModal
+        isOpen={isVisitModalOpen}
+        onClose={() => setIsVisitModalOpen(false)}
+      />
     </section>
   );
 }

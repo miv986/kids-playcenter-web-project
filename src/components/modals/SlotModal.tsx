@@ -216,7 +216,16 @@ export function SlotModal<T extends GenericSlot>({
                   onChange={(e) => handleChange("endTime" as keyof T, e.target.value)}
                   className="border rounded px-2 py-1 w-full" />
               </div>
-
+              {(formData.capacity !== undefined || slot?.capacity !== undefined) && (
+                <div>
+                  <label className="font-medium">{t('capacity')}:</label>
+                  <input
+                    type="number"
+                    value={formData.capacity || 0}
+                    onChange={(e) => handleChange("capacity" as keyof T, Number(e.target.value))}
+                    className="border rounded px-2 py-1 w-full" />
+                </div>
+              )}
             </>
           ) : (
             <>            <div>
