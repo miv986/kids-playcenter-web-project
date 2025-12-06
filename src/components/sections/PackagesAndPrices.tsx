@@ -9,9 +9,11 @@ import { useRouter, usePathname } from 'next/navigation';
 
 interface BirthdayPackage {
   id: number;
-  name: string;
+  nameEs: string;
+  nameCa: string;
   type: 'ALEGRIA' | 'FIESTA' | 'ESPECIAL';
-  duration: string;
+  durationEs: string | null;
+  durationCa: string | null;
   price: string;
   priceValue: number;
   featuresEs: string[];
@@ -20,32 +22,25 @@ interface BirthdayPackage {
   perChildTextVa?: string | null;
   isPopular: boolean;
   isActive: boolean;
+  showBookButton: boolean;
 }
 
 interface TranslatedPackage extends BirthdayPackage {
+  name: string;
+  duration: string;
   features: string[];
   perChildText: string;
 }
 
 // Helper function to translate package data
 function translatePackage(pack: BirthdayPackage, t: ReturnType<typeof useTranslation>['t'], locale: 'es' | 'ca'): TranslatedPackage {
-  const packType = pack.type.toLowerCase() as 'alegria' | 'fiesta' | 'especial';
-  const packKey = `pack${packType.charAt(0).toUpperCase() + packType.slice(1)}` as 'packAlegria' | 'packFiesta' | 'packEspecial';
+  // Use name based on locale
+  const name = locale === 'ca' ? pack.nameCa : pack.nameEs;
 
-  // Default names in Spanish (from seed)
-  const defaultNames = {
-    packAlegria: 'Pack Alegría',
-    packFiesta: 'Pack Fiesta',
-    packEspecial: 'Pack Especial',
-  };
-
-  // Only translate name if it matches the default Spanish name (hasn't been customized)
-  // Otherwise, use the custom name from database
-  const isDefaultName = pack.name === defaultNames[packKey];
-  const translatedName = isDefaultName ? (t(`${packKey}.name`) || pack.name) : pack.name;
-
-  // Get translated duration suffix
-  const translatedDuration = t(`${packKey}.duration`) || '';
+  // Use duration based on locale
+  const duration = locale === 'ca' 
+    ? (pack.durationCa || pack.durationEs || '')
+    : (pack.durationEs || pack.durationCa || '');
 
   // Use features based on locale (ES or VA)
   const features = locale === 'ca' ? pack.featuresVa : pack.featuresEs;
@@ -55,38 +50,12 @@ function translatePackage(pack: BirthdayPackage, t: ReturnType<typeof useTransla
     ? (pack.perChildTextVa || t('perChild'))
     : (pack.perChildTextEs || t('perChild'));
 
-  // Handle duration: extract number and use singular if 1
-  let finalDuration = pack.duration;
-  
-  if (!pack.duration.includes('horas') && !pack.duration.includes('hores') && !pack.duration.includes('hora')) {
-    // Extract number from duration (e.g., "2" from "2 horas" or just "2")
-    const durationMatch = pack.duration.match(/^(\d+)/);
-    if (durationMatch) {
-      const hours = parseInt(durationMatch[1], 10);
-      const hourWord = hours === 1 
-        ? (locale === 'ca' ? ' hora' : ' hora')
-        : (locale === 'ca' ? ' hores' : ' horas');
-      finalDuration = hours + hourWord;
-    } else {
-      finalDuration = pack.duration + translatedDuration;
-    }
-  } else {
-    // Duration already has "horas" or "hores", check if we need to change to singular
-    const durationMatch = pack.duration.match(/^(\d+)\s*(horas|hores|hora)/);
-    if (durationMatch) {
-      const hours = parseInt(durationMatch[1], 10);
-      if (hours === 1) {
-        finalDuration = pack.duration.replace(/(horas|hores)/, 'hora');
-      }
-    }
-  }
-
   const price = pack.price.includes('€') ? pack.price : pack.price + '€';
 
   return {
     ...pack,
-    name: translatedName,
-    duration: finalDuration,
+    name: name,
+    duration: duration,
     features: features,
     price: price,
     perChildText: perChildText,
@@ -109,10 +78,14 @@ export function PackagesAndPrices() {
   // Translated packages for display (only translate when not editing)
   const translatedPackages: TranslatedPackage[] = packages.map(pack => {
     if (editingPackage?.id === pack.id) {
-      // Don't translate while editing, but add features and perChildText properties
+      // Don't translate while editing, but add name, duration, features and perChildText properties
       const locale = tHook.locale;
       return {
         ...pack,
+        name: locale === 'ca' ? pack.nameCa : pack.nameEs,
+        duration: locale === 'ca' 
+          ? (pack.durationCa || pack.durationEs || '')
+          : (pack.durationEs || pack.durationCa || ''),
         features: locale === 'ca' ? pack.featuresVa : pack.featuresEs,
         perChildText: locale === 'ca' 
           ? (pack.perChildTextVa || t('perChild'))
@@ -152,7 +125,24 @@ export function PackagesAndPrices() {
     if (!editingPackage) return;
 
     try {
-      await put(`/api/packages/${editingPackage.type}`, editingPackage);
+      // Prepare data with only the fields that can be updated
+      const updateData = {
+        nameEs: editingPackage.nameEs,
+        nameCa: editingPackage.nameCa,
+        durationEs: editingPackage.durationEs,
+        durationCa: editingPackage.durationCa,
+        price: editingPackage.price,
+        priceValue: editingPackage.priceValue,
+        featuresEs: editingPackage.featuresEs,
+        featuresVa: editingPackage.featuresVa,
+        perChildTextEs: editingPackage.perChildTextEs,
+        perChildTextVa: editingPackage.perChildTextVa,
+        isPopular: editingPackage.isPopular,
+        isActive: editingPackage.isActive,
+        showBookButton: editingPackage.showBookButton,
+      };
+      
+      await put(`/api/packages/${editingPackage.type}`, updateData);
       await fetchPackages();
       setEditingPackage(null);
       showToast.success(t('updateSuccess'));
@@ -289,20 +279,46 @@ export function PackagesAndPrices() {
 
                   {isEditing ? (
                     <div className="space-y-3">
-                      <input
-                        type="text"
-                        value={editingPackage.name}
-                        onChange={(e) => setEditingPackage({ ...editingPackage, name: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-bold text-xl"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                      <input
-                        type="text"
-                        value={editingPackage.duration}
-                        onChange={(e) => setEditingPackage({ ...editingPackage, duration: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-center"
-                        onClick={(e) => e.stopPropagation()}
-                      />
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Nombre (ES)</label>
+                        <input
+                          type="text"
+                          value={editingPackage.nameEs}
+                          onChange={(e) => setEditingPackage({ ...editingPackage, nameEs: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-bold text-xl"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Nom (CA)</label>
+                        <input
+                          type="text"
+                          value={editingPackage.nameCa}
+                          onChange={(e) => setEditingPackage({ ...editingPackage, nameCa: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-center font-bold text-xl"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Duración (ES)</label>
+                        <input
+                          type="text"
+                          value={editingPackage.durationEs || ''}
+                          onChange={(e) => setEditingPackage({ ...editingPackage, durationEs: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Durada (CA)</label>
+                        <input
+                          type="text"
+                          value={editingPackage.durationCa || ''}
+                          onChange={(e) => setEditingPackage({ ...editingPackage, durationCa: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-center"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
                       <input
                         type="text"
                         value={editingPackage.price}
@@ -410,6 +426,17 @@ export function PackagesAndPrices() {
                       <label className="text-sm font-medium text-gray-700">{t('markActive')}</label>
                     </div>
 
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={editingPackage.showBookButton}
+                        onChange={(e) => setEditingPackage({ ...editingPackage, showBookButton: e.target.checked })}
+                        className="w-5 h-5 text-blue-600 rounded"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      <label className="text-sm font-medium text-gray-700">Mostrar botón "Reservar ahora"</label>
+                    </div>
+
                     <div className="flex space-x-2">
                       <button
                         onClick={(e) => {
@@ -451,30 +478,32 @@ export function PackagesAndPrices() {
                       ))}
                     </div>
 
-                    <button
-                      disabled={!pack.isActive}
-                      className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 mt-auto ${pack.isActive
-                        ? `bg-gradient-to-r ${color} text-white hover:shadow-colored hover:shadow-lg transform hover:scale-105 active:scale-95`
-                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                        }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (pack.isActive) {
-                          // Si estamos en la página principal, hacer scroll a la sección
-                          if (pathname === '/') {
-                            const calendarSection = document.getElementById('calendario');
-                            if (calendarSection) {
-                              calendarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    {pack.showBookButton && (
+                      <button
+                        disabled={!pack.isActive}
+                        className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 mt-auto ${pack.isActive
+                          ? `bg-gradient-to-r ${color} text-white hover:shadow-colored hover:shadow-lg transform hover:scale-105 active:scale-95`
+                          : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (pack.isActive) {
+                            // Si estamos en la página principal, hacer scroll a la sección
+                            if (pathname === '/') {
+                              const calendarSection = document.getElementById('calendario');
+                              if (calendarSection) {
+                                calendarSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              }
+                            } else {
+                              // Si estamos en otra página, navegar a la página de calendario
+                              router.push('/calendario');
                             }
-                          } else {
-                            // Si estamos en otra página, navegar a la página de calendario
-                            router.push('/calendario');
                           }
-                        }
-                      }}
-                    >
-                      {pack.isActive ? t('bookNow') : t('packUnavailable')}
-                    </button>
+                        }}
+                      >
+                        {pack.isActive ? t('bookNow') : t('packUnavailable')}
+                      </button>
+                    )}
                   </>
                 )}
               </div>
