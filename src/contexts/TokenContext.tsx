@@ -27,7 +27,7 @@ export function TokenProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const refreshToken = async () => {
+  const refreshToken = async (keepCurrentTokenOnFailure = false) => {
     try {
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/refresh`,
@@ -44,23 +44,50 @@ export function TokenProvider({ children }: { children: React.ReactNode }) {
           return true;
         }
       }
-      setToken(null);
+      
+      // Solo borrar el token si no debemos mantenerlo en caso de fallo
+      if (!keepCurrentTokenOnFailure) {
+        setToken(null);
+      }
       return false;
     } catch {
-      setToken(null);
+      // Solo borrar el token si no debemos mantenerlo en caso de fallo
+      if (!keepCurrentTokenOnFailure) {
+        setToken(null);
+      }
       return false;
     }
+  };
+
+  // Verificar si un token es válido (no expirado)
+  const isTokenValid = (token: string): boolean => {
+    const expiration = getTokenExpiration(token);
+    if (!expiration) return false;
+    return expiration > Date.now();
   };
 
   // 1. Cargar token inicial de localStorage
   useEffect(() => {
     const stored = localStorage.getItem("token");
-    if (stored) setToken(stored);
+    if (stored) {
+      // Solo usar el token si es válido
+      if (isTokenValid(stored)) {
+        setToken(stored);
+      } else {
+        // Si el token está expirado, intentar refrescar
+        localStorage.removeItem("token");
+      }
+    }
   }, []);
 
-  // 2. Intentar refrescar al cargar
+  // 2. Intentar refrescar al cargar (mantener token actual si el refresh falla)
   useEffect(() => {
-    refreshToken().finally(() => {
+    const stored = localStorage.getItem("token");
+    const hasValidToken = Boolean(stored && isTokenValid(stored));
+    
+    // Si tenemos un token válido, intentar refrescar pero mantenerlo si falla
+    // Si no tenemos token, intentar refrescar normalmente
+    refreshToken(hasValidToken).finally(() => {
       setIsLoading(false);
     });
   }, []);
