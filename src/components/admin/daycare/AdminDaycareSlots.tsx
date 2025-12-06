@@ -251,8 +251,6 @@ export function AdminDaycareSlots() {
 
     // Crear slot
     const handleCreateSlot = async (data: Partial<DaycareSlot> & { openHour?: string; closeHour?: string }) => {
-        console.log("🟢 DATA EN HANDLECREATESLOT:", data);
-
         if (!data.date || data.openHour === undefined || data.closeHour === undefined || !data.capacity) {
             showToast.error(t.t('fillRequired'));
             return;
@@ -283,7 +281,6 @@ export function AdminDaycareSlots() {
     // Actualizar slot
     const handleUpdateSlot = async (id: number, data: Partial<DaycareSlot>) => {
         try {
-            console.log("🔄 Actualizando slot:", id, data);
             const updatedSlot = await updateSlot(id, data);
 
             // Actualizar estados locales con el slot actualizado del backend

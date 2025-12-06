@@ -339,9 +339,6 @@ export function AdminDaycareBookings() {
         return Math.ceil(bookings.length / ITEMS_PER_PAGE);
     };
 
-
-    console.log(bookingsToShow.map(b => b.user?.children?.map(child => child.name).join(', ')));
-
     return (
         <div className="container mx-auto px-4">
             <div className="mb-8">

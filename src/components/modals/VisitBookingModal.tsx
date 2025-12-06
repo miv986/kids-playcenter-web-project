@@ -105,7 +105,6 @@ export function VisitBookingModal({
   useEffect(() => {
     if (selectedDate) {
       fetchSlotsByDay(selectedDate).then((fetchedSlots) => {
-        console.log("Slots fetched for date:", selectedDate, fetchedSlots);
         setDailySlots(fetchedSlots || []);
       }).catch((error) => {
         console.error("Error loading slots for date:", error);
@@ -130,12 +129,6 @@ export function VisitBookingModal({
       const hasSpots = slot.availableSpots > 0;
       
       return isMatch && isOpen && hasSpots;
-    });
-    
-    console.log("Available slots for date:", dateStr, {
-      totalDailySlots: dailySlots.length,
-      filtered: filtered.length,
-      slots: filtered
     });
     
     return filtered;

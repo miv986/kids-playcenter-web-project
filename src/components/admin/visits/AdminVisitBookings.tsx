@@ -65,7 +65,6 @@ export function AdminVisitBookings() {
         setIsLoadingBookings(true);
         try {
             const fetchedBookings = await fetchBookings();
-            console.log('Bookings loaded:', fetchedBookings);
          
             setBookings(fetchedBookings || []);
         } catch (error) {

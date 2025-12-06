@@ -35,7 +35,6 @@ export function AdminBirthdaySlots() {
     const [searchQuery, setSearchQuery] = useState("");
 
     const openModal = (slot?: BirthdaySlot) => {
-        console.log("slot", slot);
         setSelectedSlot(slot || null);
         setIsModalOpen(true);
     };

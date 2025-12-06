@@ -31,8 +31,6 @@ export const BookingCard: React.FC<BookingCardProps> = ({ booking, openModal }) 
         }
     };
 
-    console.log(booking);
-
     return (
         <div className="bg-white p-4 rounded-xl shadow-soft hover:shadow-soft-lg transform hover:scale-[1.02] active:scale-95 transition-all duration-200 border border-gray-100 animate-fade-in">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">

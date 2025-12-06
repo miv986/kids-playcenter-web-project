@@ -57,11 +57,9 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     const day = date.getDate().toString().padStart(2, "0");
     const formattedDate = `${year}-${month}-${day}`; // "YYYY-MM-DD"
 
-    console.log("📅 Enviando al backend:", formattedDate);
 
     try {
       const data = await http.get(`/api/bookings/getBirthdayBooking/by-date/${formattedDate}`);
-      console.log("📦 Reservas devueltas:", data);
       return data as BirthdayBooking[];
     } catch (error) {
       console.error("❌ Error cargando reservas de día:", error);

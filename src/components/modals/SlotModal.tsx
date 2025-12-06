@@ -166,7 +166,6 @@ export function SlotModal<T extends GenericSlot>({
       // Guardar o actualizar
       if (slot?.id) {
         const updatedSlot: any = await updateSlot(slot.id, formData);
-        console.log("✅ Slot actualizado en modal:", updatedSlot);
         if (updatedSlot) {
           showToast.success(t('updateSuccess'));
           onClose();

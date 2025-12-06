@@ -28,10 +28,8 @@ export function Playcenter() {
 
     useEffect(() => {
         fetchMyChildren().then(setKids);
-        console.log(kids.length);
     }, [fetchMyChildren]);
 
-    console.log(kids.length);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
