@@ -43,14 +43,14 @@ function translatePackage(pack: BirthdayPackage, t: ReturnType<typeof useTransla
     : (pack.durationEs || pack.durationCa || '');
 
   // Use features based on locale (ES or VA)
-  const features = locale === 'ca' ? pack.featuresVa : pack.featuresEs;
+  const features = locale === 'ca' ? (pack.featuresVa || []) : (pack.featuresEs || []);
 
   // Use perChildText based on locale, or fallback to translation
   const perChildText = locale === 'ca' 
     ? (pack.perChildTextVa || t('perChild'))
     : (pack.perChildTextEs || t('perChild'));
 
-  const price = pack.price.includes('€') ? pack.price : pack.price + '€';
+  const price = pack.price && pack.price.includes('€') ? pack.price : (pack.price || '0') + '€';
 
   return {
     ...pack,
@@ -86,7 +86,7 @@ export function PackagesAndPrices() {
         duration: locale === 'ca' 
           ? (pack.durationCa || pack.durationEs || '')
           : (pack.durationEs || pack.durationCa || ''),
-        features: locale === 'ca' ? pack.featuresVa : pack.featuresEs,
+        features: locale === 'ca' ? (pack.featuresVa || []) : (pack.featuresEs || []),
         perChildText: locale === 'ca' 
           ? (pack.perChildTextVa || t('perChild'))
           : (pack.perChildTextEs || t('perChild'))

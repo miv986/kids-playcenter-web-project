@@ -63,7 +63,19 @@ export function HttpProvider({ children }: { children: React.ReactNode }) {
 
 
   const handleResponse = async (res: Response) => {
-    const data = await res.json();
+    const contentType = res.headers.get("content-type");
+    let data;
+    
+    if (contentType && contentType.includes("application/json")) {
+      try {
+        data = await res.json();
+      } catch {
+        data = {};
+      }
+    } else {
+      data = {};
+    }
+    
     if (!res.ok) {
       throw new Error(data.error || "Request error");
     }
@@ -92,7 +104,8 @@ export function HttpProvider({ children }: { children: React.ReactNode }) {
       "/auth/login",
       "/auth/register",
       "/auth/forgot",
-      "/auth/reset"
+      "/auth/reset",
+      "/auth/refresh"
     ];
 
     const shouldRefresh = !noRefreshRoutes.some(r => url.includes(r));
