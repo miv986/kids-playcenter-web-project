@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://somriurescolors.es';
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://somriuresicolors.es';
     const now = new Date();
     
     return [

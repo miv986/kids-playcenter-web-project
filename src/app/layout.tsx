@@ -6,7 +6,7 @@ import { Footer } from "../components/layout/Footer";
 import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://somriurescolors.es"),
+    metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://somriuresicolors.es"),
     title: {
         default: "Ludoteca Somriures & Colors - Diversión y Aprendizaje para Niños",
         template: "%s | Somriures & Colors"
@@ -75,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         "@type": "LocalBusiness",
         "name": "Somriures & Colors",
         "description": "Ludoteca especializada en actividades educativas y recreativas para niños",
-        "url": process.env.NEXT_PUBLIC_SITE_URL || "https://somriurescolors.es",
+        "url": process.env.NEXT_PUBLIC_SITE_URL || "https://somriuresicolors.es",
         "telephone": "+34 627 64 42 12",
         "address": {
             "@type": "PostalAddress",
