@@ -141,9 +141,12 @@ export function PacksForm({
             </div>
             <h3 className="text-2xl font-bold text-gray-800">{t.t('title')}</h3>
         </div>
-            <form className="space-y-6"
+            <form className="space-y-4 lg:space-y-6"
                 onSubmit={handleSubmit}>
                 <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                        {t.t('selectDate')}
+                    </label>
                     <select className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
                         value={selectedSlot}
                         onChange={e => setSelectedSlot(e.target.value)}
@@ -167,9 +170,9 @@ export function PacksForm({
 
                     </select>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-gray-700 font-medium mb-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
+                    <div className="flex flex-col">
+                        <label className="block text-gray-700 font-medium mb-2 h-6 flex items-center">
                             {t.t('responsibleName')}
                         </label>
                         <input
@@ -181,8 +184,8 @@ export function PacksForm({
                             placeholder={t.t('namePlaceholder')} />
                     </div>
 
-                    <div>
-                        <label className="block text-gray-700 font-medium mb-2">
+                    <div className="flex flex-col">
+                        <label className="block text-gray-700 font-medium mb-2 h-6 flex items-center">
                             {tAuth.t('email')}
                         </label>
                         <input
@@ -195,8 +198,8 @@ export function PacksForm({
                             placeholder={tAuth.t('emailPlaceholder')} />
                     </div>
 
-                    <div>
-                        <label className="block text-gray-700 font-medium mb-2">
+                    <div className="flex flex-col">
+                        <label className="block text-gray-700 font-medium mb-2 h-6 flex items-center">
                             {t.t('contactPhone')}
                         </label>
                         <input
@@ -208,8 +211,8 @@ export function PacksForm({
                             placeholder={t.t('phonePlaceholder')} />
                     </div>
 
-                    <div>
-                        <label className="block text-gray-700 font-medium mb-2">
+                    <div className="flex flex-col">
+                        <label className="block text-gray-700 font-medium mb-2 h-6 flex items-center">
                             {t.t('numberOfKids')}
                         </label>
                         <input
@@ -225,14 +228,14 @@ export function PacksForm({
                     </div>
                 </div>
 
-                <div>
+                <div className="flex flex-col">
                     <label className="block text-gray-700 font-medium mb-2">
                         {tForm.t('additionalComments')}
                     </label>
                     <textarea
                         name="comments"
                         rows={3}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200 resize-none"
                         value={formData.comments}
                         onChange={handleChange}
                         placeholder={tForm.t('celebrationComments')}

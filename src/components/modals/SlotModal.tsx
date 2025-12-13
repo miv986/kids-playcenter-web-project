@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths } from "date-fns";
 import { Status } from "../../types/auth";
 import { showToast } from "../../lib/toast";
 import { useTranslation } from "../../contexts/TranslationContext";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 // Tipo genérico para slots (cumpleaños o daycare)
 export interface GenericSlot {
@@ -47,6 +48,9 @@ export function SlotModal<T extends GenericSlot>({
     closeHour: "01:00",
   } as Partial<T>
   );
+  const [useAdvancedConfig, setUseAdvancedConfig] = useState(false);
+  const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+  const [calendarMonth, setCalendarMonth] = useState(new Date());
 
   useEffect(() => {
     if (slot) {
@@ -84,6 +88,8 @@ export function SlotModal<T extends GenericSlot>({
         capacity: 0,
         status: "OPEN",
       } as any);
+      setUseAdvancedConfig(false);
+      setSelectedDates([]);
     }
   }, [slot]);
 
@@ -149,6 +155,14 @@ export function SlotModal<T extends GenericSlot>({
       // ✅ Los valores ya están en formato correcto
       formData.capacity = formData.capacity ?? 20;
 
+      // Si usa configuración avanzada, validar fechas seleccionadas
+      if (useAdvancedConfig) {
+        if (selectedDates.length === 0) {
+          showToast.error("Selecciona al menos una fecha");
+          return;
+        }
+      }
+
     } else {
       // Slots de cumpleaños
       if (!formData.startTime || !formData.endTime) {
@@ -171,10 +185,24 @@ export function SlotModal<T extends GenericSlot>({
           onClose();
         }
       } else {
-        const newSlot: any = await createSlot(formData);
-        if (newSlot) {
-          showToast.success(t('createSuccess'));
-          onClose();
+        // Para daycare con configuración avanzada, enviar fechas personalizadas
+        if (isDaycare && useAdvancedConfig && selectedDates.length > 0) {
+          const customDates = selectedDates.map(date => format(date, 'yyyy-MM-dd'));
+          const dataWithCustomDates = {
+            ...formData,
+            customDates,
+          };
+          const newSlot: any = await createSlot(dataWithCustomDates);
+          if (newSlot) {
+            showToast.success(t('createSuccess'));
+            onClose();
+          }
+        } else {
+          const newSlot: any = await createSlot(formData);
+          if (newSlot) {
+            showToast.success(t('createSuccess'));
+            onClose();
+          }
         }
       }
     } catch (error) {
@@ -183,10 +211,113 @@ export function SlotModal<T extends GenericSlot>({
     }
   };
 
+  // Toggle fecha en el calendario de selección múltiple
+  const toggleDateSelection = (date: Date) => {
+    setSelectedDates(prev => {
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const existingIndex = prev.findIndex(d => format(d, 'yyyy-MM-dd') === dateStr);
+      
+      if (existingIndex >= 0) {
+        // Deseleccionar
+        return prev.filter((_, i) => i !== existingIndex);
+      } else {
+        // Seleccionar
+        return [...prev, date].sort((a, b) => a.getTime() - b.getTime());
+      }
+    });
+  };
+
+  // Renderizar calendario de selección múltiple
+  const renderMultiDateCalendar = () => {
+    const monthStart = startOfMonth(calendarMonth);
+    const monthEnd = endOfMonth(calendarMonth);
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    const firstDayOfWeek = (monthStart.getDay() + 6) % 7; // Lunes = 0
+
+    const daysOfWeek = ["L", "M", "X", "J", "V", "S", "D"];
+    const months = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+    ];
+
+    return (
+      <div className="bg-gray-50 rounded-lg border border-gray-200 p-3">
+        <div className="flex items-center justify-between mb-3">
+          <button
+            type="button"
+            onClick={() => setCalendarMonth(subMonths(calendarMonth, 1))}
+            className="p-1.5 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4 text-gray-600" />
+          </button>
+          <h4 className="font-semibold text-sm text-gray-800">
+            {months[calendarMonth.getMonth()]} {calendarMonth.getFullYear()}
+          </h4>
+          <button
+            type="button"
+            onClick={() => setCalendarMonth(addMonths(calendarMonth, 1))}
+            className="p-1.5 rounded-md hover:bg-gray-200 transition-colors"
+          >
+            <ChevronRight className="w-4 h-4 text-gray-600" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {daysOfWeek.map(day => (
+            <div key={day} className="text-center text-xs font-semibold text-gray-500 py-1">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-7 gap-1">
+          {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+            <div key={`empty-${i}`} className="aspect-square" />
+          ))}
+          {daysInMonth.map(day => {
+            const isSelected = selectedDates.some(d => isSameDay(d, day));
+            return (
+              <button
+                key={day.toISOString()}
+                type="button"
+                onClick={() => toggleDateSelection(day)}
+                className={`aspect-square rounded-md text-xs font-medium transition-all ${
+                  isSelected
+                    ? "bg-blue-600 text-white shadow-sm scale-105"
+                    : "bg-white hover:bg-blue-50 text-gray-700 border border-gray-200 hover:border-blue-300"
+                }`}
+              >
+                {format(day, 'd')}
+              </button>
+            );
+          })}
+        </div>
+
+        {selectedDates.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="text-xs font-semibold text-gray-700 mb-2">
+              Fechas seleccionadas ({selectedDates.length}):
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {selectedDates.map((date, idx) => (
+                <span
+                  key={idx}
+                  className="inline-flex items-center bg-blue-600 text-white px-2 py-1 rounded-md text-xs font-medium"
+                >
+                  {format(date, 'dd/MM')}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-md">
+      <div className={`bg-white rounded-2xl p-6 shadow-xl w-full ${useAdvancedConfig && isDaycare && !slot ? 'max-w-lg' : 'max-w-md'} max-h-[90vh] overflow-y-auto`}>
         <h3 className="text-2xl font-bold mb-4">{slot ? `${t('editSlot')} #${slot.id}` : t('newSlot')}</h3>
 
         <div className="space-y-3 text-gray-700">
@@ -227,28 +358,59 @@ export function SlotModal<T extends GenericSlot>({
               )}
             </>
           ) : (
-            <>            <div>
-              <label className="font-medium">{t('startTime')}:</label>
-              <input
-                type="time"
-                value={formData.openHour || ""}
-                onChange={(e) => handleChange("openHour" as keyof T, e.target.value)}
-                className="border rounded px-2 py-1 w-full" />
-            </div><div>
+            <>
+              {!slot && (
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    type="checkbox"
+                    id="advancedConfig"
+                    checked={useAdvancedConfig}
+                    onChange={(e) => {
+                      setUseAdvancedConfig(e.target.checked);
+                      if (!e.target.checked) {
+                        setSelectedDates([]);
+                      }
+                    }}
+                    className="w-4 h-4"
+                  />
+                  <label htmlFor="advancedConfig" className="font-medium cursor-pointer">
+                    Configuración avanzada
+                  </label>
+                </div>
+              )}
+
+              {useAdvancedConfig && !slot && (
+                <div className="mb-4">
+                  <label className="font-medium block mb-2">Seleccionar fechas personalizadas:</label>
+                  {renderMultiDateCalendar()}
+                </div>
+              )}
+
+              <div>
+                <label className="font-medium">{t('startTime')}:</label>
+                <input
+                  type="time"
+                  value={formData.openHour || ""}
+                  onChange={(e) => handleChange("openHour" as keyof T, e.target.value)}
+                  className="border rounded px-2 py-1 w-full" />
+              </div>
+              <div>
                 <label className="font-medium">{t('endTime')}:</label>
                 <input
                   type="time"
                   value={formData.closeHour || ""}
                   onChange={(e) => handleChange("closeHour" as keyof T, e.target.value)}
                   className="border rounded px-2 py-1 w-full" />
-              </div><div>
+              </div>
+              <div>
                 <label className="font-medium">{t('capacity')}:</label>
                 <input
                   type="number"
                   value={formData.capacity || 0}
                   onChange={(e) => handleChange("capacity" as keyof T, Number(e.target.value))}
                   className="border rounded px-2 py-1 w-full" />
-              </div></>
+              </div>
+            </>
           )}
 
           <div>

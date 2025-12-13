@@ -5,7 +5,7 @@ import { DaycareSlot } from "../types/auth";
 
 interface DaycareSlotContextType {
     fetchSlots: () => Promise<DaycareSlot[]>;
-    generateSlots: (params: { startDate: string; openHour: string; closeHour: string; capacity: number }) => Promise<void>;
+    generateSlots: (params: { startDate: string; openHour: string; closeHour: string; capacity: number; customDates?: string[] }) => Promise<void>;
     updateSlot: (id: number, data: Partial<DaycareSlot>) => Promise<DaycareSlot | undefined>;
     updateMultipleSlots: (params: {
         date: string;
@@ -43,11 +43,13 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
         openHour,
         closeHour,
         capacity,
+        customDates,
     }: {
         startDate: string;
         openHour: string;
         closeHour: string;
         capacity: number;
+        customDates?: string[];
     }) => {
         try {
             await http.post("/api/daycareSlots/generate-daycare-slots", {
@@ -55,6 +57,7 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
                 openHour,
                 closeHour,
                 capacity,
+                ...(customDates && customDates.length > 0 && { customDates }),
             });
         } catch (err) {
             console.error("❌ Error generando slots de daycare:", err);

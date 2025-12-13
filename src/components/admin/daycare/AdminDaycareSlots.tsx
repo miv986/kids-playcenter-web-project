@@ -250,7 +250,7 @@ export function AdminDaycareSlots() {
     }, [slots, filteredSlots, currentMonth, dateFilter]);
 
     // Crear slot
-    const handleCreateSlot = async (data: Partial<DaycareSlot> & { openHour?: string; closeHour?: string }) => {
+    const handleCreateSlot = async (data: Partial<DaycareSlot> & { openHour?: string; closeHour?: string; customDates?: string[] }) => {
         if (!data.date || data.openHour === undefined || data.closeHour === undefined || !data.capacity) {
             showToast.error(t.t('fillRequired'));
             return;
@@ -266,6 +266,7 @@ export function AdminDaycareSlots() {
                 openHour: data.openHour,
                 closeHour: data.closeHour,
                 capacity: data.capacity,
+                customDates: data.customDates,
             });
 
             // Recargar todos los slots en lugar de solo los del día

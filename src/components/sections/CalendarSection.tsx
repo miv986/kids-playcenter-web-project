@@ -29,6 +29,7 @@ export function CalendarSection() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [isLoadingSlots, setIsLoadingSlots] = useState(true);
+  const [isDaycareSlotsExpanded, setIsDaycareSlotsExpanded] = useState(false);
 
   const { user } = useAuth();
 
@@ -77,6 +78,7 @@ export function CalendarSection() {
       day
     );
     setSelectedDay(date);
+    setIsDaycareSlotsExpanded(false); // Resetear expansión al cambiar de día
 
     // Determinar tipo de día
     const status = dayStatus[day];
@@ -255,15 +257,15 @@ export function CalendarSection() {
           )}
         </div>
 
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {isLoadingSlots ? (
             <div className="flex items-center justify-center py-20">
               <Spinner size="lg" text={t('loadingCalendar')} />
             </div>
           ) : (
-          <div className="flex flex-col lg:flex-row gap-12 items-start">
+          <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
             {/* Calendar */}
-            <div className="bg-white rounded-3xl shadow-xl p-8 lg:flex-shrink-0">
+            <div className="bg-white rounded-3xl shadow-xl p-6 lg:p-8 lg:flex-shrink-0 w-full lg:w-auto">
               <div className="flex items-center justify-between mb-8">
                 <button
                   onClick={() => navigateMonth('prev')}
@@ -366,10 +368,10 @@ export function CalendarSection() {
               </div>
             </div>
             {/* Formulario de reserva */}
-            <div className="space-y-6">
+            <div className={`w-full flex-1 ${selectedDayType === 'both' ? 'grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8' : 'space-y-6 lg:space-y-8'}`}>
               {/* Formulario de cumpleaños */}
-              {selectedDayType === 'birthday' && birthdaySlots &&
-                <div className="bg-white rounded-3xl shadow-xl p-8">
+              {selectedDayType === 'birthday' && birthdaySlots && (
+                <div className="bg-white rounded-3xl shadow-xl p-6 lg:p-8 min-w-0">
                   {!user && (
                     <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                       <p className="text-sm text-green-700">
@@ -383,51 +385,98 @@ export function CalendarSection() {
                     </p>
                   </div>
                   <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-gray-700 break-words">
                       <span className="font-semibold text-blue-600">💳 {t('bizumInfo')}</span>{' '}
-                      al número <span className="font-semibold text-blue-600">{t('bizumPhone')}</span>{' '}
-                      {t('bizumSendReceipt')} <span className="font-semibold text-blue-600">{t('bizumEmail')}</span>
+                      al número <span className="font-semibold text-blue-600 whitespace-nowrap">{t('bizumPhone')}</span>{' '}
+                      {t('bizumSendReceipt')} <span className="font-semibold text-blue-600 break-all">{t('bizumEmail')}</span>
                     </p>
                   </div>
                   <PacksForm data={birthdaySlots} selectedDay={selectedDay} onBookingCreated={reloadSlots} />
                 </div>
-              }
+              )}
 
               {/* Horarios de ludoteca */}
               {(selectedDayType === 'daycare' || selectedDayType === 'both') && selectedDay && (
-                <div className="bg-white rounded-3xl shadow-xl p-8">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                <div className="bg-white rounded-3xl shadow-xl p-6 lg:p-8 min-w-0">
+                  <h3 className="text-xl lg:text-2xl font-bold text-gray-800 mb-4 lg:mb-6">
                     {selectedDayType === 'both' ? t('daycare') + ' ' : ''}{t('schedules')} - {selectedDay.toLocaleDateString(locale === 'ca' ? 'ca-ES' : 'es-ES')}
                   </h3>
                   {selectedDaySlots.length > 0 ? (
-                    <div className="space-y-3">
-                      {selectedDaySlots.map(slot => (
-                        <div key={slot.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl hover:bg-blue-50 transition-all">
-                          <div>
-                            <p className="font-medium text-gray-800">{slot.openHour} - {slot.closeHour}</p>
-                            <p className="text-sm text-gray-500">{slot.availableSpots} {t('availableSpots')}</p>
+                    <div className="space-y-3 lg:space-y-4">
+                      {/* En móvil, mostrar solo los primeros 3 slots y un botón para expandir */}
+                      {selectedDaySlots.length > 3 && !isDaycareSlotsExpanded ? (
+                        <>
+                          {selectedDaySlots.slice(0, 3).map(slot => (
+                            <div key={slot.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 lg:gap-4 p-3 sm:p-4 lg:p-5 border border-gray-200 rounded-xl hover:bg-blue-50 transition-all">
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-800">{slot.openHour} - {slot.closeHour}</p>
+                                <p className="text-sm text-gray-500">{slot.availableSpots} {t('availableSpots')}</p>
+                              </div>
+                              {user ? (
+                                <button
+                                  onClick={() => {
+                                    localStorage.setItem('openDaycareBooking', selectedDay.toISOString());
+                                    localStorage.setItem('shouldOpenDaycareBooking', 'true');
+                                    router.push('/dashboard');
+                                  }}
+                                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm font-medium transition-all whitespace-nowrap"
+                                >
+                                  {t('book')}
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleAuthClick('login')}
+                                  className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:shadow-md text-sm font-medium transition-all whitespace-nowrap"
+                                >
+                                  {t('loginToBook')}
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => setIsDaycareSlotsExpanded(true)}
+                            className="w-full p-3 border-2 border-dashed border-gray-300 rounded-xl hover:bg-gray-50 transition-all text-sm font-medium text-gray-600"
+                          >
+                            Ver {selectedDaySlots.length - 3} horarios más
+                          </button>
+                        </>
+                      ) : (
+                        selectedDaySlots.map(slot => (
+                          <div key={slot.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 lg:gap-4 p-3 sm:p-4 lg:p-5 border border-gray-200 rounded-xl hover:bg-blue-50 transition-all">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-800">{slot.openHour} - {slot.closeHour}</p>
+                              <p className="text-sm text-gray-500">{slot.availableSpots} {t('availableSpots')}</p>
+                            </div>
+                            {user ? (
+                              <button
+                                onClick={() => {
+                                  localStorage.setItem('openDaycareBooking', selectedDay.toISOString());
+                                  localStorage.setItem('shouldOpenDaycareBooking', 'true');
+                                  router.push('/dashboard');
+                                }}
+                                className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm font-medium transition-all whitespace-nowrap"
+                              >
+                                {t('book')}
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleAuthClick('login')}
+                                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-lg hover:shadow-md text-sm font-medium transition-all whitespace-nowrap"
+                              >
+                                {t('loginToBook')}
+                              </button>
+                            )}
                           </div>
-                          {user ? (
-                            <button
-                              onClick={() => {
-                                localStorage.setItem('openDaycareBooking', selectedDay.toISOString());
-                                localStorage.setItem('shouldOpenDaycareBooking', 'true');
-                                router.push('/dashboard');
-                              }}
-                              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 text-sm font-medium transition-all"
-                            >
-                              {t('book')}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleAuthClick('login')}
-                              className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-5 py-2 rounded-lg hover:shadow-md text-sm font-medium transition-all"
-                            >
-                              {t('loginToBook')}
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                        ))
+                      )}
+                      {isDaycareSlotsExpanded && selectedDaySlots.length > 3 && (
+                        <button
+                          onClick={() => setIsDaycareSlotsExpanded(false)}
+                          className="w-full p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-all text-xs font-medium text-gray-600"
+                        >
+                          Mostrar menos
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <p className="text-gray-500">{t('noSlots')}</p>
@@ -436,9 +485,9 @@ export function CalendarSection() {
               )}
 
               {/* Mostrar ambos si es 'both' */}
-              {selectedDayType === 'both' && birthdaySlots &&
-                <div className="bg-white rounded-3xl shadow-xl p-8">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">{t('birthday')}</h3>
+              {selectedDayType === 'both' && birthdaySlots && (
+                <div className="bg-white rounded-3xl shadow-xl p-6 lg:p-8 min-w-0">
+                  <h3 className="text-xl lg:text-2xl font-bold text-gray-800 mb-4 lg:mb-6">{t('birthday')}</h3>
                   {!user && (
                     <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                       <p className="text-sm text-green-700">
@@ -451,14 +500,16 @@ export function CalendarSection() {
                       {t('depositInfo')}
                     </p>
                   </div>
-                  <div className="mb-4 p-2 rounded-lg" style={{ backgroundColor: '#E5C8A9' }}>
-                    <p className="text-sm text-amber-700">
-                      {t('bizumInfo')}
+                  <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      <span className="font-semibold text-blue-600">💳 {t('bizumInfo')}</span>{' '}
+                      al número <span className="font-semibold text-blue-600 whitespace-nowrap">{t('bizumPhone')}</span>{' '}
+                      {t('bizumSendReceipt')} <span className="font-semibold text-blue-600">{t('bizumEmail')}</span>
                     </p>
                   </div>
                   <PacksForm data={birthdaySlots} selectedDay={selectedDay} onBookingCreated={reloadSlots} />
                 </div>
-              }
+              )}
             </div>
           </div>
           )}
