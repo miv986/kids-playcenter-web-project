@@ -176,14 +176,12 @@ export function CalendarSection() {
     // Asigna estado a cada día
     for (let day = 1; day <= new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate(); day++) {
       const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day);
-      const dayOfWeek = date.getDay();
-      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
       const birthdayDaySlots = birthdaySlotsByDay[day] || [];
       const daycareDaySlots = daycareSlotsByDay[day] || [];
 
       const hasBirthdaySlots = birthdayDaySlots.length > 0 && !birthdayDaySlots.every(slot => slot.status === 'CLOSED');
-      const hasDaycareSlots = !isWeekend && daycareDaySlots.length > 0 && daycareDaySlots.some(slot => slot.availableSpots > 0);
+      const hasDaycareSlots = daycareDaySlots.length > 0 && daycareDaySlots.some(slot => slot.availableSpots > 0);
 
       if (hasBirthdaySlots && hasDaycareSlots) {
         statusMap[day] = { type: 'both', available: true };
