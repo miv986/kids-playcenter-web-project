@@ -412,7 +412,9 @@ export function AdminTutors() {
                             addNote: t.t('addNote'),
                             copyPhone: t.t('copyPhone'),
                             loadingNotes: t.t('loadingNotes'),
-                            noNotesYet: t.t('noNotesYet')
+                            noNotesYet: t.t('noNotesYet'),
+                            clickToExpand: t.t('clickToExpand'),
+                            clickToCollapse: t.t('clickToCollapse')
                           }}
                         />
                       ))}

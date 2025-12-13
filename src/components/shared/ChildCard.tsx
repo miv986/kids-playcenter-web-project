@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FileText, MessageSquare, Plus, ChevronDown, ChevronUp, Copy, Check, Phone, Calendar, User, AlertCircle, Stethoscope } from 'lucide-react';
 import { format } from 'date-fns';
 import { Locale } from 'date-fns';
@@ -50,6 +50,8 @@ interface ChildCardProps {
     copyPhone: string;
     loadingNotes: string;
     noNotesYet: string;
+    clickToExpand: string;
+    clickToCollapse: string;
   };
 }
 
@@ -69,6 +71,26 @@ export function ChildCard({
   onCopyPhone,
   translations
 }: ChildCardProps) {
+  const [expandedTexts, setExpandedTexts] = useState<Set<string>>(new Set());
+
+  const toggleText = (key: string) => {
+    setExpandedTexts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+  };
+
+  const isExpanded = (key: string) => expandedTexts.has(key);
+
+  const getTooltipText = (key: string) => {
+    return isExpanded(key) ? translations.clickToCollapse : translations.clickToExpand;
+  };
+
   return (
     <div className="bg-gradient-to-br from-white to-gray-50 rounded-xl p-3 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200">
       {/* Header con nombre y acciones */}
@@ -139,7 +161,14 @@ export function ChildCard({
             <p className="text-xs font-semibold text-gray-700">{translations.emergency1}</p>
           </div>
           <div className="ml-8 space-y-0.5">
-            <p className="text-xs text-gray-600 truncate">{child.emergency_contact_name_1 || translations.notRegistered}</p>
+            <button
+              onClick={() => toggleText('emergency1_name')}
+              className={`text-xs text-gray-600 text-left w-full hover:text-gray-800 transition-colors cursor-pointer max-w-full ${isExpanded('emergency1_name') ? 'break-words' : 'truncate'}`}
+              style={isExpanded('emergency1_name') ? { overflowWrap: 'anywhere', wordBreak: 'break-word', marginInline: '0' } : undefined}
+              title={getTooltipText('emergency1_name')}
+            >
+              {child.emergency_contact_name_1 || translations.notRegistered}
+            </button>
             {child.emergency_phone_1 ? (
               <button
                 onClick={(e) => onCopyPhone(child.emergency_phone_1!, e)}
@@ -168,7 +197,14 @@ export function ChildCard({
             <p className="text-xs font-semibold text-gray-700">{translations.emergency2}</p>
           </div>
           <div className="ml-8 space-y-0.5">
-            <p className="text-xs text-gray-600 truncate">{child.emergency_contact_name_2 || translations.notRegistered}</p>
+            <button
+              onClick={() => toggleText('emergency2_name')}
+              className={`text-xs text-gray-600 text-left w-full hover:text-gray-800 transition-colors cursor-pointer max-w-full ${isExpanded('emergency2_name') ? 'break-words' : 'truncate'}`}
+              style={isExpanded('emergency2_name') ? { overflowWrap: 'anywhere', wordBreak: 'break-word', marginInline: '0' } : undefined}
+              title={getTooltipText('emergency2_name')}
+            >
+              {child.emergency_contact_name_2 || translations.notRegistered}
+            </button>
             {child.emergency_phone_2 ? (
               <button
                 onClick={(e) => onCopyPhone(child.emergency_phone_2!, e)}
@@ -189,36 +225,69 @@ export function ChildCard({
         </div>
 
         {/* Alergias */}
-        <div className="bg-white rounded-lg p-2.5 border border-gray-200 hover:border-red-300 hover:shadow-sm transition-all">
+        <div className="bg-white rounded-lg p-2.5 border border-gray-200 hover:border-red-300 hover:shadow-sm transition-all overflow-hidden">
           <div className="flex items-center gap-1.5 mb-1.5">
             <div className="w-6 h-6 bg-red-100 rounded-md flex items-center justify-center">
               <AlertCircle className="w-3.5 h-3.5 text-red-600" />
             </div>
             <p className="text-xs font-semibold text-gray-700">{translations.allergies}</p>
           </div>
-          <p className="text-sm text-gray-700 line-clamp-2 ml-8">{child.allergies || <span className="text-gray-400">{translations.noAllergies}</span>}</p>
+          {child.allergies ? (
+            <button
+              onClick={() => toggleText('allergies')}
+              className={`text-sm text-gray-700 text-left w-full ml-8 hover:text-gray-900 transition-colors cursor-pointer max-w-full ${isExpanded('allergies') ? 'break-words' : 'line-clamp-2'}`}
+              style={isExpanded('allergies') ? { overflowWrap: 'anywhere', wordBreak: 'break-word', marginInline: '0' } : undefined}
+              title={getTooltipText('allergies')}
+            >
+              {child.allergies}
+            </button>
+          ) : (
+            <p className="text-sm text-gray-400 ml-8">{translations.noAllergies}</p>
+          )}
         </div>
 
         {/* Notas */}
-        <div className="bg-white rounded-lg p-2.5 border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all">
+        <div className="bg-white rounded-lg p-2.5 border border-gray-200 hover:border-blue-300 hover:shadow-sm transition-all overflow-hidden">
           <div className="flex items-center gap-1.5 mb-1.5">
             <div className="w-6 h-6 bg-blue-100 rounded-md flex items-center justify-center">
               <FileText className="w-3.5 h-3.5 text-blue-600" />
             </div>
             <p className="text-xs font-semibold text-gray-700">{translations.notes}</p>
           </div>
-          <p className="text-sm text-gray-700 line-clamp-2 ml-8">{child.notes || <span className="text-gray-400">{translations.noNotes}</span>}</p>
+          {child.notes ? (
+            <button
+              onClick={() => toggleText('notes')}
+              className={`text-sm text-gray-700 text-left w-full ml-8 hover:text-gray-900 transition-colors cursor-pointer max-w-full ${isExpanded('notes') ? 'break-words' : 'line-clamp-2'}`}
+              style={isExpanded('notes') ? { overflowWrap: 'anywhere', wordBreak: 'break-word', marginInline: '0' } : undefined}
+              title={getTooltipText('notes')}
+            >
+              {child.notes}
+            </button>
+          ) : (
+            <p className="text-sm text-gray-400 ml-8">{translations.noNotes}</p>
+          )}
         </div>
 
         {/* Notas médicas */}
-        <div className="bg-white rounded-lg p-2.5 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all">
+        <div className="bg-white rounded-lg p-2.5 border border-gray-200 hover:border-purple-300 hover:shadow-sm transition-all overflow-hidden">
           <div className="flex items-center gap-1.5 mb-1.5">
             <div className="w-6 h-6 bg-purple-100 rounded-md flex items-center justify-center">
               <Stethoscope className="w-3.5 h-3.5 text-purple-600" />
             </div>
             <p className="text-xs font-semibold text-gray-700">{translations.medicalNotes}</p>
           </div>
-          <p className="text-sm text-gray-700 line-clamp-2 ml-8">{child.medicalNotes || <span className="text-gray-400">{translations.noMedicalNotes}</span>}</p>
+          {child.medicalNotes ? (
+            <button
+              onClick={() => toggleText('medicalNotes')}
+              className={`text-sm text-gray-700 text-left w-full ml-8 hover:text-gray-900 transition-colors cursor-pointer max-w-full ${isExpanded('medicalNotes') ? 'break-words' : 'line-clamp-2'}`}
+              style={isExpanded('medicalNotes') ? { overflowWrap: 'anywhere', wordBreak: 'break-word', marginInline: '0' } : undefined}
+              title={getTooltipText('medicalNotes')}
+            >
+              {child.medicalNotes}
+            </button>
+          ) : (
+            <p className="text-sm text-gray-400 ml-8">{translations.noMedicalNotes}</p>
+          )}
         </div>
       </div>
 

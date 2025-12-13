@@ -11,7 +11,7 @@ interface BirthdayPackage {
   id: number;
   nameEs: string;
   nameCa: string;
-  type: 'ALEGRIA' | 'FIESTA' | 'ESPECIAL';
+  type: 'ALEGRIA' | 'FIESTA' | 'ESPECIAL' | 'OTRO';
   durationEs: string | null;
   durationCa: string | null;
   price: string;
@@ -96,7 +96,21 @@ export function PackagesAndPrices() {
   });
 
   // Filter visible packages (active ones, or all for admin)
-  const visiblePackages = translatedPackages.filter(p => p.isActive || user?.role === 'ADMIN');
+  const filteredPackages = translatedPackages.filter(p => p.isActive || user?.role === 'ADMIN');
+  
+  // Order packages: ALEGRIA, OTRO, FIESTA, ESPECIAL
+  const orderMap: Record<string, number> = {
+    'ALEGRIA': 1,
+    'OTRO': 2,
+    'FIESTA': 3,
+    'ESPECIAL': 4
+  };
+  
+  const visiblePackages = filteredPackages.sort((a, b) => {
+    const orderA = orderMap[a.type] || 99;
+    const orderB = orderMap[b.type] || 99;
+    return orderA - orderB;
+  });
 
   useEffect(() => {
     fetchPackages();
@@ -161,6 +175,8 @@ export function PackagesAndPrices() {
     switch (type) {
       case 'ALEGRIA':
         return Heart;
+      case 'OTRO':
+        return Heart;
       case 'FIESTA':
         return Star;
       case 'ESPECIAL':
@@ -174,6 +190,8 @@ export function PackagesAndPrices() {
     switch (type) {
       case 'ALEGRIA':
         return 'from-pink-400 to-purple-500';
+      case 'OTRO':
+        return 'from-pink-300 to-purple-400';
       case 'FIESTA':
         return 'from-yellow-400 to-orange-500';
       case 'ESPECIAL':
@@ -186,6 +204,8 @@ export function PackagesAndPrices() {
   const getPackageBgColor = (type: string) => {
     switch (type) {
       case 'ALEGRIA':
+        return 'from-pink-50 to-purple-50';
+      case 'OTRO':
         return 'from-pink-50 to-purple-50';
       case 'FIESTA':
         return 'from-yellow-50 to-orange-50';
@@ -240,7 +260,7 @@ export function PackagesAndPrices() {
             ? 'md:grid-cols-1 justify-items-center' 
             : visiblePackages.length === 2 
             ? 'md:grid-cols-2 justify-items-center' 
-            : 'md:grid-cols-3'
+            : 'md:grid-cols-4'
         }`}>
           {visiblePackages.map((pack) => {
             const IconComponent = getPackageIcon(pack.type);
@@ -251,7 +271,7 @@ export function PackagesAndPrices() {
             return (
               <div
                 key={pack.id}
-                className={`relative p-8 bg-gradient-to-br ${!pack.isActive ? 'from-gray-100 to-gray-200 opacity-70' : bgColor} rounded-3xl shadow-soft hover:shadow-soft-lg transform hover:scale-105 active:scale-95 transition-all duration-300 flex flex-col max-w-sm w-full ${pack.isPopular && !isEditing ? 'ring-4 ring-yellow-300 ring-opacity-50' : ''
+                className={`relative p-6 bg-gradient-to-br ${!pack.isActive ? 'from-gray-100 to-gray-200 opacity-70' : bgColor} rounded-3xl shadow-soft hover:shadow-soft-lg transform hover:scale-105 active:scale-95 transition-all duration-300 flex flex-col max-w-sm w-full ${pack.isPopular && !isEditing ? 'ring-4 ring-yellow-300 ring-opacity-50' : ''
                   } ${user?.role === 'ADMIN' ? 'cursor-pointer' : ''} animate-fade-in`}
                 style={{ animationDelay: `${pack.id * 0.1}s` }}
                 onClick={() => user?.role === 'ADMIN' && !isEditing && handleEdit(pack)}
@@ -335,7 +355,7 @@ export function PackagesAndPrices() {
                       <div className="text-gray-600 mb-4">
                         {pack.duration}
                       </div>
-                      <div className="text-5xl font-bold text-gray-800 mb-2">
+                      <div className="text-3xl font-bold text-gray-800 mb-2">
                         {pack.price}
                       </div>
                       <div className="text-gray-600">
