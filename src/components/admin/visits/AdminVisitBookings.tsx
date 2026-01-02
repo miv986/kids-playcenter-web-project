@@ -134,8 +134,8 @@ export function AdminVisitBookings() {
         const now = new Date();
         const months: Date[] = [];
         
-        // Mostrar los últimos 3 meses (mes actual + 2 anteriores)
-        for (let i = 0; i < 3; i++) {
+        // Mostrar los últimos 12 meses (mes actual + 11 anteriores)
+        for (let i = 0; i < 12; i++) {
             const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
             months.push(monthDate);
         }
