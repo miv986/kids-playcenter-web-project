@@ -377,18 +377,7 @@ export function CalendarSection() {
                       </p>
                     </div>
                   )}
-                  <div className="mb-4 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-lg">
-                    <p className="text-sm text-amber-800 font-medium">
-                      {t('depositInfo')}
-                    </p>
-                  </div>
-                  <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-gray-700 break-words">
-                      <span className="font-semibold text-blue-600">💳 {t('bizumInfo')}</span>{' '}
-                      al número <span className="font-semibold text-blue-600 whitespace-nowrap">{t('bizumPhone')}</span>{' '}
-                      {t('bizumSendReceipt')} <span className="font-semibold text-blue-600 break-all">{t('bizumEmail')}</span>
-                    </p>
-                  </div>
+
                   <PacksForm data={birthdaySlots} selectedDay={selectedDay} onBookingCreated={reloadSlots} />
                 </div>
               )}
@@ -498,13 +487,7 @@ export function CalendarSection() {
                       {t('depositInfo')}
                     </p>
                   </div>
-                  <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-gray-700">
-                      <span className="font-semibold text-blue-600">💳 {t('bizumInfo')}</span>{' '}
-                      al número <span className="font-semibold text-blue-600 whitespace-nowrap">{t('bizumPhone')}</span>{' '}
-                      {t('bizumSendReceipt')} <span className="font-semibold text-blue-600">{t('bizumEmail')}</span>
-                    </p>
-                  </div>
+
                   <PacksForm data={birthdaySlots} selectedDay={selectedDay} onBookingCreated={reloadSlots} />
                 </div>
               )}

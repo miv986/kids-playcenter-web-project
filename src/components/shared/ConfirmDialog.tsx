@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, AlertTriangle } from 'lucide-react';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -18,10 +19,14 @@ export function ConfirmDialog({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirmar',
-  cancelText = 'Cancelar',
+  confirmText,
+  cancelText,
   variant = 'danger'
 }: ConfirmDialogProps) {
+  const { t } = useTranslation('Common');
+  const defaultConfirmText = confirmText || t('confirm');
+  const defaultCancelText = cancelText || t('cancel');
+  
   if (!isOpen) return null;
 
   const variantStyles = {
@@ -72,7 +77,7 @@ export function ConfirmDialog({
               onClick={onClose}
               className="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-xl font-medium hover:bg-gray-300 transition-colors"
             >
-              {cancelText}
+              {defaultCancelText}
             </button>
             <button
               onClick={() => {
@@ -81,7 +86,7 @@ export function ConfirmDialog({
               }}
               className={`flex-1 ${styles.button} px-4 py-2 rounded-xl font-medium transition-colors`}
             >
-              {confirmText}
+              {defaultConfirmText}
             </button>
           </div>
         </div>

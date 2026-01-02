@@ -78,11 +78,11 @@ export function Hero() {
             <div className="relative bg-gradient-to-br from-pink-200 via-purple-200 to-blue-200 rounded-3xl p-8 shadow-soft-lg hover:shadow-2xl transition-shadow duration-300">
               <div className="aspect-square rounded-2xl shadow-soft overflow-hidden relative bg-[#fef8e8]">
                 <Image
-                  src="/proximamente.jpeg"
-                  alt="Próxima apertura"
+                  src="/portada5.jpeg"
+                  alt="Bienvenidos a Somriures & Colors"
                   fill
                   sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-contain transition-transform duration-500 hover:scale-105"
+                  className="object-cover transition-transform duration-500 hover:scale-105"
                   priority
                 />
               </div>

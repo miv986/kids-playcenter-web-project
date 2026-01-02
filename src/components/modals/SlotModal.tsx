@@ -38,6 +38,7 @@ export function SlotModal<T extends GenericSlot>({
   isDaycare,
 }: SlotModalProps<T>) {
   const { t } = useTranslation('SlotModal');
+  const tCalendar = useTranslation('Calendar');
   const [formData, setFormData] = useState<Partial<T>>({
     date: new Date().toISOString(),
     startTime: new Date().toISOString(),
@@ -158,7 +159,7 @@ export function SlotModal<T extends GenericSlot>({
       // Si usa configuración avanzada, validar fechas seleccionadas
       if (useAdvancedConfig) {
         if (selectedDates.length === 0) {
-          showToast.error("Selecciona al menos una fecha");
+          showToast.error(t('selectAtLeastOneDate'));
           return;
         }
       }
@@ -234,10 +235,28 @@ export function SlotModal<T extends GenericSlot>({
     const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
     const firstDayOfWeek = (monthStart.getDay() + 6) % 7; // Lunes = 0
 
-    const daysOfWeek = ["L", "M", "X", "J", "V", "S", "D"];
+    const daysOfWeek = [
+      tCalendar.t('daysOfWeek.0'),
+      tCalendar.t('daysOfWeek.1'),
+      tCalendar.t('daysOfWeek.2'),
+      tCalendar.t('daysOfWeek.3'),
+      tCalendar.t('daysOfWeek.4'),
+      tCalendar.t('daysOfWeek.5'),
+      tCalendar.t('daysOfWeek.6'),
+    ];
     const months = [
-      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+      tCalendar.t('months.0'),
+      tCalendar.t('months.1'),
+      tCalendar.t('months.2'),
+      tCalendar.t('months.3'),
+      tCalendar.t('months.4'),
+      tCalendar.t('months.5'),
+      tCalendar.t('months.6'),
+      tCalendar.t('months.7'),
+      tCalendar.t('months.8'),
+      tCalendar.t('months.9'),
+      tCalendar.t('months.10'),
+      tCalendar.t('months.11'),
     ];
 
     return (
@@ -420,8 +439,8 @@ export function SlotModal<T extends GenericSlot>({
               onChange={(e) => handleChange("status" as keyof T, e.target.value)}
               className="border rounded px-2 py-1 w-full"
             >
-              <option value="OPEN">OPEN</option>
-              <option value="CLOSED">CLOSED</option>
+              <option value="OPEN">{t('open')}</option>
+              <option value="CLOSED">{t('closed')}</option>
             </select>
           </div>
         </div>

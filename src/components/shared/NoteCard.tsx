@@ -3,6 +3,7 @@ import { Clock, Edit, Trash2, Image as ImageIcon, UserCircle } from 'lucide-reac
 import { ChildNote } from '../../types/auth';
 import { format } from 'date-fns';
 import { Locale } from 'date-fns';
+import { useTranslation } from '../../contexts/TranslationContext';
 
 interface NoteCardProps {
   note: ChildNote;
@@ -27,6 +28,8 @@ export function NoteCard({
   onMarkAsRead,
   showAdminName = false
 }: NoteCardProps) {
+  const { t } = useTranslation('AdminTutors');
+  const tUserProfile = useTranslation('UserProfile');
   const noteIsRead = isRead !== undefined ? isRead : note.isRead;
 
   return (
@@ -52,7 +55,7 @@ export function NoteCard({
             <div className="flex items-center gap-2 text-xs text-gray-500">
               <Clock className="w-3 h-3" />
               <span>
-                {format(new Date(note.noteDate), "dd 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: dateFnsLocale })}
+                {format(new Date(note.noteDate), "dd/MM/yyyy HH:mm", { locale: dateFnsLocale })}
               </span>
             </div>
           </div>
@@ -66,7 +69,7 @@ export function NoteCard({
                   onEdit();
                 }}
                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                title="Editar nota"
+                title={t('editNote')}
               >
                 <Edit className="w-3.5 h-3.5" />
               </button>
@@ -78,7 +81,7 @@ export function NoteCard({
                   onDelete();
                 }}
                 className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-                title="Eliminar nota"
+                title={t('deleteNote')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
@@ -87,7 +90,7 @@ export function NoteCard({
         )}
         {!noteIsRead && (
           <span className="px-2 py-1 bg-blue-500 text-white text-xs rounded-full font-medium">
-            Nueva
+            {tUserProfile.t('new')}
           </span>
         )}
       </div>
@@ -107,7 +110,7 @@ export function NoteCard({
             >
               <img
                 src={imageUrl}
-                alt={`Foto ${idx + 1}`}
+                alt={`${t('image')} ${idx + 1}`}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
               />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
