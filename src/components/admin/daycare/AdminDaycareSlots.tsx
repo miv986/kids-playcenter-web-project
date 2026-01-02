@@ -237,7 +237,7 @@ export function AdminDaycareSlots() {
                 isLoaded: loadedMonths.has(monthKey),
                 isLoading: loadingMonths.has(monthKey)
             };
-        }).filter(month => month.totalSlots > 0); // Solo meses con slots
+        }); // Mostrar todos los meses, incluso sin slots
 
         // Ordenar por fecha descendente (más recientes primero)
         return monthsData.sort((a, b) => b.monthStart.getTime() - a.monthStart.getTime());
@@ -897,8 +897,14 @@ export function AdminDaycareSlots() {
                                                 {/* Semanas del mes (expandible) */}
                                                 {isExpanded && month.isLoaded && (
                                                     <div className="border-t border-gray-200 bg-gray-50 p-4">
-                                                        <div className="space-y-3">
-                                                            {month.weeks.map((week) => {
+                                                        {month.weeks.length === 0 ? (
+                                                            <div className="text-center py-8">
+                                                                <Clock className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                                                                <p className="text-gray-500">{t.t('noSlotsMonth')}</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-3">
+                                                                {month.weeks.map((week) => {
                                                                 const weekKey = `${month.monthKey}-${week.weekStart.getTime()}`;
                                                                 const isWeekExpanded = expandedWeeks.has(weekKey);
 
@@ -1045,7 +1051,8 @@ export function AdminDaycareSlots() {
                                                                     </div>
                                                                 );
                                                             })}
-                                                        </div>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>
