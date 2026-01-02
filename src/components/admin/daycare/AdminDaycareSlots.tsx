@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Calendar, Plus, Trash2, Edit3, CalendarDays, Clock, Settings, Filter, CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
-import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval } from "date-fns";
+import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import { es, ca } from "date-fns/locale";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useDaycareSlots } from "../../../contexts/DaycareSlotContext";
@@ -14,8 +14,9 @@ import { Pagination } from "../../shared/Pagination";
 
 export function AdminDaycareSlots() {
     const { user } = useAuth();
-    const { fetchSlots, generateSlots, updateSlot, deleteSlot } = useDaycareSlots();
+    const { fetchSlots, fetchSlotsByMonth, generateSlots, updateSlot, deleteSlot } = useDaycareSlots();
     const t = useTranslation('AdminDaycareSlots');
+    const tCommon = useTranslation('Common');
     const locale = t.locale;
     const dateFnsLocale = locale === 'ca' ? ca : es;
     const { confirm, ConfirmComponent } = useConfirm();
@@ -30,6 +31,12 @@ export function AdminDaycareSlots() {
     const [selectedSlots, setSelectedSlots] = useState<Set<number>>(new Set());
     const [dateFilter, setDateFilter] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
     const [showDateFilter, setShowDateFilter] = useState(false);
+    const [loadedMonths, setLoadedMonths] = useState<Set<string>>(new Set()); // Track qué meses están cargados
+    const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set()); // Track qué meses están expandidos
+    const [loadingMonths, setLoadingMonths] = useState<Set<string>>(new Set()); // Track qué meses se están cargando
+    const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set()); // Track qué semanas están expandidas
+    const [weekPages, setWeekPages] = useState<Record<string, number>>({}); // Paginación por semana
+    const ITEMS_PER_PAGE = 20;
 
     const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
 
@@ -43,26 +50,64 @@ export function AdminDaycareSlots() {
         setIsModalOpen(false);
     };
 
-    // Fetch all slots - UNA SOLA PETICIÓN
+    // Función para cargar un mes específico
+    const loadMonth = useCallback(async (year: number, month: number, isInitial = false) => {
+        const monthKey = `${year}-${month}`;
+        
+        // Si ya está cargado, no hacer nada
+        if (loadedMonths.has(monthKey)) return;
+        
+        // Marcar como cargando
+        setLoadingMonths(prev => new Set(prev).add(monthKey));
+        
+        try {
+            const monthSlots = await fetchSlotsByMonth(year, month);
+            setSlots(prev => {
+                // Combinar slots existentes con los nuevos, evitando duplicados
+                const existingIds = new Set(prev.map(s => s.id));
+                const newSlots = monthSlots.filter(s => !existingIds.has(s.id));
+                return [...prev, ...newSlots];
+            });
+            setLoadedMonths(prev => new Set(prev).add(monthKey));
+            if (isInitial) {
+                setExpandedMonths(prev => new Set(prev).add(monthKey));
+            }
+        } catch (error) {
+            console.error("Error cargando mes:", error);
+        } finally {
+            setLoadingMonths(prev => {
+                const next = new Set(prev);
+                next.delete(monthKey);
+                return next;
+            });
+        }
+    }, [fetchSlotsByMonth, loadedMonths]);
+
+    // Cargar mes actual al inicio
     useEffect(() => {
         if (!!user) {
-            fetchSlots().then(
-                (slots) => {
-                    setSlots(slots || []);
-                },
-            );
+            const now = new Date();
+            loadMonth(now.getFullYear(), now.getMonth(), true);
         }
-    }, [user]);
+    }, [user, loadMonth]);
 
     // Filtrar slots del día seleccionado desde todos los slots cargados
     const dailySlots = useMemo(() => {
         if (!selectedDate) return [];
         
-        return slots.filter(slot => {
+        const filtered = slots.filter(slot => {
             const slotDate = new Date(slot.date);
             return slotDate.getFullYear() === selectedDate.getFullYear() &&
                 slotDate.getMonth() === selectedDate.getMonth() &&
                 slotDate.getDate() === selectedDate.getDate();
+        });
+        
+        // Ordenar por hora ascendente (09:00, 10:00, etc.)
+        return filtered.sort((a, b) => {
+            // openHour puede ser string o DateTime, convertir a Date para comparar
+            const timeA = typeof a.openHour === 'string' ? new Date(a.openHour).getTime() : new Date(a.openHour).getTime();
+            const timeB = typeof b.openHour === 'string' ? new Date(b.openHour).getTime() : new Date(b.openHour).getTime();
+            return timeA - timeB;
         });
     }, [slots, selectedDate]);
 
@@ -88,66 +133,137 @@ export function AdminDaycareSlots() {
 
     const slotsToShow = selectedDate ? (filteredDailySlots || []) : (filteredSlots || []);
 
-    // Agrupar slots por semana
-    const slotsByWeek = useMemo(() => {
+    // Agrupar slots por mes y luego por semanas dentro de cada mes
+    const slotsByMonth = useMemo(() => {
         if (slotsToShow.length === 0 || selectedDate) return [];
 
-        // Obtener todas las fechas únicas de los slots
-        const uniqueDates = Array.from(
-            new Set(slotsToShow.map(slot => {
-                const date = new Date(slot.date);
-                date.setHours(0, 0, 0, 0);
-                return date.getTime();
-            }))
-        ).map(timestamp => new Date(timestamp));
+        // Siempre mostrar al menos el mes actual y algunos meses anteriores
+        const now = new Date();
+        const months: Date[] = [];
+        
+        // Mostrar los últimos 3 meses (mes actual + 2 anteriores)
+        for (let i = 0; i < 3; i++) {
+            const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push(monthDate);
+        }
+        
+        // Si hay slots, añadir también los meses que contienen esos slots
+        if (slotsToShow.length > 0) {
+            const uniqueDates = Array.from(
+                new Set(slotsToShow.map(slot => {
+                    const date = new Date(slot.date);
+                    date.setHours(0, 0, 0, 0);
+                    return date.getTime();
+                }))
+            ).map(timestamp => new Date(timestamp));
 
-        if (uniqueDates.length === 0) return [];
+            if (uniqueDates.length > 0) {
+                const minDate = new Date(Math.min(...uniqueDates.map(d => d.getTime())));
+                const maxDate = new Date(Math.max(...uniqueDates.map(d => d.getTime())));
+                const monthsWithData = eachMonthOfInterval({ start: minDate, end: maxDate });
+                
+                // Añadir meses con datos que no estén ya en la lista
+                const monthsSet = new Set(months.map(m => `${m.getFullYear()}-${m.getMonth()}`));
+                monthsWithData.forEach(monthDate => {
+                    const monthKey = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
+                    if (!monthsSet.has(monthKey)) {
+                        months.push(monthDate);
+                    }
+                });
+            }
+        }
 
-        // Encontrar el rango de fechas
-        const minDate = new Date(Math.min(...uniqueDates.map(d => d.getTime())));
-        const maxDate = new Date(Math.max(...uniqueDates.map(d => d.getTime())));
-
-        // Obtener todas las semanas en el rango
-        const weeks = eachWeekOfInterval(
-            { start: minDate, end: maxDate },
-            { weekStartsOn: 1 } // Lunes
-        );
-
-        // Agrupar slots por semana
-        const weeksData = weeks.map(weekStart => {
-            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-            const weekSlots = slotsToShow.filter(slot => {
+        // Agrupar slots por mes y luego por semanas
+        const monthsData = months.map(monthStart => {
+            const monthEnd = endOfMonth(monthStart);
+            const monthSlots = slotsToShow.filter(slot => {
                 const slotDate = new Date(slot.date);
                 slotDate.setHours(0, 0, 0, 0);
-                return isWithinInterval(slotDate, { start: weekStart, end: weekEnd });
+                return slotDate >= startOfMonth(monthStart) && slotDate <= monthEnd;
             });
 
-            // Ordenar slots por fecha descendente (más recientes primero)
-            const sortedSlots = weekSlots.sort((a, b) => {
-                const dateA = new Date(a.date).getTime();
-                const dateB = new Date(b.date).getTime();
-                return dateB - dateA;
-            });
+            // Obtener todas las semanas en el mes
+            const weeks = eachWeekOfInterval(
+                { start: startOfMonth(monthStart), end: monthEnd },
+                { weekStartsOn: 1 } // Lunes
+            );
 
+            // Agrupar slots por semana dentro del mes
+            const weeksData = weeks.map(weekStart => {
+                const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                const weekSlots = monthSlots.filter(slot => {
+                    const slotDate = new Date(slot.date);
+                    slotDate.setHours(0, 0, 0, 0);
+                    return isWithinInterval(slotDate, { start: weekStart, end: weekEnd });
+                });
+
+                // Ordenar slots por fecha ascendente y luego por hora ascendente
+                const sortedSlots = weekSlots.sort((a, b) => {
+                    const dateA = new Date(a.date).getTime();
+                    const dateB = new Date(b.date).getTime();
+                    if (dateA !== dateB) {
+                        return dateA - dateB; // Fecha ascendente
+                    }
+                    // Si es la misma fecha, ordenar por hora ascendente
+                    const timeA = typeof a.openHour === 'string' ? new Date(a.openHour).getTime() : new Date(a.openHour).getTime();
+                    const timeB = typeof b.openHour === 'string' ? new Date(b.openHour).getTime() : new Date(b.openHour).getTime();
+                    return timeA - timeB;
+                });
+
+                return {
+                    weekStart,
+                    weekEnd,
+                    slots: sortedSlots,
+                    totalSlots: weekSlots.length,
+                    availableSlots: weekSlots.filter(s => s.status === 'OPEN').length,
+                    totalCapacity: weekSlots.reduce((acc, s) => acc + s.capacity, 0),
+                    availableCapacity: weekSlots.reduce((acc, s) => acc + s.availableSpots, 0)
+                };
+            }).filter(week => week.totalSlots > 0); // Solo semanas con slots
+
+            // Ordenar semanas por fecha ascendente
+            weeksData.sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
+
+            const monthKey = `${monthStart.getFullYear()}-${monthStart.getMonth()}`;
             return {
-                weekStart,
-                weekEnd,
-                slots: sortedSlots,
-                totalSlots: weekSlots.length,
-                availableSlots: weekSlots.filter(s => s.status === 'OPEN').length,
-                totalCapacity: weekSlots.reduce((acc, s) => acc + s.capacity, 0),
-                availableCapacity: weekSlots.reduce((acc, s) => acc + s.availableSpots, 0)
+                monthStart,
+                monthEnd,
+                monthKey,
+                weeks: weeksData,
+                totalSlots: monthSlots.length,
+                availableSlots: monthSlots.filter(s => s.status === 'OPEN').length,
+                totalCapacity: monthSlots.reduce((acc, s) => acc + s.capacity, 0),
+                availableCapacity: monthSlots.reduce((acc, s) => acc + s.availableSpots, 0),
+                isLoaded: loadedMonths.has(monthKey),
+                isLoading: loadingMonths.has(monthKey)
             };
-        }).filter(week => week.totalSlots > 0); // Solo semanas con slots
+        }).filter(month => month.totalSlots > 0); // Solo meses con slots
 
         // Ordenar por fecha descendente (más recientes primero)
-        return weeksData.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
-    }, [slotsToShow, selectedDate]);
+        return monthsData.sort((a, b) => b.monthStart.getTime() - a.monthStart.getTime());
+    }, [slotsToShow, selectedDate, loadedMonths, loadingMonths]);
 
-    const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
-    const [weekPages, setWeekPages] = useState<Record<string, number>>({});
-    const ITEMS_PER_PAGE = 20;
+    // Función para expandir/colapsar un mes y cargarlo si es necesario
+    const toggleMonth = async (monthKey: string, year: number, month: number) => {
+        const isExpanded = expandedMonths.has(monthKey);
+        
+        if (!isExpanded && !loadedMonths.has(monthKey)) {
+            // Si no está cargado, cargarlo primero
+            await loadMonth(year, month);
+        }
+        
+        setExpandedMonths(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(monthKey)) {
+                newSet.delete(monthKey);
+            } else {
+                newSet.add(monthKey);
+            }
+            return newSet;
+        });
+    };
 
+    // Función para expandir/colapsar una semana
     const toggleWeek = (weekKey: string) => {
         setExpandedWeeks(prev => {
             const newSet = new Set(prev);
@@ -415,7 +531,12 @@ export function AdminDaycareSlots() {
             <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center justify-between">
                 <div className="flex gap-2 w-full sm:w-auto">
                     <button
-                        onClick={() => setViewMode("calendar")}
+                        onClick={() => {
+                            setViewMode("calendar");
+                            if (viewMode === "list") {
+                                setSelectedDate(undefined);
+                            }
+                        }}
                         className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${viewMode === "calendar"
                                 ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -425,7 +546,10 @@ export function AdminDaycareSlots() {
                         <span className="hidden sm:inline">{t.t('calendarView')}</span>
                     </button>
                     <button
-                        onClick={() => setViewMode("list")}
+                        onClick={() => {
+                            setViewMode("list");
+                            setSelectedDate(undefined);
+                        }}
                         className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${viewMode === "list"
                                 ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -590,7 +714,7 @@ export function AdminDaycareSlots() {
                                                                 <p className="text-sm text-gray-600">
                                                                     {t.t('spots')}: {slot.availableSpots}/{slot.capacity}
                                                                 </p>
-                                                                <p className="text-sm text-gray-600">{t.t('status')}: {slot.status}</p>
+                                                                <p className="text-sm text-gray-600">{t.t('status')}: {slot.status === 'OPEN' ? t.t('statusOpen') : t.t('statusClosed')}</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-1">
@@ -687,7 +811,7 @@ export function AdminDaycareSlots() {
                                                             ? 'bg-green-100 text-green-800'
                                                             : 'bg-red-100 text-red-800'
                                                         }`}>
-                                                        {slot.status}
+                                                        {slot.status === 'OPEN' ? t.t('statusOpen') : t.t('statusClosed')}
                                                     </div>
                                                     <div className="text-sm text-gray-600">
                                                         {slot.availableSpots}/{slot.capacity} {t.t('spots')}
@@ -714,19 +838,19 @@ export function AdminDaycareSlots() {
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {slotsByWeek.map((week) => {
-                                        const weekKey = `${week.weekStart.getTime()}`;
-                                        const isExpanded = expandedWeeks.has(weekKey);
+                                    {slotsByMonth.map((month) => {
+                                        const isExpanded = expandedMonths.has(month.monthKey);
 
                                         return (
                                             <div
-                                                key={weekKey}
+                                                key={month.monthKey}
                                                 className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden"
                                             >
-                                                {/* Card de semana */}
+                                                {/* Card de mes */}
                                                 <button
-                                                    onClick={() => toggleWeek(weekKey)}
-                                                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                                    onClick={() => toggleMonth(month.monthKey, month.monthStart.getFullYear(), month.monthStart.getMonth())}
+                                                    disabled={month.isLoading}
+                                                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
                                                 >
                                                     <div className="flex items-center gap-4 flex-1">
                                                         <div className="flex items-center gap-2">
@@ -739,24 +863,30 @@ export function AdminDaycareSlots() {
                                                         </div>
                                                         <div className="text-left">
                                                             <div className="font-semibold text-gray-800">
-                                                                {format(week.weekStart, "dd 'de' MMMM", { locale: dateFnsLocale })} - {format(week.weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                                {format(month.monthStart, "MMMM 'de' yyyy", { locale: dateFnsLocale })}
                                                             </div>
                                                             <div className="text-sm text-gray-500">
-                                                                {week.totalSlots} {t.t('slots')} • {week.availableSlots} {t.t('available')} • {week.availableCapacity}/{week.totalCapacity} {t.t('spots')}
+                                                                {month.totalSlots} {t.t('slots')} • {month.availableSlots} {t.t('available')} • {month.availableCapacity}/{month.totalCapacity} {t.t('spots')}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2">
+                                                        {month.isLoading && (
+                                                            <div className="text-sm text-gray-500">{tCommon.t('loading')}</div>
+                                                        )}
+                                                        {!month.isLoaded && !month.isLoading && (
+                                                            <div className="text-xs text-gray-400">{tCommon.t('clickToLoad')}</div>
+                                                        )}
                                                         <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                            week.availableSlots === 0 
+                                                            month.availableSlots === 0 
                                                                 ? 'bg-red-100 text-red-800'
-                                                                : week.availableSlots === week.totalSlots
+                                                                : month.availableSlots === month.totalSlots
                                                                 ? 'bg-green-100 text-green-800'
                                                                 : 'bg-yellow-100 text-yellow-800'
                                                         }`}>
-                                                            {week.availableSlots === 0 
+                                                            {month.availableSlots === 0 
                                                                 ? t.t('full')
-                                                                : week.availableSlots === week.totalSlots
+                                                                : month.availableSlots === month.totalSlots
                                                                 ? t.t('available')
                                                                 : t.t('partial')
                                                             }
@@ -764,16 +894,70 @@ export function AdminDaycareSlots() {
                                                     </div>
                                                 </button>
 
-                                                {/* Slots de la semana (expandible) */}
-                                                {isExpanded && (() => {
-                                                    const paginatedSlots = getPaginatedSlots(week.slots, weekKey);
-                                                    const totalPages = getTotalPages(week.slots);
-                                                    const currentPage = getWeekPage(weekKey);
+                                                {/* Semanas del mes (expandible) */}
+                                                {isExpanded && month.isLoaded && (
+                                                    <div className="border-t border-gray-200 bg-gray-50 p-4">
+                                                        <div className="space-y-3">
+                                                            {month.weeks.map((week) => {
+                                                                const weekKey = `${month.monthKey}-${week.weekStart.getTime()}`;
+                                                                const isWeekExpanded = expandedWeeks.has(weekKey);
 
-                                                    return (
-                                                        <div className="border-t border-gray-200 bg-gray-50 p-4">
-                                                            <div className="space-y-2 mb-4">
-                                                                {paginatedSlots.map((slot) => (
+                                                                return (
+                                                                    <div
+                                                                        key={weekKey}
+                                                                        className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                                                                    >
+                                                                        {/* Card de semana */}
+                                                                        <button
+                                                                            onClick={() => toggleWeek(weekKey)}
+                                                                            className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                                                        >
+                                                                            <div className="flex items-center gap-4 flex-1">
+                                                                                <div className="flex items-center gap-2">
+                                                                                    {isWeekExpanded ? (
+                                                                                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                                                                                    ) : (
+                                                                                        <ChevronRight className="w-4 h-4 text-gray-500" />
+                                                                                    )}
+                                                                                    <CalendarDays className="w-4 h-4 text-blue-500" />
+                                                                                </div>
+                                                                                <div className="text-left">
+                                                                                    <div className="font-medium text-gray-800 text-sm">
+                                                                                        {format(week.weekStart, "dd 'de' MMMM", { locale: dateFnsLocale })} - {format(week.weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                                                    </div>
+                                                                                    <div className="text-xs text-gray-500">
+                                                                                        {week.totalSlots} {t.t('slots')} • {week.availableSlots} {t.t('available')} • {week.availableCapacity}/{week.totalCapacity} {t.t('spots')}
+                                                                                    </div>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                                                    week.availableSlots === 0 
+                                                                                        ? 'bg-red-100 text-red-800'
+                                                                                        : week.availableSlots === week.totalSlots
+                                                                                        ? 'bg-green-100 text-green-800'
+                                                                                        : 'bg-yellow-100 text-yellow-800'
+                                                                                }`}>
+                                                                                    {week.availableSlots === 0 
+                                                                                        ? t.t('full')
+                                                                                        : week.availableSlots === week.totalSlots
+                                                                                        ? t.t('available')
+                                                                                        : t.t('partial')
+                                                                                    }
+                                                                                </div>
+                                                                            </div>
+                                                                        </button>
+
+                                                                        {/* Slots de la semana (expandible) */}
+                                                                        {isWeekExpanded && (() => {
+                                                                            const paginatedSlots = getPaginatedSlots(week.slots, weekKey);
+                                                                            const totalPages = getTotalPages(week.slots);
+                                                                            const currentPage = getWeekPage(weekKey);
+
+                                                                            return (
+                                                                                <div className="border-t border-gray-200 bg-gray-50 p-3">
+                                                                                    <div className="space-y-2 mb-4">
+                                                                                        {paginatedSlots.map((slot) => (
                                                             <div
                                                                 key={slot.id}
                                                                 className={`bg-white p-3 rounded-lg border flex justify-between items-center ${selectedSlots.has(slot.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''
@@ -813,7 +997,7 @@ export function AdminDaycareSlots() {
                                                                                 ? 'bg-green-100 text-green-800'
                                                                                 : 'bg-red-100 text-red-800'
                                                                             }`}>
-                                                                            {slot.status}
+                                                                            {slot.status === 'OPEN' ? t.t('statusOpen') : t.t('statusClosed')}
                                                                         </div>
                                                                         <div className="text-sm text-gray-600">
                                                                             {slot.availableSpots}/{slot.capacity} {t.t('spots')}
@@ -838,24 +1022,32 @@ export function AdminDaycareSlots() {
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                        ))}
-                                                            </div>
+                                                                                        ))}
+                                                                                    </div>
 
-                                                            {/* Paginación */}
-                                                            <div className="pt-4 border-t border-gray-300">
-                                                                <div className="text-sm text-gray-600 mb-3 text-center">
-                                                                    {t.t('showing')} {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, week.slots.length)} {t.t('of')} {week.slots.length}
-                                                                </div>
-                                                                <Pagination
-                                                                    currentPage={currentPage}
-                                                                    totalPages={totalPages}
-                                                                    onPageChange={(page) => setWeekPage(weekKey, page)}
-                                                                    className="mt-0 mb-0"
-                                                                />
-                                                            </div>
+                                                                                    {/* Paginación */}
+                                                                                    {totalPages > 1 && (
+                                                                                        <div className="pt-3 border-t border-gray-300">
+                                                                                            <div className="text-sm text-gray-600 mb-2 text-center">
+                                                                                                {t.t('showing')} {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, week.slots.length)} {t.t('of')} {week.slots.length}
+                                                                                            </div>
+                                                                                            <Pagination
+                                                                                                currentPage={currentPage}
+                                                                                                totalPages={totalPages}
+                                                                                                onPageChange={(page) => setWeekPage(weekKey, page)}
+                                                                                                className="mt-0 mb-0"
+                                                                                            />
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            );
+                                                                        })()}
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
-                                                    );
-                                                })()}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}

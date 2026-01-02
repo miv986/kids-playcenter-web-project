@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Calendar, Users, Trash2, Phone, Clock, CalendarDays, Mail, MessageSquare, X, Copy, Check, ChevronDown, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
 import { useDaycareBookings } from '../../../contexts/DaycareBookingContext';
 import { DaycareBooking } from '../../../types/auth';
 import { useAuth } from '../../../contexts/AuthContext';
-import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
 import { es, ca } from 'date-fns/locale';
 import { CalendarComponent } from '../../shared/Calendar';
 import { useTranslation } from '../../../contexts/TranslationContext';
@@ -16,7 +16,7 @@ import { SearchBar } from '../../shared/SearchBar';
 export function AdminDaycareBookings() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [bookings, setBookings] = useState([] as Array<DaycareBooking>);
-    const { fetchBookings, updateBooking, deleteBooking, cancelBooking, markAttendance } = useDaycareBookings();
+    const { fetchBookings, fetchBookingsByMonth, updateBooking, deleteBooking, cancelBooking, markAttendance } = useDaycareBookings();
     const [filter, setFilter] = useState<'all' | 'CONFIRMED' | 'CANCELLED'>('all');
     const { user } = useAuth();
     const t = useTranslation('AdminDaycareBookings');
@@ -32,6 +32,9 @@ export function AdminDaycareBookings() {
     const [copiedPhone, setCopiedPhone] = useState<string | null>(null);
     const [isLoadingBookings, setIsLoadingBookings] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
+    const [loadedMonths, setLoadedMonths] = useState<Set<string>>(new Set()); // Track qué meses están cargados
+    const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set()); // Track qué meses están expandidos
+    const [loadingMonths, setLoadingMonths] = useState<Set<string>>(new Set()); // Track qué meses se están cargando
 
     const openModal = (booking: DaycareBooking) => {
         setSelectedBooking(booking);
@@ -63,17 +66,58 @@ export function AdminDaycareBookings() {
         }
     };
 
-    useEffect(() => {
-        if (!!user) {
+    // Función para cargar un mes específico
+    const loadMonth = useCallback(async (year: number, month: number, isInitial = false) => {
+        const monthKey = `${year}-${month}`;
+        
+        // Si ya está cargado, no hacer nada
+        if (loadedMonths.has(monthKey)) {
+            if (isInitial) {
+                setIsLoadingBookings(false);
+            }
+            return;
+        }
+        
+        // Marcar como cargando
+        setLoadingMonths(prev => new Set(prev).add(monthKey));
+        if (isInitial) {
             setIsLoadingBookings(true);
-            fetchBookings().then((bookings) => {
-                setBookings(bookings);
+        }
+        
+        try {
+            const monthBookings = await fetchBookingsByMonth(year, month);
+            setBookings(prev => {
+                // Combinar bookings existentes con los nuevos, evitando duplicados
+                const existingIds = new Set(prev.map(b => b.id));
+                const newBookings = monthBookings.filter(b => !existingIds.has(b.id));
+                return [...prev, ...newBookings];
+            });
+            setLoadedMonths(prev => new Set(prev).add(monthKey));
+            if (isInitial) {
+                setExpandedMonths(prev => new Set(prev).add(monthKey));
                 setIsLoadingBookings(false);
-            }).catch(() => {
+            }
+        } catch (error) {
+            console.error("Error cargando mes:", error);
+            if (isInitial) {
                 setIsLoadingBookings(false);
+            }
+        } finally {
+            setLoadingMonths(prev => {
+                const next = new Set(prev);
+                next.delete(monthKey);
+                return next;
             });
         }
-    }, [user]);
+    }, [fetchBookingsByMonth, loadedMonths]);
+
+    // Cargar mes actual al inicio
+    useEffect(() => {
+        if (!!user) {
+            const now = new Date();
+            loadMonth(now.getFullYear(), now.getMonth(), true);
+        }
+    }, [user, loadMonth]);
 
     const filteredBookings = useMemo(() => {
         let result = bookings.filter(booking =>
@@ -209,85 +253,183 @@ export function AdminDaycareBookings() {
 
     // Aplicar filtro de búsqueda también a dailyBookings si hay una fecha seleccionada
     const filteredDailyBookings = useMemo(() => {
-        if (!searchQuery.trim()) return dailyBookings;
-        const query = searchQuery.toLowerCase().trim();
-        return dailyBookings.filter(booking => {
-            const bookingId = booking.id.toString();
-            const userName = booking.user?.name?.toLowerCase() || "";
-            const userEmail = booking.user?.email?.toLowerCase() || "";
-            const comments = booking.comments?.toLowerCase() || "";
-            const startTime = booking.startTime ? format(new Date(booking.startTime), "dd/MM/yyyy HH:mm", { locale: dateFnsLocale }) : "";
-            const endTime = booking.endTime ? format(new Date(booking.endTime), "HH:mm", { locale: dateFnsLocale }) : "";
-            const status = booking.status.toLowerCase();
-            const childrenNames = booking.children?.map(c => `${c.name} ${c.surname}`).join(" ").toLowerCase() || "";
-            
-            return bookingId.includes(query) ||
-                   userName.includes(query) ||
-                   userEmail.includes(query) ||
-                   comments.includes(query) ||
-                   startTime.includes(query) ||
-                   endTime.includes(query) ||
-                   status.includes(query) ||
-                   childrenNames.includes(query);
+        let result = dailyBookings;
+        
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            result = dailyBookings.filter(booking => {
+                const bookingId = booking.id.toString();
+                const userName = booking.user?.name?.toLowerCase() || "";
+                const userEmail = booking.user?.email?.toLowerCase() || "";
+                const comments = booking.comments?.toLowerCase() || "";
+                const startTime = booking.startTime ? format(new Date(booking.startTime), "dd/MM/yyyy HH:mm", { locale: dateFnsLocale }) : "";
+                const endTime = booking.endTime ? format(new Date(booking.endTime), "HH:mm", { locale: dateFnsLocale }) : "";
+                const status = booking.status.toLowerCase();
+                const childrenNames = booking.children?.map(c => `${c.name} ${c.surname}`).join(" ").toLowerCase() || "";
+                
+                return bookingId.includes(query) ||
+                       userName.includes(query) ||
+                       userEmail.includes(query) ||
+                       comments.includes(query) ||
+                       startTime.includes(query) ||
+                       endTime.includes(query) ||
+                       status.includes(query) ||
+                       childrenNames.includes(query);
+            });
+        }
+        
+        // Ordenar por hora ascendente (09:00, 10:00, etc.)
+        return result.sort((a, b) => {
+            const timeA = new Date(a.startTime).getTime();
+            const timeB = new Date(b.startTime).getTime();
+            return timeA - timeB;
         });
     }, [dailyBookings, searchQuery, dateFnsLocale]);
 
     const bookingsToShow = selectedDate ? filteredDailyBookings : filteredBookings;
 
-    // Agrupar reservas por semana
-    const bookingsByWeek = useMemo(() => {
-        if (bookingsToShow.length === 0 || selectedDate) return [];
+    // Agrupar reservas por mes y luego por semanas dentro de cada mes
+    const bookingsByMonth = useMemo(() => {
+        if (bookingsToShow.length === 0) return [];
 
-        // Obtener todas las fechas únicas de las reservas
-        const uniqueDates = Array.from(
-            new Set(bookingsToShow.map(booking => {
-                const date = new Date(booking.startTime);
-                date.setHours(0, 0, 0, 0);
-                return date.getTime();
-            }))
-        ).map(timestamp => new Date(timestamp));
+        // Si hay un día seleccionado, mostrar las reservas de ese día
+        if (selectedDate) {
+            const selectedDateStart = startOfMonth(selectedDate);
+            const selectedDateEnd = endOfMonth(selectedDate);
+            const monthKey = `${selectedDate.getFullYear()}-${selectedDate.getMonth()}`;
+            
+            // Obtener la semana que contiene el día seleccionado
+            const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+            const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
+            
+            // Ordenar reservas por hora ascendente
+            const sortedBookings = [...bookingsToShow].sort((a, b) => {
+                const timeA = new Date(a.startTime).getTime();
+                const timeB = new Date(b.startTime).getTime();
+                return timeA - timeB;
+            });
 
-        if (uniqueDates.length === 0) return [];
+            return [{
+                monthStart: selectedDateStart,
+                monthEnd: selectedDateEnd,
+                monthKey,
+                weeks: [{
+                    weekStart,
+                    weekEnd,
+                    bookings: sortedBookings,
+                    totalBookings: sortedBookings.length,
+                    confirmedBookings: sortedBookings.filter(b => b.status === 'CONFIRMED').length,
+                    cancelledBookings: sortedBookings.filter(b => b.status === 'CANCELLED').length
+                }],
+                totalBookings: sortedBookings.length,
+                confirmedBookings: sortedBookings.filter(b => b.status === 'CONFIRMED').length,
+                cancelledBookings: sortedBookings.filter(b => b.status === 'CANCELLED').length,
+                isLoaded: loadedMonths.has(monthKey),
+                isLoading: loadingMonths.has(monthKey)
+            }];
+        }
 
-        // Encontrar el rango de fechas
-        const minDate = new Date(Math.min(...uniqueDates.map(d => d.getTime())));
-        const maxDate = new Date(Math.max(...uniqueDates.map(d => d.getTime())));
+        // Siempre mostrar al menos el mes actual y algunos meses anteriores
+        const now = new Date();
+        const months: Date[] = [];
+        
+        // Mostrar los últimos 3 meses (mes actual + 2 anteriores)
+        for (let i = 0; i < 3; i++) {
+            const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push(monthDate);
+        }
+        
+        // Si hay reservas, añadir también los meses que contienen esas reservas
+        if (bookingsToShow.length > 0) {
+            const uniqueDates = Array.from(
+                new Set(bookingsToShow.map(booking => {
+                    const date = new Date(booking.startTime);
+                    date.setHours(0, 0, 0, 0);
+                    return date.getTime();
+                }))
+            ).map(timestamp => new Date(timestamp));
 
-        // Obtener todas las semanas en el rango
-        const weeks = eachWeekOfInterval(
-            { start: minDate, end: maxDate },
-            { weekStartsOn: 1 } // Lunes
-        );
+            if (uniqueDates.length > 0) {
+                const minDate = new Date(Math.min(...uniqueDates.map(d => d.getTime())));
+                const maxDate = new Date(Math.max(...uniqueDates.map(d => d.getTime())));
+                const monthsWithData = eachMonthOfInterval({ start: minDate, end: maxDate });
+                
+                // Añadir meses con datos que no estén ya en la lista
+                const monthsSet = new Set(months.map(m => `${m.getFullYear()}-${m.getMonth()}`));
+                monthsWithData.forEach(monthDate => {
+                    const monthKey = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
+                    if (!monthsSet.has(monthKey)) {
+                        months.push(monthDate);
+                    }
+                });
+            }
+        }
 
-        // Agrupar reservas por semana
-        const weeksData = weeks.map(weekStart => {
-            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-            const weekBookings = bookingsToShow.filter(booking => {
+        // Agrupar reservas por mes y luego por semanas
+        const monthsData = months.map(monthStart => {
+            const monthEnd = endOfMonth(monthStart);
+            const monthBookings = bookingsToShow.filter(booking => {
                 const bookingDate = new Date(booking.startTime);
                 bookingDate.setHours(0, 0, 0, 0);
-                return isWithinInterval(bookingDate, { start: weekStart, end: weekEnd });
+                return bookingDate >= startOfMonth(monthStart) && bookingDate <= monthEnd;
             });
 
-            // Ordenar reservas por fecha descendente (más recientes primero)
-            const sortedBookings = weekBookings.sort((a, b) => {
-                const dateA = new Date(a.startTime).getTime();
-                const dateB = new Date(b.startTime).getTime();
-                return dateB - dateA;
-            });
+            // Obtener todas las semanas en el mes
+            const weeks = eachWeekOfInterval(
+                { start: startOfMonth(monthStart), end: monthEnd },
+                { weekStartsOn: 1 } // Lunes
+            );
 
+            // Agrupar reservas por semana dentro del mes
+            const weeksData = weeks.map(weekStart => {
+                const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                const weekBookings = monthBookings.filter(booking => {
+                    const bookingDate = new Date(booking.startTime);
+                    bookingDate.setHours(0, 0, 0, 0);
+                    return isWithinInterval(bookingDate, { start: weekStart, end: weekEnd });
+                });
+
+                // Ordenar reservas por fecha ascendente y luego por hora ascendente
+                const sortedBookings = weekBookings.sort((a, b) => {
+                    const dateA = new Date(a.startTime).getTime();
+                    const dateB = new Date(b.startTime).getTime();
+                    if (dateA !== dateB) {
+                        return dateA - dateB; // Fecha ascendente
+                    }
+                    // Si es la misma fecha, ordenar por hora ascendente
+                    return dateA - dateB;
+                });
+
+                return {
+                    weekStart,
+                    weekEnd,
+                    bookings: sortedBookings,
+                    totalBookings: weekBookings.length,
+                    confirmedBookings: weekBookings.filter(b => b.status === 'CONFIRMED').length,
+                    cancelledBookings: weekBookings.filter(b => b.status === 'CANCELLED').length
+                };
+            }).filter(week => week.totalBookings > 0); // Solo semanas con reservas
+
+            // Ordenar semanas por fecha ascendente
+            weeksData.sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
+
+            const monthKey = `${monthStart.getFullYear()}-${monthStart.getMonth()}`;
             return {
-                weekStart,
-                weekEnd,
-                bookings: sortedBookings,
-                totalBookings: weekBookings.length,
-                confirmedBookings: weekBookings.filter(b => b.status === 'CONFIRMED').length,
-                cancelledBookings: weekBookings.filter(b => b.status === 'CANCELLED').length
+                monthStart,
+                monthEnd,
+                monthKey,
+                weeks: weeksData,
+                totalBookings: monthBookings.length,
+                confirmedBookings: monthBookings.filter(b => b.status === 'CONFIRMED').length,
+                cancelledBookings: monthBookings.filter(b => b.status === 'CANCELLED').length,
+                isLoaded: loadedMonths.has(monthKey),
+                isLoading: loadingMonths.has(monthKey)
             };
-        }).filter(week => week.totalBookings > 0); // Solo semanas con reservas
+        }).filter(month => month.totalBookings > 0); // Solo meses con reservas
 
         // Ordenar por fecha descendente (más recientes primero)
-        return weeksData.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
-    }, [bookingsToShow, selectedDate]);
+        return monthsData.sort((a, b) => b.monthStart.getTime() - a.monthStart.getTime());
+    }, [bookingsToShow, selectedDate, loadedMonths, loadingMonths]);
 
     // Agrupar reservas por día (para compatibilidad con vista de calendario)
     const bookingsByDate = useMemo(() => {
@@ -305,6 +447,26 @@ export function AdminDaycareBookings() {
     const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
     const [weekPages, setWeekPages] = useState<Record<string, number>>({});
     const ITEMS_PER_PAGE = 20;
+
+    // Función para expandir/colapsar un mes y cargarlo si es necesario
+    const toggleMonth = async (monthKey: string, year: number, month: number) => {
+        const isExpanded = expandedMonths.has(monthKey);
+        
+        if (!isExpanded && !loadedMonths.has(monthKey)) {
+            // Si no está cargado, cargarlo primero
+            await loadMonth(year, month);
+        }
+        
+        setExpandedMonths(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(monthKey)) {
+                newSet.delete(monthKey);
+            } else {
+                newSet.add(monthKey);
+            }
+            return newSet;
+        });
+    };
 
     const toggleWeek = (weekKey: string) => {
         setExpandedWeeks(prev => {
@@ -350,7 +512,13 @@ export function AdminDaycareBookings() {
             <div className="mb-4 flex flex-wrap gap-2 sm:gap-4 items-center justify-between">
                 <div className="flex gap-2 w-full sm:w-auto">
                     <button
-                        onClick={() => setViewMode("calendar")}
+                        onClick={() => {
+                            setViewMode("calendar");
+                            if (viewMode === "list") {
+                                setSelectedDate(undefined);
+                                setDailyBookings([]);
+                            }
+                        }}
                         className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${viewMode === "calendar"
                             ? "bg-blue-500 text-white"
                             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -360,7 +528,11 @@ export function AdminDaycareBookings() {
                         <span className="hidden sm:inline">{t.t('calendarView')}</span>
                     </button>
                     <button
-                        onClick={() => setViewMode("list")}
+                        onClick={() => {
+                            setViewMode("list");
+                            setSelectedDate(undefined);
+                            setDailyBookings([]);
+                        }}
                         className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${viewMode === "list"
                             ? "bg-blue-500 text-white"
                             : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -466,11 +638,41 @@ export function AdminDaycareBookings() {
                                                                 <Users className="w-4 h-4 text-gray-600" />
                                                                 <span className="text-gray-700">{booking.user?.children?.map(child => child.name).join(', ') || t.t('user')}</span>
                                                             </div>
-                                                            <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'CONFIRMED'
-                                                                ? 'bg-green-100 text-green-800'
-                                                                : 'bg-red-100 text-red-800'
-                                                                }`}>
-                                                                {booking.status}
+                                                            <div className="flex flex-wrap gap-2 items-center">
+                                                                <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'CONFIRMED'
+                                                                    ? 'bg-green-100 text-green-800'
+                                                                    : 'bg-red-100 text-red-800'
+                                                                    }`}>
+                                                                    {booking.status === 'CONFIRMED' ? t.t('statusConfirmed') : 
+                                                                     booking.status === 'CANCELLED' ? t.t('statusCancelled') : 
+                                                                     t.t('statusPending')}
+                                                                </div>
+                                                                {booking.attendanceStatus && (
+                                                                    <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                                                        booking.attendanceStatus === 'ATTENDED'
+                                                                            ? 'bg-green-50 text-green-700 border border-green-200'
+                                                                            : booking.attendanceStatus === 'NOT_ATTENDED'
+                                                                            ? 'bg-red-50 text-red-700 border border-red-200'
+                                                                            : 'bg-gray-50 text-gray-700 border border-gray-200'
+                                                                    }`}>
+                                                                        {booking.attendanceStatus === 'ATTENDED' ? (
+                                                                            <>
+                                                                                <CheckCircle2 className="w-3 h-3" />
+                                                                                <span>{t.t('attended')}</span>
+                                                                            </>
+                                                                        ) : booking.attendanceStatus === 'NOT_ATTENDED' ? (
+                                                                            <>
+                                                                                <XCircle className="w-3 h-3" />
+                                                                                <span>{t.t('notAttended')}</span>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Clock className="w-3 h-3" />
+                                                                                <span>{t.t('pending')}</span>
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-2">
@@ -534,7 +736,7 @@ export function AdminDaycareBookings() {
                                 <div className="flex items-center justify-center py-12">
                                     <Spinner size="lg" text={t.t('loading')} />
                                 </div>
-                            ) : bookingsByWeek.length === 0 ? (
+                            ) : bookingsByMonth.length === 0 ? (
                                 <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
                                     <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <h3 className="text-xl font-semibold text-gray-600 mb-2">
@@ -551,23 +753,23 @@ export function AdminDaycareBookings() {
                                     </p>
                                 </div>
                             ) : (
-                                bookingsByWeek.map((week) => {
-                                    const weekKey = `${week.weekStart.getTime()}`;
-                                    const isExpanded = expandedWeeks.has(weekKey);
+                                bookingsByMonth.map((month) => {
+                                    const isMonthExpanded = expandedMonths.has(month.monthKey);
 
                                     return (
                                         <div
-                                            key={weekKey}
+                                            key={month.monthKey}
                                             className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden"
                                         >
-                                            {/* Card de semana */}
+                                            {/* Card de mes */}
                                             <button
-                                                onClick={() => toggleWeek(weekKey)}
-                                                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                                onClick={() => toggleMonth(month.monthKey, month.monthStart.getFullYear(), month.monthStart.getMonth())}
+                                                disabled={month.isLoading}
+                                                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
                                             >
                                                 <div className="flex items-center gap-4 flex-1">
                                                     <div className="flex items-center gap-2">
-                                                        {isExpanded ? (
+                                                        {isMonthExpanded ? (
                                                             <ChevronDown className="w-5 h-5 text-gray-500" />
                                                         ) : (
                                                             <ChevronRight className="w-5 h-5 text-gray-500" />
@@ -576,27 +778,75 @@ export function AdminDaycareBookings() {
                                                     </div>
                                                     <div className="text-left">
                                                         <div className="font-semibold text-gray-800">
-                                                            {format(week.weekStart, "dd 'de' MMMM", { locale: dateFnsLocale })} - {format(week.weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                            {format(month.monthStart, "MMMM 'de' yyyy", { locale: dateFnsLocale })}
                                                         </div>
                                                         <div className="text-sm text-gray-500">
-                                                            {week.totalBookings} {week.totalBookings !== 1 ? t.t('reservations') : t.t('reservation')} • 
-                                                            {' '}{week.confirmedBookings} {t.t('confirmed')} • 
-                                                            {' '}{week.cancelledBookings} {t.t('cancelled')}
+                                                            {month.totalBookings} {month.totalBookings !== 1 ? t.t('reservations') : t.t('reservation')} • 
+                                                            {' '}{month.confirmedBookings} {t.t('confirmed')} • 
+                                                            {' '}{month.cancelledBookings} {t.t('cancelled')}
                                                         </div>
                                                     </div>
                                                 </div>
+                                                <div className="flex items-center gap-2">
+                                                        {month.isLoading && (
+                                                            <div className="text-sm text-gray-500">{tCommon.t('loading')}</div>
+                                                        )}
+                                                        {!month.isLoaded && !month.isLoading && (
+                                                            <div className="text-xs text-gray-400">{tCommon.t('clickToLoad')}</div>
+                                                        )}
+                                                </div>
                                             </button>
 
-                                            {/* Reservas de la semana (expandible) */}
-                                            {isExpanded && (() => {
-                                                const paginatedBookings = getPaginatedBookings(week.bookings, weekKey);
-                                                const totalPages = getTotalPages(week.bookings);
-                                                const currentPage = getWeekPage(weekKey);
+                                            {/* Semanas del mes (expandible) */}
+                                            {isMonthExpanded && month.isLoaded && (
+                                                <div className="border-t border-gray-200 bg-gray-50 p-4">
+                                                    <div className="space-y-3">
+                                                        {month.weeks.map((week) => {
+                                                            const weekKey = `${month.monthKey}-${week.weekStart.getTime()}`;
+                                                            const isWeekExpanded = expandedWeeks.has(weekKey);
 
-                                                return (
-                                                    <div className="border-t border-gray-200 bg-gray-50 p-4">
-                                                        <div className="space-y-3 mb-4">
-                                                            {paginatedBookings.map((booking) => (
+                                                            return (
+                                                                <div
+                                                                    key={weekKey}
+                                                                    className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                                                                >
+                                                                    {/* Card de semana */}
+                                                                    <button
+                                                                        onClick={() => toggleWeek(weekKey)}
+                                                                        className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                                                    >
+                                                                        <div className="flex items-center gap-4 flex-1">
+                                                                            <div className="flex items-center gap-2">
+                                                                                {isWeekExpanded ? (
+                                                                                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                                                                                ) : (
+                                                                                    <ChevronRight className="w-4 h-4 text-gray-500" />
+                                                                                )}
+                                                                                <CalendarDays className="w-4 h-4 text-blue-500" />
+                                                                            </div>
+                                                                            <div className="text-left">
+                                                                                <div className="font-medium text-gray-800 text-sm">
+                                                                                    {format(week.weekStart, "dd 'de' MMMM", { locale: dateFnsLocale })} - {format(week.weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                                                </div>
+                                                                                <div className="text-xs text-gray-500">
+                                                                                    {week.totalBookings} {week.totalBookings !== 1 ? t.t('reservations') : t.t('reservation')} • 
+                                                                                    {' '}{week.confirmedBookings} {t.t('confirmed')} • 
+                                                                                    {' '}{week.cancelledBookings} {t.t('cancelled')}
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
+                                                                    </button>
+
+                                                                    {/* Reservas de la semana (expandible) */}
+                                                                    {isWeekExpanded && (() => {
+                                                                        const paginatedBookings = getPaginatedBookings(week.bookings, weekKey);
+                                                                        const totalPages = getTotalPages(week.bookings);
+                                                                        const currentPage = getWeekPage(weekKey);
+
+                                                                        return (
+                                                                            <div className="border-t border-gray-200 bg-gray-50 p-3">
+                                                                                <div className="space-y-3 mb-4">
+                                                                                    {paginatedBookings.map((booking) => (
                                                         <div
                                                             key={booking.id}
                                                             className="bg-white p-4 rounded-lg border"
@@ -619,15 +869,43 @@ export function AdminDaycareBookings() {
                                                                         <Users className="w-4 h-4 text-gray-600" />
                                                                         <span className="text-gray-700">{booking.children?.map(child => child.name).join(', ') || t.t('user')}</span>
                                                                     </div>
-                                                                    <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'CONFIRMED'
-                                                                        ? 'bg-green-100 text-green-800'
-                                                                        : booking.status === 'CANCELLED'
-                                                                        ? 'bg-red-100 text-red-800'
-                                                                        : 'bg-gray-100 text-gray-800'
-                                                                        }`}>
-                                                                        {booking.status === 'CONFIRMED' ? t.t('confirmed') : 
-                                                                         booking.status === 'CANCELLED' ? t.t('cancelled') : 
-                                                                         t.t('pending')}
+                                                                    <div className="flex flex-wrap gap-2 items-center">
+                                                                        <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'CONFIRMED'
+                                                                            ? 'bg-green-100 text-green-800'
+                                                                            : booking.status === 'CANCELLED'
+                                                                            ? 'bg-red-100 text-red-800'
+                                                                            : 'bg-gray-100 text-gray-800'
+                                                                            }`}>
+                                                                            {booking.status === 'CONFIRMED' ? t.t('confirmed') : 
+                                                                             booking.status === 'CANCELLED' ? t.t('cancelled') : 
+                                                                             t.t('pending')}
+                                                                        </div>
+                                                                        {booking.attendanceStatus && (
+                                                                            <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                                                                booking.attendanceStatus === 'ATTENDED'
+                                                                                    ? 'bg-green-50 text-green-700 border border-green-200'
+                                                                                    : booking.attendanceStatus === 'NOT_ATTENDED'
+                                                                                    ? 'bg-red-50 text-red-700 border border-red-200'
+                                                                                    : 'bg-gray-50 text-gray-700 border border-gray-200'
+                                                                            }`}>
+                                                                                {booking.attendanceStatus === 'ATTENDED' ? (
+                                                                                    <>
+                                                                                        <CheckCircle2 className="w-3 h-3" />
+                                                                                        <span>{t.t('attended')}</span>
+                                                                                    </>
+                                                                                ) : booking.attendanceStatus === 'NOT_ATTENDED' ? (
+                                                                                    <>
+                                                                                        <XCircle className="w-3 h-3" />
+                                                                                        <span>{t.t('notAttended')}</span>
+                                                                                    </>
+                                                                                ) : (
+                                                                                    <>
+                                                                                        <Clock className="w-3 h-3" />
+                                                                                        <span>{t.t('pending')}</span>
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 </div>
                                                                 <div className="flex gap-2 ml-2 sm:ml-4">
@@ -649,24 +927,32 @@ export function AdminDaycareBookings() {
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    ))}
-                                                        </div>
+                                                                                    ))}
+                                                                                </div>
 
-                                                        {/* Paginación */}
-                                                        <div className="pt-4 border-t border-gray-300">
-                                                            <div className="text-sm text-gray-600 mb-3 text-center">
-                                                                {t.t('showing')} {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, week.bookings.length)} {t.t('of')} {week.bookings.length}
-                                                            </div>
-                                                            <Pagination
-                                                                currentPage={currentPage}
-                                                                totalPages={totalPages}
-                                                                onPageChange={(page) => setWeekPage(weekKey, page)}
-                                                                className="mt-0 mb-0"
-                                                            />
-                                                        </div>
+                                                                                {/* Paginación */}
+                                                                                {totalPages > 1 && (
+                                                                                    <div className="pt-3 border-t border-gray-300">
+                                                                                        <div className="text-sm text-gray-600 mb-2 text-center">
+                                                                                            {t.t('showing')} {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, week.bookings.length)} {t.t('of')} {week.bookings.length}
+                                                                                        </div>
+                                                                                        <Pagination
+                                                                                            currentPage={currentPage}
+                                                                                            totalPages={totalPages}
+                                                                                            onPageChange={(page) => setWeekPage(weekKey, page)}
+                                                                                            className="mt-0 mb-0"
+                                                                                        />
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })()}
+                                                                </div>
+                                                            );
+                                                        })}
                                                     </div>
-                                                );
-                                            })()}
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })
@@ -680,7 +966,7 @@ export function AdminDaycareBookings() {
                     <CalendarComponent
                         availableDaysDB={availableDaysDB}
                         selectedDate={selectedDate}
-                        onSelectDate={(date) => {
+                        onSelectDate={async (date) => {
                             setSelectedDate(date);
                             const dayBookings = bookings.filter(b => {
                                 const bookingDate = new Date(b.startTime);
@@ -688,7 +974,31 @@ export function AdminDaycareBookings() {
                                     bookingDate.getMonth() === date.getMonth() &&
                                     bookingDate.getDate() === date.getDate();
                             });
-                            setDailyBookings(dayBookings);
+                            // Ordenar por hora ascendente
+                            const sorted = dayBookings.sort((a, b) => {
+                                return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+                            });
+                            setDailyBookings(sorted);
+                            
+                            // Expandir automáticamente el mes y la semana correspondientes
+                            const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+                            const weekKey = `${monthKey}-${startOfWeek(date, { weekStartsOn: 1 }).getTime()}`;
+                            
+                            // Cargar el mes si no está cargado
+                            if (!loadedMonths.has(monthKey)) {
+                                await loadMonth(date.getFullYear(), date.getMonth());
+                            }
+                            
+                            // Expandir el mes
+                            setExpandedMonths(prev => new Set(prev).add(monthKey));
+                            
+                            // Expandir la semana
+                            setExpandedWeeks(prev => new Set(prev).add(weekKey));
+                            
+                            // Cambiar a vista de lista si está en vista de calendario
+                            if (viewMode === "calendar") {
+                                setViewMode("list");
+                            }
                         }}
                         bookedDaysDB={bookedDays}
                         currentMonth={currentMonth}
@@ -854,80 +1164,117 @@ export function AdminDaycareBookings() {
 
                         {/* Botones de acción */}
                         <div className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 mt-4 space-y-3">
-                            {/* Checkboxes de asistencia (solo si está confirmada) */}
-                            {selectedBooking.status === 'CONFIRMED' && (
-                                <div className="bg-gray-50 p-4 rounded-xl mb-3">
-                                    <h4 className="font-semibold text-gray-700 mb-3">{t.t('attendance')}:</h4>
-                                    <div className="flex gap-6">
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <div className="relative">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedBooking.attendanceStatus === 'ATTENDED'}
-                                                    onChange={async (e) => {
-                                                        if (e.target.checked) {
-                                                            try {
-                                                                const updated = await markAttendance(selectedBooking.id, 'ATTENDED');
-                                                                setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updated : b));
-                                                                setSelectedBooking(updated);
-                                                                showToast.success(t.t('attendanceMarked'));
-                                                            } catch (err: any) {
-                                                                showToast.error(err.message || t.t('errorMarkingAttendance'));
-                                                            }
+                            {/* Radio buttons de asistencia (siempre visible) */}
+                            <div className="bg-gray-50 p-4 rounded-xl mb-3">
+                                <h4 className="font-semibold text-gray-700 mb-3">{t.t('attendance')}:</h4>
+                                <div className="flex gap-6">
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <div className="relative">
+                                            <input
+                                                type="radio"
+                                                name={`attendance-${selectedBooking.id}`}
+                                                checked={selectedBooking.attendanceStatus === 'ATTENDED'}
+                                                onChange={async () => {
+                                                    try {
+                                                        const updated = await markAttendance(selectedBooking.id, 'ATTENDED');
+                                                        setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updated : b));
+                                                        if (selectedDate) {
+                                                            setDailyBookings(prev => prev.map(b => b.id === selectedBooking.id ? updated : b));
                                                         }
-                                                    }}
-                                                    className="w-6 h-6 rounded border-2 border-gray-300 appearance-none checked:bg-green-500 checked:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all cursor-pointer relative"
-                                                    style={{
-                                                        backgroundImage: selectedBooking.attendanceStatus === 'ATTENDED' ? 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'white\'%3E%3Cpath d=\'M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z\'/%3E%3C/svg%3E")' : 'none',
-                                                        backgroundSize: 'contain',
-                                                        backgroundRepeat: 'no-repeat',
-                                                        backgroundPosition: 'center'
-                                                    }}
-                                                />
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <CheckCircle2 className={`w-5 h-5 transition-colors ${selectedBooking.attendanceStatus === 'ATTENDED' ? 'text-green-600' : 'text-gray-400'}`} />
-                                                <span className={`font-medium transition-colors ${selectedBooking.attendanceStatus === 'ATTENDED' ? 'text-green-700' : 'text-gray-600'}`}>
-                                                    {t.t('attended')}
-                                                </span>
-                                            </div>
-                                        </label>
-                                        <label className="flex items-center gap-3 cursor-pointer group">
-                                            <div className="relative">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedBooking.attendanceStatus === 'NOT_ATTENDED'}
-                                                    onChange={async (e) => {
-                                                        if (e.target.checked) {
-                                                            try {
-                                                                const updated = await markAttendance(selectedBooking.id, 'NOT_ATTENDED');
-                                                                setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updated : b));
-                                                                setSelectedBooking(updated);
-                                                                showToast.success(t.t('attendanceMarked'));
-                                                            } catch (err: any) {
-                                                                showToast.error(err.message || t.t('errorMarkingAttendance'));
-                                                            }
+                                                        setSelectedBooking(updated);
+                                                        showToast.success(t.t('attendanceMarked'));
+                                                    } catch (err: any) {
+                                                        showToast.error(err.message || t.t('errorMarkingAttendance'));
+                                                    }
+                                                }}
+                                                className="w-5 h-5 border-2 border-gray-300 appearance-none rounded-full checked:bg-green-500 checked:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all cursor-pointer relative"
+                                                style={{
+                                                    backgroundImage: selectedBooking.attendanceStatus === 'ATTENDED' ? 'radial-gradient(circle, white 30%, transparent 30%)' : 'none',
+                                                    backgroundSize: 'contain',
+                                                    backgroundRepeat: 'no-repeat',
+                                                    backgroundPosition: 'center'
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle2 className={`w-5 h-5 transition-colors ${selectedBooking.attendanceStatus === 'ATTENDED' ? 'text-green-600' : 'text-gray-400'}`} />
+                                            <span className={`font-medium transition-colors ${selectedBooking.attendanceStatus === 'ATTENDED' ? 'text-green-700' : 'text-gray-600'}`}>
+                                                {t.t('attended')}
+                                            </span>
+                                        </div>
+                                    </label>
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <div className="relative">
+                                            <input
+                                                type="radio"
+                                                name={`attendance-${selectedBooking.id}`}
+                                                checked={selectedBooking.attendanceStatus === 'NOT_ATTENDED'}
+                                                onChange={async () => {
+                                                    try {
+                                                        const updated = await markAttendance(selectedBooking.id, 'NOT_ATTENDED');
+                                                        setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updated : b));
+                                                        if (selectedDate) {
+                                                            setDailyBookings(prev => prev.map(b => b.id === selectedBooking.id ? updated : b));
                                                         }
-                                                    }}
-                                                    className="w-6 h-6 rounded border-2 border-gray-300 appearance-none checked:bg-red-500 checked:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all cursor-pointer relative"
-                                                    style={{
-                                                        backgroundImage: selectedBooking.attendanceStatus === 'NOT_ATTENDED' ? 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'white\'%3E%3Cpath d=\'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z\'/%3E%3C/svg%3E")' : 'none',
-                                                        backgroundSize: 'contain',
-                                                        backgroundRepeat: 'no-repeat',
-                                                        backgroundPosition: 'center'
-                                                    }}
-                                                />
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                                <XCircle className={`w-5 h-5 transition-colors ${selectedBooking.attendanceStatus === 'NOT_ATTENDED' ? 'text-red-600' : 'text-gray-400'}`} />
-                                                <span className={`font-medium transition-colors ${selectedBooking.attendanceStatus === 'NOT_ATTENDED' ? 'text-red-700' : 'text-gray-600'}`}>
-                                                    {t.t('notAttended')}
-                                                </span>
-                                            </div>
-                                        </label>
-                                    </div>
+                                                        setSelectedBooking(updated);
+                                                        showToast.success(t.t('attendanceMarked'));
+                                                    } catch (err: any) {
+                                                        showToast.error(err.message || t.t('errorMarkingAttendance'));
+                                                    }
+                                                }}
+                                                className="w-5 h-5 border-2 border-gray-300 appearance-none rounded-full checked:bg-red-500 checked:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all cursor-pointer relative"
+                                                style={{
+                                                    backgroundImage: selectedBooking.attendanceStatus === 'NOT_ATTENDED' ? 'radial-gradient(circle, white 30%, transparent 30%)' : 'none',
+                                                    backgroundSize: 'contain',
+                                                    backgroundRepeat: 'no-repeat',
+                                                    backgroundPosition: 'center'
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <XCircle className={`w-5 h-5 transition-colors ${selectedBooking.attendanceStatus === 'NOT_ATTENDED' ? 'text-red-600' : 'text-gray-400'}`} />
+                                            <span className={`font-medium transition-colors ${selectedBooking.attendanceStatus === 'NOT_ATTENDED' ? 'text-red-700' : 'text-gray-600'}`}>
+                                                {t.t('notAttended')}
+                                            </span>
+                                        </div>
+                                    </label>
+                                    <label className="flex items-center gap-3 cursor-pointer group">
+                                        <div className="relative">
+                                            <input
+                                                type="radio"
+                                                name={`attendance-${selectedBooking.id}`}
+                                                checked={selectedBooking.attendanceStatus === 'PENDING' || !selectedBooking.attendanceStatus}
+                                                onChange={async () => {
+                                                    try {
+                                                        const updated = await markAttendance(selectedBooking.id, 'PENDING');
+                                                        setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updated : b));
+                                                        if (selectedDate) {
+                                                            setDailyBookings(prev => prev.map(b => b.id === selectedBooking.id ? updated : b));
+                                                        }
+                                                        setSelectedBooking(updated);
+                                                        showToast.success(t.t('attendanceMarked'));
+                                                    } catch (err: any) {
+                                                        showToast.error(err.message || t.t('errorMarkingAttendance'));
+                                                    }
+                                                }}
+                                                className="w-5 h-5 border-2 border-gray-300 appearance-none rounded-full checked:bg-gray-500 checked:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all cursor-pointer relative"
+                                                style={{
+                                                    backgroundImage: (selectedBooking.attendanceStatus === 'PENDING' || !selectedBooking.attendanceStatus) ? 'radial-gradient(circle, white 30%, transparent 30%)' : 'none',
+                                                    backgroundSize: 'contain',
+                                                    backgroundRepeat: 'no-repeat',
+                                                    backgroundPosition: 'center'
+                                                }}
+                                            />
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Clock className={`w-5 h-5 transition-colors ${(selectedBooking.attendanceStatus === 'PENDING' || !selectedBooking.attendanceStatus) ? 'text-gray-600' : 'text-gray-400'}`} />
+                                            <span className={`font-medium transition-colors ${(selectedBooking.attendanceStatus === 'PENDING' || !selectedBooking.attendanceStatus) ? 'text-gray-700' : 'text-gray-600'}`}>
+                                                {t.t('pending')}
+                                            </span>
+                                        </div>
+                                    </label>
                                 </div>
-                            )}
+                            </div>
                             {/* Botones de cambio de estado */}
                             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                                 {selectedBooking.status !== 'CONFIRMED' && (

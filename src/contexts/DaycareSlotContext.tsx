@@ -5,6 +5,7 @@ import { DaycareSlot } from "../types/auth";
 
 interface DaycareSlotContextType {
     fetchSlots: () => Promise<DaycareSlot[]>;
+    fetchSlotsByMonth: (year: number, month: number) => Promise<DaycareSlot[]>;
     generateSlots: (params: { startDate: string; openHour: string; closeHour: string; capacity: number; customDates?: string[] }) => Promise<void>;
     updateSlot: (id: number, data: Partial<DaycareSlot>) => Promise<DaycareSlot | undefined>;
     updateMultipleSlots: (params: {
@@ -169,10 +170,37 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
         }
     };
 
+    // 📅 Obtener slots por mes específico (año y mes: 0-11)
+    const fetchSlotsByMonth = async (year: number, month: number) => {
+        try {
+            const startDate = new Date(year, month, 1);
+            const endDate = new Date(year, month + 1, 0); // Último día del mes
+            
+            const startYear = startDate.getFullYear();
+            const startMonth = (startDate.getMonth() + 1).toString().padStart(2, "0");
+            const startDay = startDate.getDate().toString().padStart(2, "0");
+            const formattedStartDate = `${startYear}-${startMonth}-${startDay}`;
+
+            const endYear = endDate.getFullYear();
+            const endMonth = (endDate.getMonth() + 1).toString().padStart(2, "0");
+            const endDay = endDate.getDate().toString().padStart(2, "0");
+            const formattedEndDate = `${endYear}-${endMonth}-${endDay}`;
+
+            const data = await http.get(`/api/daycareSlots/?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
+            return data || [];
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("❌ Error obteniendo slots por mes:", err);
+            }
+            return [];
+        }
+    };
+
     return (
         <DaycareSlotContext.Provider
             value={{
                 fetchSlots,
+                fetchSlotsByMonth,
                 generateSlots,
                 updateSlot,
                 updateMultipleSlots,

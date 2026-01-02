@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import { Calendar, Plus, Trash2, Edit3, CalendarDays, Clock, Settings, Filter, CheckSquare, Square, ChevronDown, ChevronRight } from "lucide-react";
-import { format } from "date-fns";
+import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import { es, ca } from "date-fns/locale";
 import { useAuth } from "../../../contexts/AuthContext";
 import { useMeetingSlots } from "../../../contexts/MeetingSlotContext";
@@ -12,11 +12,13 @@ import { useConfirm } from "../../../hooks/useConfirm";
 import { Pagination } from "../../shared/Pagination";
 import { Spinner } from "../../shared/Spinner";
 import { MeetingSlot } from "../../../types/auth";
+import { useMonthLoading, useWeekPagination } from "../../../hooks/useMonthWeekGrouping";
 
 export function AdminVisitSlots() {
     const { user } = useAuth();
-    const { fetchSlots, createSlot, updateSlot, deleteSlot } = useMeetingSlots();
+    const { fetchSlots, fetchSlotsByMonth, createSlot, updateSlot, deleteSlot } = useMeetingSlots();
     const t = useTranslation('AdminVisitSlots');
+    const tCommon = useTranslation('Common');
     const locale = t.locale;
     const dateFnsLocale = locale === 'ca' ? ca : es;
     const { confirm, ConfirmComponent } = useConfirm();
@@ -31,10 +33,11 @@ export function AdminVisitSlots() {
     const [selectedSlots, setSelectedSlots] = useState<Set<number>>(new Set());
     const [dateFilter, setDateFilter] = useState<{ start: Date | null, end: Date | null }>({ start: null, end: null });
     const [showDateFilter, setShowDateFilter] = useState(false);
-    const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
-    const [weekPages, setWeekPages] = useState<Record<string, number>>({});
     const [isLoadingSlots, setIsLoadingSlots] = useState(true);
-    const ITEMS_PER_PAGE = 10;
+    
+    // Usar hooks helper para meses y semanas
+    const monthLoading = useMonthLoading();
+    const weekPagination = useWeekPagination();
 
     const openModal = (slot?: MeetingSlot) => {
         setSelectedSlot(slot || undefined);
@@ -46,32 +49,36 @@ export function AdminVisitSlots() {
         setIsModalOpen(false);
     };
 
+    // Cargar mes actual al inicio
     useEffect(() => {
         if (!!user) {
-            loadSlots();
+            const now = new Date();
+            setIsLoadingSlots(true);
+            monthLoading.loadMonth(
+                now.getFullYear(),
+                now.getMonth(),
+                fetchSlotsByMonth,
+                setSlots,
+                true
+            ).finally(() => {
+                setIsLoadingSlots(false);
+            });
         }
-    }, [user]);
-
-    const loadSlots = async () => {
-        setIsLoadingSlots(true);
-        try {
-            const fetchedSlots = await fetchSlots();
-            setSlots(fetchedSlots || []);
-        } catch (error) {
-            console.error("Error loading slots:", error);
-        } finally {
-            setIsLoadingSlots(false);
-        }
-    };
+    }, [user, monthLoading.loadMonth, fetchSlotsByMonth]);
 
     const dailySlots = useMemo(() => {
         if (!selectedDate) return [];
         
-        return slots.filter(slot => {
+        const filtered = slots.filter(slot => {
             const slotDate = new Date(slot.date);
             return slotDate.getFullYear() === selectedDate.getFullYear() &&
                 slotDate.getMonth() === selectedDate.getMonth() &&
                 slotDate.getDate() === selectedDate.getDate();
+        });
+        
+        // Ordenar por hora de inicio ascendente
+        return filtered.sort((a, b) => {
+            return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
         });
     }, [slots, selectedDate]);
 
@@ -95,52 +102,114 @@ export function AdminVisitSlots() {
 
     const slotsToShow = selectedDate ? (filteredDailySlots || []) : (filteredSlots || []);
 
-    const slotsByWeek = useMemo(() => {
-        if (slotsToShow.length === 0 || selectedDate) return [];
+    // Agrupar slots por meses y semanas
+    const slotsByMonth = useMemo(() => {
+        // Si hay una fecha seleccionada, no mostrar agrupación por meses (mostrar vista diaria)
+        if (selectedDate) return [];
 
-        const uniqueDates = Array.from(
-            new Set(slotsToShow.map(slot => {
-                const date = new Date(slot.date);
-                date.setHours(0, 0, 0, 0);
-                return date.getTime();
-            }))
-        ).map(timestamp => new Date(timestamp));
+        // Siempre mostrar al menos el mes actual y algunos meses anteriores
+        const now = new Date();
+        const months: Date[] = [];
+        
+        // Mostrar los últimos 3 meses (mes actual + 2 anteriores)
+        for (let i = 0; i < 3; i++) {
+            const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push(monthDate);
+        }
+        
+        // Si hay slots, añadir también los meses que contienen esos slots
+        if (slotsToShow.length > 0) {
+            const uniqueDates = Array.from(
+                new Set(slotsToShow.map(slot => {
+                    const date = new Date(slot.date);
+                    date.setHours(0, 0, 0, 0);
+                    return date.getTime();
+                }))
+            ).map(timestamp => new Date(timestamp));
 
-        if (uniqueDates.length === 0) return [];
+            if (uniqueDates.length > 0) {
+                const minDate = new Date(Math.min(...uniqueDates.map(d => d.getTime())));
+                const maxDate = new Date(Math.max(...uniqueDates.map(d => d.getTime())));
+                const monthsWithData = eachMonthOfInterval({ start: minDate, end: maxDate });
+                
+                // Añadir meses con datos que no estén ya en la lista
+                const monthsSet = new Set(months.map(m => `${m.getFullYear()}-${m.getMonth()}`));
+                monthsWithData.forEach(monthDate => {
+                    const monthKey = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
+                    if (!monthsSet.has(monthKey)) {
+                        months.push(monthDate);
+                    }
+                });
+            }
+        }
 
-        const minDate = new Date(Math.min(...uniqueDates.map(d => d.getTime())));
-        const maxDate = new Date(Math.max(...uniqueDates.map(d => d.getTime())));
-
-        const weeks = [];
-        let currentDate = new Date(minDate);
-        while (currentDate <= maxDate) {
-            const weekStart = new Date(currentDate);
-            weekStart.setDate(currentDate.getDate() - currentDate.getDay() + 1);
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 6);
-
-            const weekSlots = slotsToShow.filter(slot => {
+        // Agrupar slots por mes y luego por semanas
+        const monthsData = months.map(monthStart => {
+            const monthEnd = endOfMonth(monthStart);
+            const monthSlots = slotsToShow.filter(slot => {
                 const slotDate = new Date(slot.date);
-                return slotDate >= weekStart && slotDate <= weekEnd;
+                slotDate.setHours(0, 0, 0, 0);
+                return slotDate >= startOfMonth(monthStart) && slotDate <= monthEnd;
             });
 
-            if (weekSlots.length > 0) {
-                weeks.push({
+            // Obtener todas las semanas en el mes
+            const weeks = eachWeekOfInterval(
+                { start: startOfMonth(monthStart), end: monthEnd },
+                { weekStartsOn: 1 } // Lunes
+            );
+
+            // Agrupar slots por semana dentro del mes
+            const weeksData = weeks.map(weekStart => {
+                const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                const weekSlots = monthSlots.filter(slot => {
+                    const slotDate = new Date(slot.date);
+                    slotDate.setHours(0, 0, 0, 0);
+                    return isWithinInterval(slotDate, { start: weekStart, end: weekEnd });
+                });
+
+                // Ordenar slots por fecha ascendente y luego por hora ascendente
+                const sortedSlots = weekSlots.sort((a, b) => {
+                    const dateA = new Date(a.date).getTime();
+                    const dateB = new Date(b.date).getTime();
+                    if (dateA !== dateB) {
+                        return dateA - dateB; // Fecha ascendente
+                    }
+                    // Si es la misma fecha, ordenar por hora ascendente
+                    return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+                });
+
+                return {
                     weekStart,
                     weekEnd,
-                    slots: weekSlots.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()),
+                    slots: sortedSlots,
                     totalSlots: weekSlots.length,
                     availableSlots: weekSlots.filter(s => s.status === 'OPEN' && s.availableSpots > 0).length,
                     totalCapacity: weekSlots.reduce((sum, s) => sum + s.capacity, 0),
-                    availableCapacity: weekSlots.reduce((sum, s) => sum + s.availableSpots, 0),
-                });
-            }
+                    availableCapacity: weekSlots.reduce((sum, s) => sum + s.availableSpots, 0)
+                };
+            }).filter(week => week.totalSlots > 0); // Solo semanas con slots
 
-            currentDate.setDate(currentDate.getDate() + 7);
-        }
+            // Ordenar semanas por fecha ascendente
+            weeksData.sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
 
-        return weeks;
-    }, [slotsToShow, selectedDate]);
+            const monthKey = `${monthStart.getFullYear()}-${monthStart.getMonth()}`;
+            return {
+                monthStart,
+                monthEnd,
+                monthKey,
+                weeks: weeksData,
+                totalSlots: monthSlots.length,
+                availableSlots: monthSlots.filter(s => s.status === 'OPEN' && s.availableSpots > 0).length,
+                totalCapacity: monthSlots.reduce((sum, s) => sum + s.capacity, 0),
+                availableCapacity: monthSlots.reduce((sum, s) => sum + s.availableSpots, 0),
+                isLoaded: monthLoading.loadedMonths.has(monthKey),
+                isLoading: monthLoading.loadingMonths.has(monthKey)
+            };
+        });
+
+        // Ordenar por fecha descendente (más recientes primero)
+        return monthsData.sort((a, b) => b.monthStart.getTime() - a.monthStart.getTime());
+    }, [slotsToShow, selectedDate, monthLoading.loadedMonths, monthLoading.loadingMonths]);
 
     const calendarData = useMemo(() => {
         const bookedDays: number[] = [];
@@ -203,7 +272,9 @@ export function AdminVisitSlots() {
         try {
             const newSlot = await createSlot(data);
             if (newSlot) {
-                await loadSlots();
+                // Recargar mes actual
+                const now = new Date();
+                await monthLoading.loadMonth(now.getFullYear(), now.getMonth(), fetchSlotsByMonth, setSlots);
                 showToast.success(t.t('createSuccess'));
             }
         } catch (err) {
@@ -215,7 +286,9 @@ export function AdminVisitSlots() {
         try {
             const updatedSlot = await updateSlot(id, data);
             if (updatedSlot) {
-                await loadSlots();
+                // Recargar mes actual
+                const now = new Date();
+                await monthLoading.loadMonth(now.getFullYear(), now.getMonth(), fetchSlotsByMonth, setSlots);
                 showToast.success(t.t('updateSuccess'));
             }
         } catch (error) {
@@ -240,7 +313,9 @@ export function AdminVisitSlots() {
         
         try {
             await deleteSlot(id);
-            await loadSlots();
+            // Recargar mes actual
+            const now = new Date();
+            await monthLoading.loadMonth(now.getFullYear(), now.getMonth(), fetchSlotsByMonth, setSlots);
             setSelectedSlots(prev => {
                 const newSet = new Set(prev);
                 newSet.delete(id);
@@ -307,35 +382,6 @@ export function AdminVisitSlots() {
         }
     }, [showBulkActions]);
 
-    const toggleWeek = (weekKey: string) => {
-        setExpandedWeeks(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(weekKey)) {
-                newSet.delete(weekKey);
-            } else {
-                newSet.add(weekKey);
-                if (!weekPages[weekKey]) {
-                    setWeekPages(prev => ({ ...prev, [weekKey]: 1 }));
-                }
-            }
-            return newSet;
-        });
-    };
-
-    const setWeekPage = (weekKey: string, page: number) => {
-        setWeekPages(prev => ({ ...prev, [weekKey]: page }));
-    };
-
-    const getWeekPage = (weekKey: string) => weekPages[weekKey] || 1;
-
-    const getTotalPages = (slots: MeetingSlot[]) => Math.ceil(slots.length / ITEMS_PER_PAGE);
-
-    const getPaginatedSlots = (slots: MeetingSlot[], weekKey: string) => {
-        const page = getWeekPage(weekKey);
-        const start = (page - 1) * ITEMS_PER_PAGE;
-        const end = start + ITEMS_PER_PAGE;
-        return slots.slice(start, end);
-    };
 
     if (isLoadingSlots) {
         return (
@@ -355,7 +401,12 @@ export function AdminVisitSlots() {
             <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:gap-4 items-stretch sm:items-center justify-between">
                 <div className="flex gap-2 w-full sm:w-auto">
                     <button
-                        onClick={() => setViewMode("calendar")}
+                        onClick={() => {
+                            setViewMode("calendar");
+                            if (viewMode === "list") {
+                                setSelectedDate(undefined);
+                            }
+                        }}
                         className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${viewMode === "calendar"
                                 ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -365,7 +416,10 @@ export function AdminVisitSlots() {
                         <span className="hidden sm:inline">{t.t('calendarView')}</span>
                     </button>
                     <button
-                        onClick={() => setViewMode("list")}
+                        onClick={() => {
+                            setViewMode("list");
+                            setSelectedDate(undefined);
+                        }}
                         className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${viewMode === "list"
                                 ? "bg-blue-500 text-white"
                                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
@@ -525,7 +579,7 @@ export function AdminVisitSlots() {
                                                                 <p className="text-sm text-gray-600">
                                                                     {t.t('spots')}: {slot.availableSpots}/{slot.capacity}
                                                                 </p>
-                                                                <p className="text-sm text-gray-600">{t.t('status')}: {slot.status}</p>
+                                                                <p className="text-sm text-gray-600">{t.t('status')}: {slot.status === 'OPEN' ? t.t('statusOpen') : t.t('statusClosed')}</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-1">
@@ -621,7 +675,7 @@ export function AdminVisitSlots() {
                                                             ? 'bg-green-100 text-green-800'
                                                             : 'bg-red-100 text-red-800'
                                                         }`}>
-                                                        {slot.status}
+                                                        {slot.status === 'OPEN' ? t.t('statusOpen') : t.t('statusClosed')}
                                                     </div>
                                                     <div className="text-sm text-gray-600">
                                                         {slot.availableSpots}/{slot.capacity} {t.t('spots')}
@@ -645,24 +699,35 @@ export function AdminVisitSlots() {
                                         </div>
                                     ))}
                                 </div>
+                            ) : slotsByMonth.length === 0 ? (
+                                <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
+                                    <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                                        {t.t('noSlots')}
+                                    </h3>
+                                    <p className="text-gray-500">
+                                        {t.t('createFirst')}
+                                    </p>
+                                </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {slotsByWeek.map((week) => {
-                                        const weekKey = `${week.weekStart.getTime()}`;
-                                        const isExpanded = expandedWeeks.has(weekKey);
+                                    {slotsByMonth.map((month) => {
+                                        const isMonthExpanded = monthLoading.expandedMonths.has(month.monthKey);
 
                                         return (
                                             <div
-                                                key={weekKey}
+                                                key={month.monthKey}
                                                 className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden"
                                             >
+                                                {/* Card de mes */}
                                                 <button
-                                                    onClick={() => toggleWeek(weekKey)}
-                                                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                                    onClick={() => monthLoading.toggleMonth(month.monthKey, month.monthStart.getFullYear(), month.monthStart.getMonth(), fetchSlotsByMonth, setSlots)}
+                                                    disabled={month.isLoading}
+                                                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
                                                 >
                                                     <div className="flex items-center gap-4 flex-1">
                                                         <div className="flex items-center gap-2">
-                                                            {isExpanded ? (
+                                                            {isMonthExpanded ? (
                                                                 <ChevronDown className="w-5 h-5 text-gray-500" />
                                                             ) : (
                                                                 <ChevronRight className="w-5 h-5 text-gray-500" />
@@ -671,24 +736,30 @@ export function AdminVisitSlots() {
                                                         </div>
                                                         <div className="text-left">
                                                             <div className="font-semibold text-gray-800">
-                                                                {format(week.weekStart, "dd 'de' MMMM", { locale: dateFnsLocale })} - {format(week.weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                                {format(month.monthStart, "MMMM 'de' yyyy", { locale: dateFnsLocale })}
                                                             </div>
                                                             <div className="text-sm text-gray-500">
-                                                                {week.totalSlots} {t.t('slots')} • {week.availableSlots} {t.t('available')} • {week.availableCapacity}/{week.totalCapacity} {t.t('spots')}
+                                                                {month.totalSlots} {t.t('slots')} • {month.availableSlots} {t.t('available')} • {month.availableCapacity}/{month.totalCapacity} {t.t('spots')}
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2">
+                                                        {month.isLoading && (
+                                                            <div className="text-sm text-gray-500">{tCommon.t('loading')}</div>
+                                                        )}
+                                                        {!month.isLoaded && !month.isLoading && (
+                                                            <div className="text-xs text-gray-400">{tCommon.t('clickToLoad')}</div>
+                                                        )}
                                                         <div className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                                            week.availableSlots === 0 
+                                                            month.availableSlots === 0 
                                                                 ? 'bg-red-100 text-red-800'
-                                                                : week.availableSlots === week.totalSlots
+                                                                : month.availableSlots === month.totalSlots
                                                                 ? 'bg-green-100 text-green-800'
                                                                 : 'bg-yellow-100 text-yellow-800'
                                                         }`}>
-                                                            {week.availableSlots === 0 
+                                                            {month.availableSlots === 0 
                                                                 ? t.t('full')
-                                                                : week.availableSlots === week.totalSlots
+                                                                : month.availableSlots === month.totalSlots
                                                                 ? t.t('available')
                                                                 : t.t('partial')
                                                             }
@@ -696,15 +767,75 @@ export function AdminVisitSlots() {
                                                     </div>
                                                 </button>
 
-                                                {isExpanded && (() => {
-                                                    const paginatedSlots = getPaginatedSlots(week.slots, weekKey);
-                                                    const totalPages = getTotalPages(week.slots);
-                                                    const currentPage = getWeekPage(weekKey);
+                                                {/* Semanas del mes (expandible) */}
+                                                {isMonthExpanded && month.isLoaded && (
+                                                    <div className="border-t border-gray-200 bg-gray-50 p-4">
+                                                        {month.weeks.length === 0 ? (
+                                                            <div className="text-center py-8 text-gray-500">
+                                                                {t.t('noSlots')} {t.t('inThisMonth')}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-3">
+                                                                {month.weeks.map((week) => {
+                                                                    const weekKey = `${month.monthKey}-${week.weekStart.getTime()}`;
+                                                                    const isWeekExpanded = weekPagination.expandedWeeks.has(weekKey);
 
-                                                    return (
-                                                        <div className="border-t border-gray-200 bg-gray-50 p-4">
-                                                            <div className="space-y-2 mb-4">
-                                                                {paginatedSlots.map((slot) => (
+                                                                    return (
+                                                                        <div
+                                                                            key={weekKey}
+                                                                            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                                                                        >
+                                                                            {/* Card de semana */}
+                                                                            <button
+                                                                                onClick={() => weekPagination.toggleWeek(weekKey)}
+                                                                                className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                                                            >
+                                                                                <div className="flex items-center gap-4 flex-1">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        {isWeekExpanded ? (
+                                                                                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                                                                                        ) : (
+                                                                                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                                                                                        )}
+                                                                                        <CalendarDays className="w-4 h-4 text-blue-500" />
+                                                                                    </div>
+                                                                                    <div className="text-left">
+                                                                                        <div className="font-medium text-gray-800 text-sm">
+                                                                                            {format(week.weekStart, "dd 'de' MMMM", { locale: dateFnsLocale })} - {format(week.weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                                                        </div>
+                                                                                        <div className="text-xs text-gray-500">
+                                                                                            {week.totalSlots} {t.t('slots')} • {week.availableSlots} {t.t('available')} • {week.availableCapacity}/{week.totalCapacity} {t.t('spots')}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                                                        week.availableSlots === 0 
+                                                                                            ? 'bg-red-100 text-red-800'
+                                                                                            : week.availableSlots === week.totalSlots
+                                                                                            ? 'bg-green-100 text-green-800'
+                                                                                            : 'bg-yellow-100 text-yellow-800'
+                                                                                    }`}>
+                                                                                        {week.availableSlots === 0 
+                                                                                            ? t.t('full')
+                                                                                            : week.availableSlots === week.totalSlots
+                                                                                            ? t.t('available')
+                                                                                            : t.t('partial')
+                                                                                        }
+                                                                                    </div>
+                                                                                </div>
+                                                                            </button>
+
+                                                                            {/* Slots de la semana (expandible) */}
+                                                                            {isWeekExpanded && (() => {
+                                                                                const paginatedSlots = weekPagination.getPaginatedItems(week.slots, weekKey);
+                                                                                const totalPages = weekPagination.getTotalPages(week.slots);
+                                                                                const currentPage = weekPagination.getWeekPage(weekKey);
+
+                                                                                return (
+                                                                                    <div className="border-t border-gray-200 bg-gray-50 p-3">
+                                                                                        <div className="space-y-2 mb-4">
+                                                                                            {paginatedSlots.map((slot: MeetingSlot) => (
                                                                     <div
                                                                         key={slot.id}
                                                                         className={`bg-white p-3 rounded-lg border flex justify-between items-center ${selectedSlots.has(slot.id) ? 'ring-2 ring-blue-500 bg-blue-50' : ''
@@ -744,7 +875,7 @@ export function AdminVisitSlots() {
                                                                                         ? 'bg-green-100 text-green-800'
                                                                                         : 'bg-red-100 text-red-800'
                                                                                     }`}>
-                                                                                    {slot.status}
+                                                                                    {slot.status === 'OPEN' ? t.t('statusOpen') : t.t('statusClosed')}
                                                                                 </div>
                                                                                 <div className="text-sm text-gray-600">
                                                                                     {slot.availableSpots}/{slot.capacity} {t.t('spots')}
@@ -769,24 +900,32 @@ export function AdminVisitSlots() {
                                                                         </div>
                                                                     </div>
                                                                 ))}
-                                                            </div>
+                                                                                        </div>
 
-                                                            {totalPages > 1 && (
-                                                                <div className="pt-4 border-t border-gray-300">
-                                                                    <div className="text-sm text-gray-600 mb-3 text-center">
-                                                                        {t.t('showing')} {(currentPage - 1) * ITEMS_PER_PAGE + 1} - {Math.min(currentPage * ITEMS_PER_PAGE, week.slots.length)} {t.t('of')} {week.slots.length}
-                                                                    </div>
-                                                                    <Pagination
-                                                                        currentPage={currentPage}
-                                                                        totalPages={totalPages}
-                                                                        onPageChange={(page) => setWeekPage(weekKey, page)}
-                                                                        className="mt-0 mb-0"
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    );
-                                                })()}
+                                                                                        {/* Paginación */}
+                                                                                        {totalPages > 1 && (
+                                                                                            <div className="pt-3 border-t border-gray-300">
+                                                                                                <div className="text-sm text-gray-600 mb-2 text-center">
+                                                                                                    {t.t('showing')} {(currentPage - 1) * weekPagination.ITEMS_PER_PAGE + 1} - {Math.min(currentPage * weekPagination.ITEMS_PER_PAGE, week.slots.length)} {t.t('of')} {week.slots.length}
+                                                                                                </div>
+                                                                                                <Pagination
+                                                                                                    currentPage={currentPage}
+                                                                                                    totalPages={totalPages}
+                                                                                                    onPageChange={(page) => weekPagination.setWeekPage(weekKey, page)}
+                                                                                                    className="mt-0 mb-0"
+                                                                                                />
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                );
+                                                                            })()}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
                                             </div>
                                         );
                                     })}

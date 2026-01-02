@@ -8,6 +8,7 @@ import { formatDateTime } from "../lib/formatDate";
 
 interface SlotContextType {
     fetchSlots: () => Promise<BirthdaySlot[]>;
+    fetchSlotsByMonth: (year: number, month: number) => Promise<BirthdaySlot[]>;
     fetchSlotsAvailable: () => Promise<BirthdaySlot[]>;
     fetchSlotsByDay: (date: Date) => Promise<BirthdaySlot[]>;
     createSlot: (data: Partial<BirthdaySlot>) => Promise<BirthdaySlot>;
@@ -83,6 +84,32 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const fetchSlotsByMonth = async (year: number, month: number) => {
+        try {
+            const startDate = new Date(year, month, 1);
+            const endDate = new Date(year, month + 1, 0); // Último día del mes
+            
+            const startYear = startDate.getFullYear();
+            const startMonth = (startDate.getMonth() + 1).toString().padStart(2, "0");
+            const startDay = startDate.getDate().toString().padStart(2, "0");
+            const formattedStartDate = `${startYear}-${startMonth}-${startDay}`;
+
+            const endYear = endDate.getFullYear();
+            const endMonth = (endDate.getMonth() + 1).toString().padStart(2, "0");
+            const endDay = endDate.getDate().toString().padStart(2, "0");
+            const formattedEndDate = `${endYear}-${endMonth}-${endDay}`;
+
+            // Filtrar en backend usando query params
+            const slots = await http.get(`/api/birthdaySlots?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
+            return slots as BirthdaySlot[];
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("❌ Error cargando slots por mes:", err);
+            }
+            return [];
+        }
+    };
+
 
     const fetchSlotsAvailable = async () => {
         try {
@@ -148,7 +175,7 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <SlotContext.Provider
-            value={{ fetchSlots, fetchSlotsAvailable, fetchSlotsByDay, createSlot, updateSlot, deleteSlot }}
+            value={{ fetchSlots, fetchSlotsByMonth, fetchSlotsAvailable, fetchSlotsByDay, createSlot, updateSlot, deleteSlot }}
         >
             {children}
         </SlotContext.Provider>

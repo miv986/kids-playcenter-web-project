@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { Calendar, Trash2, Phone, Clock, CalendarDays, ChevronDown, ChevronRight, Edit3, MessageCircle, X } from 'lucide-react';
 import { CalendarComponent } from '../../shared/Calendar';
 import { useTranslation } from '../../../contexts/TranslationContext';
@@ -8,10 +8,12 @@ import { Spinner } from '../../shared/Spinner';
 import { showToast } from '../../../lib/toast';
 import { useConfirm } from '../../../hooks/useConfirm';
 import { SearchBar } from '../../shared/SearchBar';
-import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval } from "date-fns";
+import { format, startOfWeek, endOfWeek, eachWeekOfInterval, isWithinInterval, startOfMonth, endOfMonth, eachMonthOfInterval } from "date-fns";
 import { es, ca } from "date-fns/locale";
 import { useAuth } from '../../../contexts/AuthContext';
 import { MeetingBooking } from '../../../types/auth';
+import { useMonthLoading, useWeekPagination } from '../../../hooks/useMonthWeekGrouping';
+import { Pagination } from '../../shared/Pagination';
 
 export function AdminVisitBookings() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -20,7 +22,7 @@ export function AdminVisitBookings() {
     const locale = t.locale;
     const { confirm, ConfirmComponent } = useConfirm();
     const { user } = useAuth();
-    const { fetchBookings, fetchBookingsByDate, updateBooking, updateBookingStatus, deleteBooking } = useMeetingBookings();
+    const { fetchBookings, fetchBookingsByMonth, fetchBookingsByDate, updateBooking, updateBookingStatus, deleteBooking } = useMeetingBookings();
     const { fetchSlots } = useMeetingSlots();
 
     const [bookings, setBookings] = useState<MeetingBooking[]>([]);
@@ -32,24 +34,43 @@ export function AdminVisitBookings() {
     const [selectedBooking, setSelectedBooking] = useState<MeetingBooking | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoadingBookings, setIsLoadingBookings] = useState(true);
-    const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     const dateFnsLocale = locale === 'ca' ? ca : es;
     const [searchQuery, setSearchQuery] = useState("");
 
+    // Usar hooks helper para meses y semanas
+    const monthLoading = useMonthLoading();
+    const weekPagination = useWeekPagination();
+
+    // Cargar mes actual al inicio
     useEffect(() => {
         if (!!user) {
-            loadBookings();
-            loadSlots();
+            const now = new Date();
+            setIsLoadingBookings(true);
+            monthLoading.loadMonth(
+                now.getFullYear(),
+                now.getMonth(),
+                fetchBookingsByMonth,
+                setBookings,
+                true
+            ).finally(() => {
+                setIsLoadingBookings(false);
+            });
         }
-    }, [user, refreshTrigger]);
+    }, [user, monthLoading.loadMonth, fetchBookingsByMonth]);
 
     useEffect(() => {
         const loadDailyBookings = async () => {
             if (selectedDate) {
                 try {
                     const bookingsForDay = await fetchBookingsByDate(selectedDate);
-                    setDailyBookings(bookingsForDay || []);
+                    // Ordenar por hora ascendente
+                    const sorted = (bookingsForDay || []).sort((a, b) => {
+                        const timeA = a.slot ? new Date(a.slot.startTime).getTime() : new Date(a.createdAt || new Date()).getTime();
+                        const timeB = b.slot ? new Date(b.slot.startTime).getTime() : new Date(b.createdAt || new Date()).getTime();
+                        return timeA - timeB;
+                    });
+                    setDailyBookings(sorted);
                 } catch (error) {
                     console.error('Error loading daily bookings:', error);
                     setDailyBookings([]);
@@ -61,18 +82,12 @@ export function AdminVisitBookings() {
         loadDailyBookings();
     }, [selectedDate, fetchBookingsByDate]);
 
-    const loadBookings = async () => {
-        setIsLoadingBookings(true);
-        try {
-            const fetchedBookings = await fetchBookings();
-         
-            setBookings(fetchedBookings || []);
-        } catch (error) {
-            console.error('Error loading bookings:', error);
-        } finally {
-            setIsLoadingBookings(false);
+    // Cargar slots del mes actual
+    useEffect(() => {
+        if (!!user) {
+            loadSlots();
         }
-    };
+    }, [user, refreshTrigger]);
 
     const loadSlots = async () => {
         try {
@@ -110,35 +125,56 @@ export function AdminVisitBookings() {
         return result;
     }, [bookings, filter, searchQuery, dateFnsLocale]);
 
-    const bookingsByWeek = useMemo(() => {
-        if (!filteredBookings || filteredBookings.length === 0 || selectedDate) return [];
+    // Agrupar reservas por meses y semanas
+    const bookingsByMonth = useMemo(() => {
+        // Si hay una fecha seleccionada, no mostrar agrupación por meses (mostrar vista diaria)
+        if (selectedDate) return [];
 
-        const uniqueDates = Array.from(
-            new Set(filteredBookings.map(booking => {
-                let date: Date;
-                if (booking.slot) {
-                    date = new Date(booking.slot.startTime);
-                } else {
-                    date = new Date(booking.createdAt || new Date());
-                }
-                date.setHours(0, 0, 0, 0);
-                return date.getTime();
-            }))
-        ).map(timestamp => new Date(timestamp));
+        // Siempre mostrar al menos el mes actual y algunos meses anteriores
+        const now = new Date();
+        const months: Date[] = [];
+        
+        // Mostrar los últimos 3 meses (mes actual + 2 anteriores)
+        for (let i = 0; i < 3; i++) {
+            const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push(monthDate);
+        }
+        
+        // Si hay reservas, añadir también los meses que contienen esas reservas
+        if (filteredBookings.length > 0) {
+            const uniqueDates = Array.from(
+                new Set(filteredBookings.map(booking => {
+                    let date: Date;
+                    if (booking.slot) {
+                        date = new Date(booking.slot.startTime);
+                    } else {
+                        date = new Date(booking.createdAt || new Date());
+                    }
+                    date.setHours(0, 0, 0, 0);
+                    return date.getTime();
+                }))
+            ).map(timestamp => new Date(timestamp));
 
-        if (uniqueDates.length === 0) return [];
+            if (uniqueDates.length > 0) {
+                const minDate = new Date(Math.min(...uniqueDates.map(d => d.getTime())));
+                const maxDate = new Date(Math.max(...uniqueDates.map(d => d.getTime())));
+                const monthsWithData = eachMonthOfInterval({ start: minDate, end: maxDate });
+                
+                // Añadir meses con datos que no estén ya en la lista
+                const monthsSet = new Set(months.map(m => `${m.getFullYear()}-${m.getMonth()}`));
+                monthsWithData.forEach(monthDate => {
+                    const monthKey = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
+                    if (!monthsSet.has(monthKey)) {
+                        months.push(monthDate);
+                    }
+                });
+            }
+        }
 
-        const minDate = new Date(Math.min(...uniqueDates.map(d => d.getTime())));
-        const maxDate = new Date(Math.max(...uniqueDates.map(d => d.getTime())));
-
-        const weeks = eachWeekOfInterval(
-            { start: minDate, end: maxDate },
-            { weekStartsOn: 1 }
-        );
-
-        const weeksData = weeks.map(weekStart => {
-            const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
-            const weekBookings = filteredBookings.filter(booking => {
+        // Agrupar reservas por mes y luego por semanas
+        const monthsData = months.map(monthStart => {
+            const monthEnd = endOfMonth(monthStart);
+            const monthBookings = filteredBookings.filter(booking => {
                 let bookingDate: Date;
                 if (booking.slot) {
                     bookingDate = new Date(booking.slot.startTime);
@@ -146,40 +182,71 @@ export function AdminVisitBookings() {
                     bookingDate = new Date(booking.createdAt || new Date());
                 }
                 bookingDate.setHours(0, 0, 0, 0);
-                return isWithinInterval(bookingDate, { start: weekStart, end: weekEnd });
+                return bookingDate >= startOfMonth(monthStart) && bookingDate <= monthEnd;
             });
 
-            const sortedBookings = weekBookings.sort((a, b) => {
-                const dateA = a.slot ? new Date(a.slot.startTime).getTime() : new Date(a.createdAt || new Date()).getTime();
-                const dateB = b.slot ? new Date(b.slot.startTime).getTime() : new Date(b.createdAt || new Date()).getTime();
-                return dateB - dateA;
-            });
+            // Obtener todas las semanas en el mes
+            const weeks = eachWeekOfInterval(
+                { start: startOfMonth(monthStart), end: monthEnd },
+                { weekStartsOn: 1 } // Lunes
+            );
 
+            // Agrupar reservas por semana dentro del mes
+            const weeksData = weeks.map(weekStart => {
+                const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                const weekBookings = monthBookings.filter(booking => {
+                    let bookingDate: Date;
+                    if (booking.slot) {
+                        bookingDate = new Date(booking.slot.startTime);
+                    } else {
+                        bookingDate = new Date(booking.createdAt || new Date());
+                    }
+                    bookingDate.setHours(0, 0, 0, 0);
+                    return isWithinInterval(bookingDate, { start: weekStart, end: weekEnd });
+                });
+
+                // Ordenar reservas por fecha ascendente y luego por hora ascendente
+                const sortedBookings = weekBookings.sort((a, b) => {
+                    const dateA = a.slot ? new Date(a.slot.startTime).getTime() : new Date(a.createdAt || new Date()).getTime();
+                    const dateB = b.slot ? new Date(b.slot.startTime).getTime() : new Date(b.createdAt || new Date()).getTime();
+                    if (dateA !== dateB) {
+                        return dateA - dateB; // Fecha ascendente
+                    }
+                    return dateA - dateB; // Hora ascendente
+                });
+
+                return {
+                    weekStart,
+                    weekEnd,
+                    bookings: sortedBookings,
+                    totalBookings: weekBookings.length,
+                    pendingBookings: weekBookings.filter(b => b.status === 'PENDING').length,
+                    confirmedBookings: weekBookings.filter(b => b.status === 'CONFIRMED').length,
+                    cancelledBookings: weekBookings.filter(b => b.status === 'CANCELLED').length
+                };
+            }).filter(week => week.totalBookings > 0); // Solo semanas con reservas
+
+            // Ordenar semanas por fecha ascendente
+            weeksData.sort((a, b) => a.weekStart.getTime() - b.weekStart.getTime());
+
+            const monthKey = `${monthStart.getFullYear()}-${monthStart.getMonth()}`;
             return {
-                weekStart,
-                weekEnd,
-                bookings: sortedBookings,
-                totalBookings: weekBookings.length,
-                pendingBookings: weekBookings.filter(b => b.status === 'PENDING').length,
-                confirmedBookings: weekBookings.filter(b => b.status === 'CONFIRMED').length,
-                cancelledBookings: weekBookings.filter(b => b.status === 'CANCELLED').length,
+                monthStart,
+                monthEnd,
+                monthKey,
+                weeks: weeksData,
+                totalBookings: monthBookings.length,
+                pendingBookings: monthBookings.filter(b => b.status === 'PENDING').length,
+                confirmedBookings: monthBookings.filter(b => b.status === 'CONFIRMED').length,
+                cancelledBookings: monthBookings.filter(b => b.status === 'CANCELLED').length,
+                isLoaded: monthLoading.loadedMonths.has(monthKey),
+                isLoading: monthLoading.loadingMonths.has(monthKey)
             };
-        }).filter(week => week.totalBookings > 0);
-
-        return weeksData.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime());
-    }, [filteredBookings, selectedDate]);
-
-    const toggleWeek = (weekKey: string) => {
-        setExpandedWeeks((prev) => {
-            const next = new Set(prev);
-            if (next.has(weekKey)) {
-                next.delete(weekKey);
-            } else {
-                next.add(weekKey);
-            }
-            return next;
         });
-    };
+
+        // Ordenar por fecha descendente (más recientes primero)
+        return monthsData.sort((a, b) => b.monthStart.getTime() - a.monthStart.getTime());
+    }, [filteredBookings, selectedDate, monthLoading.loadedMonths, monthLoading.loadingMonths]);
 
     const calendarData = useMemo(() => {
         const bookedDays: number[] = [];
@@ -289,10 +356,16 @@ export function AdminVisitBookings() {
         
         try {
             await updateBookingStatus(id, status);
-            await loadBookings();
+            setRefreshTrigger(prev => prev + 1);
             if (selectedDate) {
                 const bookingsForDay = await fetchBookingsByDate(selectedDate);
-                setDailyBookings(bookingsForDay || []);
+                // Ordenar por hora ascendente
+                const sorted = (bookingsForDay || []).sort((a, b) => {
+                    const timeA = a.slot ? new Date(a.slot.startTime).getTime() : new Date(a.createdAt || new Date()).getTime();
+                    const timeB = b.slot ? new Date(b.slot.startTime).getTime() : new Date(b.createdAt || new Date()).getTime();
+                    return timeA - timeB;
+                });
+                setDailyBookings(sorted);
             }
             
             let successMessage = '';
@@ -324,10 +397,16 @@ export function AdminVisitBookings() {
 
         try {
             await deleteBooking(id);
-            await loadBookings();
+            setRefreshTrigger(prev => prev + 1);
             if (selectedDate) {
                 const bookingsForDay = await fetchBookingsByDate(selectedDate);
-                setDailyBookings(bookingsForDay || []);
+                // Ordenar por hora ascendente
+                const sorted = (bookingsForDay || []).sort((a, b) => {
+                    const timeA = a.slot ? new Date(a.slot.startTime).getTime() : new Date(a.createdAt || new Date()).getTime();
+                    const timeB = b.slot ? new Date(b.slot.startTime).getTime() : new Date(b.createdAt || new Date()).getTime();
+                    return timeA - timeB;
+                });
+                setDailyBookings(sorted);
             }
             showToast.success(tCommon.t('deleteSuccessWithEmail'));
         } catch (err) {
@@ -348,10 +427,16 @@ export function AdminVisitBookings() {
     const handleUpdateBooking = async (id: number, data: Partial<MeetingBooking>): Promise<void> => {
         try {
             await updateBooking(id, data);
-            await loadBookings();
+            setRefreshTrigger(prev => prev + 1);
             if (selectedDate) {
                 const bookingsForDay = await fetchBookingsByDate(selectedDate);
-                setDailyBookings(bookingsForDay || []);
+                // Ordenar por hora ascendente
+                const sorted = (bookingsForDay || []).sort((a, b) => {
+                    const timeA = a.slot ? new Date(a.slot.startTime).getTime() : new Date(a.createdAt || new Date()).getTime();
+                    const timeB = b.slot ? new Date(b.slot.startTime).getTime() : new Date(b.createdAt || new Date()).getTime();
+                    return timeA - timeB;
+                });
+                setDailyBookings(sorted);
             }
             if (selectedBooking?.id === id) {
                 setSelectedBooking(prev => prev ? { ...prev, ...data } : prev);
@@ -393,7 +478,12 @@ export function AdminVisitBookings() {
             });
         }
 
-        return result;
+        // Ordenar por hora ascendente
+        return result.sort((a, b) => {
+            const timeA = a.slot ? new Date(a.slot.startTime).getTime() : new Date(a.createdAt || new Date()).getTime();
+            const timeB = b.slot ? new Date(b.slot.startTime).getTime() : new Date(b.createdAt || new Date()).getTime();
+            return timeA - timeB;
+        });
     }, [dailyBookings, filter, searchQuery, dateFnsLocale, selectedDate]);
 
     const stats = {
@@ -422,7 +512,13 @@ export function AdminVisitBookings() {
             <div className="mb-4 flex flex-wrap gap-2 sm:gap-4 items-center justify-between">
                 <div className="flex gap-2 w-full sm:w-auto">
                     <button
-                        onClick={() => setViewMode("calendar")}
+                        onClick={() => {
+                            setViewMode("calendar");
+                            if (viewMode === "list") {
+                                setSelectedDate(undefined);
+                                setDailyBookings([]);
+                            }
+                        }}
                         className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${
                             viewMode === "calendar" 
                                 ? "bg-blue-500 text-white" 
@@ -433,7 +529,11 @@ export function AdminVisitBookings() {
                         <span className="hidden sm:inline">{t.t('calendarView')}</span>
                     </button>
                     <button
-                        onClick={() => setViewMode("list")}
+                        onClick={() => {
+                            setViewMode("list");
+                            setSelectedDate(undefined);
+                            setDailyBookings([]);
+                        }}
                         className={`flex items-center justify-center gap-2 px-3 sm:px-4 py-2 rounded-xl transition flex-1 sm:flex-none min-w-[48px] ${
                             viewMode === "list" 
                                 ? "bg-blue-500 text-white" 
@@ -559,7 +659,10 @@ export function AdminVisitBookings() {
                                                                 booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                                                                 'bg-red-100 text-red-800'
                                                             }`}>
-                                                                {booking.status}
+                                                                {booking.status === 'CONFIRMED' ? t.t('statusConfirmed') : 
+                                                                 booking.status === 'CANCELLED' ? t.t('statusCancelled') : 
+                                                                 booking.status === 'PENDING' ? t.t('statusPending') : 
+                                                                 booking.status}
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-2">
@@ -669,7 +772,10 @@ export function AdminVisitBookings() {
                                                                 booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                                                                 'bg-red-100 text-red-800'
                                                             }`}>
-                                                                {booking.status}
+                                                                {booking.status === 'CONFIRMED' ? t.t('statusConfirmed') : 
+                                                                 booking.status === 'CANCELLED' ? t.t('statusCancelled') : 
+                                                                 booking.status === 'PENDING' ? t.t('statusPending') : 
+                                                                 booking.status}
                                                             </div>
                                                             {booking.status !== 'CONFIRMED' && (
                                                                 <button
@@ -710,24 +816,41 @@ export function AdminVisitBookings() {
                                         ))}
                                     </div>
                                 </div>
+                            ) : bookingsByMonth.length === 0 ? (
+                                <div className="bg-white p-12 rounded-2xl shadow-lg text-center">
+                                    <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-xl font-semibold text-gray-600 mb-2">
+                                        {searchQuery 
+                                            ? t.t('noResults')
+                                            : t.t('noReservations')}
+                                    </h3>
+                                    <p className="text-gray-500">
+                                        {searchQuery 
+                                            ? t.t('tryDifferentSearch')
+                                            : (filter !== 'all'
+                                                ? t.t('noReservationsFilter')
+                                                : t.t('noReservationsRegistered'))}
+                                    </p>
+                                </div>
                             ) : (
                                 <div className="space-y-3">
-                                    {bookingsByWeek.map((week) => {
-                                        const weekKey = `${week.weekStart.getTime()}`;
-                                        const isExpanded = expandedWeeks.has(weekKey);
+                                    {bookingsByMonth.map((month) => {
+                                        const isMonthExpanded = monthLoading.expandedMonths.has(month.monthKey);
 
                                         return (
                                             <div
-                                                key={weekKey}
+                                                key={month.monthKey}
                                                 className="bg-white rounded-xl shadow border border-gray-200 overflow-hidden"
                                             >
+                                                {/* Card de mes */}
                                                 <button
-                                                    onClick={() => toggleWeek(weekKey)}
-                                                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                                    onClick={() => monthLoading.toggleMonth(month.monthKey, month.monthStart.getFullYear(), month.monthStart.getMonth(), fetchBookingsByMonth, setBookings)}
+                                                    disabled={month.isLoading}
+                                                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
                                                 >
                                                     <div className="flex items-center gap-4 flex-1">
                                                         <div className="flex items-center gap-2">
-                                                            {isExpanded ? (
+                                                            {isMonthExpanded ? (
                                                                 <ChevronDown className="w-5 h-5 text-gray-500" />
                                                             ) : (
                                                                 <ChevronRight className="w-5 h-5 text-gray-500" />
@@ -736,19 +859,96 @@ export function AdminVisitBookings() {
                                                         </div>
                                                         <div className="text-left">
                                                             <div className="font-semibold text-gray-800">
-                                                                {format(week.weekStart, "dd 'de' MMMM", { locale: dateFnsLocale })} - {format(week.weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                                {format(month.monthStart, "MMMM 'de' yyyy", { locale: dateFnsLocale })}
                                                             </div>
                                                             <div className="text-sm text-gray-500">
-                                                                {week.totalBookings} {t.t('reservations')} • {week.pendingBookings} {t.t('pending')} • {week.confirmedBookings} {t.t('confirmed')} • {week.cancelledBookings} {t.t('cancelled')}
+                                                                {month.totalBookings} {t.t('reservations')}
                                                             </div>
                                                         </div>
                                                     </div>
+                                                    <div className="flex items-center gap-2">
+                                                        {month.isLoading && (
+                                                            <div className="text-sm text-gray-500">{tCommon.t('loading')}</div>
+                                                        )}
+                                                        {!month.isLoaded && !month.isLoading && (
+                                                            <div className="text-xs text-gray-400">{tCommon.t('clickToLoad')}</div>
+                                                        )}
+                                                    </div>
                                                 </button>
 
-                                                {isExpanded && (
+                                                {/* Semanas del mes (expandible) */}
+                                                {isMonthExpanded && month.isLoaded && (
                                                     <div className="border-t border-gray-200 bg-gray-50 p-4">
-                                                        <div className="space-y-2">
-                                                            {week.bookings.map((booking) => (
+                                                        {month.weeks.length === 0 ? (
+                                                            <div className="text-center py-8 text-gray-500">
+                                                                {t.t('noReservations')} {t.t('inThisMonth')}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-3">
+                                                                {month.weeks.map((week) => {
+                                                                    const weekKey = `${month.monthKey}-${week.weekStart.getTime()}`;
+                                                                    const isWeekExpanded = weekPagination.expandedWeeks.has(weekKey);
+
+                                                                    return (
+                                                                        <div
+                                                                            key={weekKey}
+                                                                            className="bg-white rounded-lg border border-gray-200 overflow-hidden"
+                                                                        >
+                                                                            {/* Card de semana */}
+                                                                            <button
+                                                                                onClick={() => weekPagination.toggleWeek(weekKey)}
+                                                                                className="w-full p-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                                                                            >
+                                                                                <div className="flex items-center gap-4 flex-1">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        {isWeekExpanded ? (
+                                                                                            <ChevronDown className="w-4 h-4 text-gray-500" />
+                                                                                        ) : (
+                                                                                            <ChevronRight className="w-4 h-4 text-gray-500" />
+                                                                                        )}
+                                                                                        <CalendarDays className="w-4 h-4 text-blue-500" />
+                                                                                    </div>
+                                                                                    <div className="text-left">
+                                                                                        <div className="font-medium text-gray-800 text-sm">
+                                                                                            {format(week.weekStart, "dd 'de' MMMM", { locale: dateFnsLocale })} - {format(week.weekEnd, "dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                                                                        </div>
+                                                                                        <div className="text-xs text-gray-500">
+                                                                                            {week.totalBookings} {t.t('reservations')} • {week.pendingBookings} {t.t('pending')} • {week.confirmedBookings} {t.t('confirmed')} • {week.cancelledBookings} {t.t('cancelled')}
+                                                                                        </div>
+                                                                                    </div>
+                                                                                </div>
+                                                                                <div className="flex items-center gap-2">
+                                                                                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                                                        week.confirmedBookings === week.totalBookings 
+                                                                                            ? 'bg-green-100 text-green-800'
+                                                                                            : week.pendingBookings === week.totalBookings
+                                                                                            ? 'bg-yellow-100 text-yellow-800'
+                                                                                            : week.cancelledBookings === week.totalBookings
+                                                                                            ? 'bg-red-100 text-red-800'
+                                                                                            : 'bg-blue-100 text-blue-800'
+                                                                                    }`}>
+                                                                                        {week.confirmedBookings === week.totalBookings 
+                                                                                            ? t.t('confirmed')
+                                                                                            : week.pendingBookings === week.totalBookings
+                                                                                            ? t.t('pending')
+                                                                                            : week.cancelledBookings === week.totalBookings
+                                                                                            ? t.t('cancelled')
+                                                                                            : t.t('mixed')
+                                                                                        }
+                                                                                    </div>
+                                                                                </div>
+                                                                            </button>
+
+                                                                            {/* Reservas de la semana (expandible) */}
+                                                                            {isWeekExpanded && (() => {
+                                                                                const paginatedBookings = weekPagination.getPaginatedItems(week.bookings, weekKey);
+                                                                                const totalPages = weekPagination.getTotalPages(week.bookings);
+                                                                                const currentPage = weekPagination.getWeekPage(weekKey);
+
+                                                                                return (
+                                                                                    <div className="border-t border-gray-200 bg-gray-50 p-3">
+                                                                                        <div className="space-y-2 mb-4">
+                                                                                            {paginatedBookings.map((booking: MeetingBooking) => (
                                                                 <div
                                                                     key={booking.id}
                                                                     className="bg-white p-3 rounded-lg border"
@@ -786,7 +986,10 @@ export function AdminVisitBookings() {
                                                                                     booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
                                                                                     'bg-red-100 text-red-800'
                                                                                 }`}>
-                                                                                    {booking.status}
+                                                                                    {booking.status === 'CONFIRMED' ? t.t('statusConfirmed') : 
+                                                                 booking.status === 'CANCELLED' ? t.t('statusCancelled') : 
+                                                                 booking.status === 'PENDING' ? t.t('statusPending') : 
+                                                                 booking.status}
                                                                                 </div>
                                                                                 {booking.status !== 'CONFIRMED' && (
                                                                                     <button
@@ -825,7 +1028,30 @@ export function AdminVisitBookings() {
                                                                     </div>
                                                                 </div>
                                                             ))}
-                                                        </div>
+                                                                                        </div>
+
+                                                                                        {/* Paginación */}
+                                                                                        {totalPages > 1 && (
+                                                                                            <div className="pt-3 border-t border-gray-300">
+                                                                                                <div className="text-sm text-gray-600 mb-2 text-center">
+                                                                                                    {t.t('showing')} {(currentPage - 1) * weekPagination.ITEMS_PER_PAGE + 1} - {Math.min(currentPage * weekPagination.ITEMS_PER_PAGE, week.bookings.length)} {t.t('of')} {week.bookings.length}
+                                                                                                </div>
+                                                                                                <Pagination
+                                                                                                    currentPage={currentPage}
+                                                                                                    totalPages={totalPages}
+                                                                                                    onPageChange={(page) => weekPagination.setWeekPage(weekKey, page)}
+                                                                                                    className="mt-0 mb-0"
+                                                                                                />
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                );
+                                                                            })()}
+                                                                        </div>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 )}
                                             </div>

@@ -6,6 +6,7 @@ import { useTranslation } from './TranslationContext';
 
 interface MeetingSlotContextType {
     fetchSlots: () => Promise<MeetingSlot[]>;
+    fetchSlotsByMonth: (year: number, month: number) => Promise<MeetingSlot[]>;
     fetchSlotsByDay: (date: Date) => Promise<MeetingSlot[]>;
     createSlot: (data: Partial<MeetingSlot>) => Promise<MeetingSlot | null>;
     updateSlot: (id: number, data: Partial<MeetingSlot>) => Promise<MeetingSlot | null>;
@@ -79,6 +80,32 @@ export function MeetingSlotProvider({ children }: { children: React.ReactNode })
         }
     };
 
+    const fetchSlotsByMonth = async (year: number, month: number) => {
+        try {
+            const startDate = new Date(year, month, 1);
+            const endDate = new Date(year, month + 1, 0); // Último día del mes
+            
+            const startYear = startDate.getFullYear();
+            const startMonth = (startDate.getMonth() + 1).toString().padStart(2, "0");
+            const startDay = startDate.getDate().toString().padStart(2, "0");
+            const formattedStartDate = `${startYear}-${startMonth}-${startDay}`;
+
+            const endYear = endDate.getFullYear();
+            const endMonth = (endDate.getMonth() + 1).toString().padStart(2, "0");
+            const endDay = endDate.getDate().toString().padStart(2, "0");
+            const formattedEndDate = `${endYear}-${endMonth}-${endDay}`;
+
+            // Filtrar en backend usando query params
+            const slots = await http.get(`/api/meetingSlots?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
+            return slots as MeetingSlot[];
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("❌ Error cargando slots por mes:", err);
+            }
+            return [];
+        }
+    };
+
     const fetchSlotsByDay = async (date: Date) => {
         const year = date.getFullYear();
         const month = (date.getMonth() + 1).toString().padStart(2, "0");
@@ -130,7 +157,7 @@ export function MeetingSlotProvider({ children }: { children: React.ReactNode })
 
     return (
         <MeetingSlotContext.Provider
-            value={{ fetchSlots, fetchSlotsByDay, createSlot, updateSlot, deleteSlot }}
+            value={{ fetchSlots, fetchSlotsByMonth, fetchSlotsByDay, createSlot, updateSlot, deleteSlot }}
         >
             {children}
         </MeetingSlotContext.Provider>

@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { Users, Award, Shield, Heart } from 'lucide-react';
 import { useTranslation } from '../../contexts/TranslationContext';
 
@@ -20,11 +21,14 @@ export function AboutUs() {
         <div className="grid lg:grid-cols-2 gap-16 items-center mb-16">
           <div>
             <div className="bg-gradient-to-br from-green-100 to-blue-100 rounded-3xl p-8 shadow-lg">
-              <div className="aspect-video bg-white rounded-2xl shadow-md flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-6xl mb-4">👨‍👩‍👧‍👦</div>
-                  <p className="text-gray-600 font-medium">{t.t('teamCaption')}</p>
-                </div>
+              <div className="aspect-video bg-white rounded-2xl shadow-md overflow-hidden">
+                <Image
+                  src="/about-us.png"
+                  alt={t.t('teamCaption')}
+                  width={800}
+                  height={450}
+                  className="w-full h-full object-cover"
+                />
               </div>
             </div>
           </div>

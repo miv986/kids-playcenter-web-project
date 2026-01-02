@@ -9,6 +9,7 @@ interface BookingContextType {
   updateBooking: (id: number, bookingData: Partial<BirthdayBooking>) => void;
   deleteBooking: (id: number) => void;
   fetchBookings: () => Promise<BirthdayBooking[]>;
+  fetchBookingsByMonth: (year: number, month: number) => Promise<BirthdayBooking[]>;
   fetchMyBookings: () => Promise<BirthdayBooking[]>;
   fetchBookingByDate: (date: Date) => Promise<BirthdayBooking[]>;
 }
@@ -34,6 +35,33 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
     } catch (err: any) {
       if (err.message !== 'No token provided') {
         console.error("Error cargando reservas:", err);
+      }
+      return [];
+    }
+  };
+
+  const fetchBookingsByMonth = async (year: number, month: number) => {
+    try {
+      const startDate = new Date(year, month, 1);
+      const endDate = new Date(year, month + 1, 0); // Último día del mes
+      
+      // Formatear fechas como YYYY-MM-DD
+      const startYear = startDate.getFullYear();
+      const startMonth = (startDate.getMonth() + 1).toString().padStart(2, "0");
+      const startDay = startDate.getDate().toString().padStart(2, "0");
+      const formattedStartDate = `${startYear}-${startMonth}-${startDay}`;
+
+      const endYear = endDate.getFullYear();
+      const endMonth = (endDate.getMonth() + 1).toString().padStart(2, "0");
+      const endDay = endDate.getDate().toString().padStart(2, "0");
+      const formattedEndDate = `${endYear}-${endMonth}-${endDay}`;
+
+      // Filtrar en backend usando query params
+      const bookings = await http.get(`/api/bookings/getBirthdayBookings?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
+      return bookings as BirthdayBooking[];
+    } catch (err: any) {
+      if (err.message !== 'No token provided') {
+        console.error("❌ Error cargando reservas por mes:", err);
       }
       return [];
     }
@@ -108,6 +136,7 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
       updateBooking,
       deleteBooking,
       fetchBookings,
+      fetchBookingsByMonth,
       fetchMyBookings,
       fetchBookingByDate
     }}>

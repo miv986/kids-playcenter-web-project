@@ -19,6 +19,7 @@ interface DaycareBookingContextType {
     deleteBooking: (id: number) => Promise<void>;
     markAttendance: (id: number, attendanceStatus: "ATTENDED" | "NOT_ATTENDED" | "PENDING") => Promise<DaycareBooking>;
     fetchBookings: () => Promise<DaycareBooking[]>;      // Admin → todas
+    fetchBookingsByMonth: (year: number, month: number) => Promise<DaycareBooking[]>; // Admin → por mes
     fetchMyBookings: () => Promise<DaycareBooking[]>;    // Usuario → solo las suyas
     fetchAvailableSlotsByDate: (date: Date) => Promise<any[]>; // Slots disponibles por día
 }
@@ -42,6 +43,33 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando todas las reservas de daycare:", err);
+            }
+            return [];
+        }
+    };
+
+    // 🟢 Obtener reservas por mes específico (año y mes: 0-11)
+    const fetchBookingsByMonth = async (year: number, month: number) => {
+        try {
+            const startDate = new Date(year, month, 1);
+            const endDate = new Date(year, month + 1, 0); // Último día del mes
+            
+            const startYear = startDate.getFullYear();
+            const startMonth = (startDate.getMonth() + 1).toString().padStart(2, "0");
+            const startDay = startDate.getDate().toString().padStart(2, "0");
+            const formattedStartDate = `${startYear}-${startMonth}-${startDay}`;
+
+            const endYear = endDate.getFullYear();
+            const endMonth = (endDate.getMonth() + 1).toString().padStart(2, "0");
+            const endDay = endDate.getDate().toString().padStart(2, "0");
+            const formattedEndDate = `${endYear}-${endMonth}-${endDay}`;
+
+            // Filtrar en backend usando query params
+            const bookings = await http.get(`/api/daycareBookings?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
+            return bookings as DaycareBooking[];
+        } catch (err: any) {
+            if (err.message !== 'No token provided') {
+                console.error("❌ Error cargando reservas por mes:", err);
             }
             return [];
         }
@@ -137,6 +165,7 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
                 deleteBooking,
                 markAttendance,
                 fetchBookings,
+                fetchBookingsByMonth,
                 fetchMyBookings,
                 fetchAvailableSlotsByDate,
             }}
