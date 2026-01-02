@@ -290,8 +290,6 @@ export function AdminDaycareBookings() {
 
     // Agrupar reservas por mes y luego por semanas dentro de cada mes
     const bookingsByMonth = useMemo(() => {
-        if (bookingsToShow.length === 0) return [];
-
         // Si hay un día seleccionado, mostrar las reservas de ese día
         if (selectedDate) {
             const selectedDateStart = startOfMonth(selectedDate);

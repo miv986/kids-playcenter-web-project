@@ -135,7 +135,8 @@ export function AdminDaycareSlots() {
 
     // Agrupar slots por mes y luego por semanas dentro de cada mes
     const slotsByMonth = useMemo(() => {
-        if (slotsToShow.length === 0 || selectedDate) return [];
+        // Si hay una fecha seleccionada, no mostrar agrupación por meses
+        if (selectedDate) return [];
 
         // Siempre mostrar al menos el mes actual y algunos meses anteriores
         const now = new Date();
