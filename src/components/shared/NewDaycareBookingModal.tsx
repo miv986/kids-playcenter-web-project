@@ -270,6 +270,7 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
                 await updateBooking(existingBooking.id, {
                     startTime: startTime.toISOString(),
                     endTime: endTime.toISOString(),
+                    slotId: sortedSlots[0].id,
                     childrenIds: Array.from(selectedKids),
                     comments: comments || undefined
                 } as any);
