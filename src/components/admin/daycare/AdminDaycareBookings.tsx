@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Calendar, Users, Trash2, Phone, Clock, CalendarDays, Mail, MessageSquare, X, Copy, Check, ChevronDown, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
+import { Calendar, Users, Trash2, Phone, Clock, CalendarDays, Mail, MessageSquare, X, Copy, Check, ChevronDown, ChevronRight, CheckCircle2, XCircle, Plus, Edit } from 'lucide-react';
 import { useDaycareBookings } from '../../../contexts/DaycareBookingContext';
 import { DaycareBooking } from '../../../types/auth';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -12,6 +12,14 @@ import { showToast } from '../../../lib/toast';
 import { useConfirm } from '../../../hooks/useConfirm';
 import { Pagination } from '../../shared/Pagination';
 import { SearchBar } from '../../shared/SearchBar';
+import { ManualDaycareBookingModal } from './ManualDaycareBookingModal';
+import { 
+    filterBookingsByQuery, 
+    sortBookingsByTime,
+    formatBookingDate,
+    formatBookingTime,
+    getChildrenDisplayText
+} from '../../../lib/daycareBookingHelpers';
 
 export function AdminDaycareBookings() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -35,6 +43,8 @@ export function AdminDaycareBookings() {
     const [loadedMonths, setLoadedMonths] = useState<Set<string>>(new Set()); // Track qué meses están cargados
     const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set()); // Track qué meses están expandidos
     const [loadingMonths, setLoadingMonths] = useState<Set<string>>(new Set()); // Track qué meses se están cargando
+    const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+    const [editingManualBooking, setEditingManualBooking] = useState<DaycareBooking | null>(null);
 
     const openModal = (booking: DaycareBooking) => {
         setSelectedBooking(booking);
@@ -67,11 +77,11 @@ export function AdminDaycareBookings() {
     };
 
     // Función para cargar un mes específico
-    const loadMonth = useCallback(async (year: number, month: number, isInitial = false) => {
+    const loadMonth = useCallback(async (year: number, month: number, isInitial = false, forceReload = false) => {
         const monthKey = `${year}-${month}`;
         
-        // Si ya está cargado, no hacer nada
-        if (loadedMonths.has(monthKey)) {
+        // Si ya está cargado y no se fuerza la recarga, no hacer nada
+        if (loadedMonths.has(monthKey) && !forceReload) {
             if (isInitial) {
                 setIsLoadingBookings(false);
             }
@@ -87,10 +97,31 @@ export function AdminDaycareBookings() {
         try {
             const monthBookings = await fetchBookingsByMonth(year, month);
             setBookings(prev => {
-                // Combinar bookings existentes con los nuevos, evitando duplicados
-                const existingIds = new Set(prev.map(b => b.id));
-                const newBookings = monthBookings.filter(b => !existingIds.has(b.id));
-                return [...prev, ...newBookings];
+                if (forceReload) {
+                    // Si es recarga forzada, actualizar las reservas existentes y agregar nuevas
+                    const existingMap = new Map(prev.map(b => [b.id, b]));
+                    const newMap = new Map(monthBookings.map(b => [b.id, b]));
+                    
+                    // Actualizar reservas existentes y agregar nuevas
+                    const updated = prev.map(b => {
+                        const updatedBooking = newMap.get(b.id);
+                        // Si la reserva está en el mes recargado, usar la versión del servidor
+                        // Si no está, mantener la versión local (puede ser de otro mes)
+                        if (updatedBooking) {
+                            return updatedBooking;
+                        }
+                        return b;
+                    });
+                    
+                    // Agregar nuevas reservas que no existían
+                    const newBookings = monthBookings.filter(b => !existingMap.has(b.id));
+                    return [...updated, ...newBookings];
+                } else {
+                    // Combinar bookings existentes con los nuevos, evitando duplicados
+                    const existingIds = new Set(prev.map(b => b.id));
+                    const newBookings = monthBookings.filter(b => !existingIds.has(b.id));
+                    return [...prev, ...newBookings];
+                }
             });
             setLoadedMonths(prev => new Set(prev).add(monthKey));
             if (isInitial) {
@@ -124,29 +155,8 @@ export function AdminDaycareBookings() {
             filter === 'all' || booking.status === filter
         );
 
-        // Aplicar búsqueda
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase().trim();
-            result = result.filter(booking => {
-                const bookingId = booking.id.toString();
-                const userName = booking.user?.name?.toLowerCase() || "";
-                const userEmail = booking.user?.email?.toLowerCase() || "";
-                const comments = booking.comments?.toLowerCase() || "";
-                const startTime = booking.startTime ? format(new Date(booking.startTime), "dd/MM/yyyy HH:mm", { locale: dateFnsLocale }) : "";
-                const endTime = booking.endTime ? format(new Date(booking.endTime), "HH:mm", { locale: dateFnsLocale }) : "";
-                const status = booking.status.toLowerCase();
-                const childrenNames = booking.children?.map(c => `${c.name} ${c.surname}`).join(" ").toLowerCase() || "";
-                
-                return bookingId.includes(query) ||
-                       userName.includes(query) ||
-                       userEmail.includes(query) ||
-                       comments.includes(query) ||
-                       startTime.includes(query) ||
-                       endTime.includes(query) ||
-                       status.includes(query) ||
-                       childrenNames.includes(query);
-            });
-        }
+        // Aplicar búsqueda usando helper
+        result = filterBookingsByQuery(result, searchQuery, dateFnsLocale);
 
         return result;
     }, [bookings, filter, searchQuery, dateFnsLocale]);
@@ -253,37 +263,8 @@ export function AdminDaycareBookings() {
 
     // Aplicar filtro de búsqueda también a dailyBookings si hay una fecha seleccionada
     const filteredDailyBookings = useMemo(() => {
-        let result = dailyBookings;
-        
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase().trim();
-            result = dailyBookings.filter(booking => {
-                const bookingId = booking.id.toString();
-                const userName = booking.user?.name?.toLowerCase() || "";
-                const userEmail = booking.user?.email?.toLowerCase() || "";
-                const comments = booking.comments?.toLowerCase() || "";
-                const startTime = booking.startTime ? format(new Date(booking.startTime), "dd/MM/yyyy HH:mm", { locale: dateFnsLocale }) : "";
-                const endTime = booking.endTime ? format(new Date(booking.endTime), "HH:mm", { locale: dateFnsLocale }) : "";
-                const status = booking.status.toLowerCase();
-                const childrenNames = booking.children?.map(c => `${c.name} ${c.surname}`).join(" ").toLowerCase() || "";
-                
-                return bookingId.includes(query) ||
-                       userName.includes(query) ||
-                       userEmail.includes(query) ||
-                       comments.includes(query) ||
-                       startTime.includes(query) ||
-                       endTime.includes(query) ||
-                       status.includes(query) ||
-                       childrenNames.includes(query);
-            });
-        }
-        
-        // Ordenar por hora ascendente (09:00, 10:00, etc.)
-        return result.sort((a, b) => {
-            const timeA = new Date(a.startTime).getTime();
-            const timeB = new Date(b.startTime).getTime();
-            return timeA - timeB;
-        });
+        const filtered = filterBookingsByQuery(dailyBookings, searchQuery, dateFnsLocale);
+        return sortBookingsByTime(filtered);
     }, [dailyBookings, searchQuery, dateFnsLocale]);
 
     const bookingsToShow = selectedDate ? filteredDailyBookings : filteredBookings;
@@ -387,16 +368,8 @@ export function AdminDaycareBookings() {
                     return isWithinInterval(bookingDate, { start: weekStart, end: weekEnd });
                 });
 
-                // Ordenar reservas por fecha ascendente y luego por hora ascendente
-                const sortedBookings = weekBookings.sort((a, b) => {
-                    const dateA = new Date(a.startTime).getTime();
-                    const dateB = new Date(b.startTime).getTime();
-                    if (dateA !== dateB) {
-                        return dateA - dateB; // Fecha ascendente
-                    }
-                    // Si es la misma fecha, ordenar por hora ascendente
-                    return dateA - dateB;
-                });
+                // Ordenar reservas por fecha y hora ascendente
+                const sortedBookings = sortBookingsByTime(weekBookings);
 
                 return {
                     weekStart,
@@ -540,6 +513,16 @@ export function AdminDaycareBookings() {
                         <span className="hidden sm:inline">{t.t('listView')}</span>
                     </button>
                 </div>
+                
+                {/* Botón para añadir reserva manual */}
+                <button
+                    onClick={() => setIsManualModalOpen(true)}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors font-medium"
+                >
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Añadir Reserva Manual</span>
+                    <span className="sm:hidden">Añadir</span>
+                </button>
             </div>
 
             {/* Panel de filtros - Siempre visible y compacto */}
@@ -629,12 +612,14 @@ export function AdminDaycareBookings() {
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 <Clock className="w-4 h-4 text-gray-600" />
                                                                 <span className="font-semibold text-gray-800">
-                                                                    {format(new Date(booking.startTime), "HH:mm")} - {format(new Date(booking.endTime), "HH:mm")}
+                                                                    {formatBookingTime(booking.startTime, booking.endTime)}
                                                                 </span>
                                                             </div>
                                                             <div className="flex items-center gap-2 mb-2">
                                                                 <Users className="w-4 h-4 text-gray-600" />
-                                                                <span className="text-gray-700">{booking.user?.children?.map(child => child.name).join(', ') || t.t('user')}</span>
+                                                                <span className="text-gray-700">
+                                                                    {getChildrenDisplayText(booking) || t.t('user')}
+                                                                </span>
                                                             </div>
                                                             <div className="flex flex-wrap gap-2 items-center">
                                                                 <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'CONFIRMED'
@@ -866,12 +851,14 @@ export function AdminDaycareBookings() {
                                                                     <div className="flex items-center gap-2 mb-2">
                                                                         <Clock className="w-4 h-4 text-gray-600" />
                                                                         <span className="font-semibold text-gray-800">
-                                                                            {format(new Date(booking.startTime), "HH:mm")} - {format(new Date(booking.endTime), "HH:mm")}
+                                                                            {formatBookingTime(booking.startTime, booking.endTime)}
                                                                         </span>
                                                                     </div>
                                                                     <div className="flex items-center gap-2 mb-2">
                                                                         <Users className="w-4 h-4 text-gray-600" />
-                                                                        <span className="text-gray-700">{booking.children?.map(child => child.name).join(', ') || t.t('user')}</span>
+                                                                        <span className="text-gray-700">
+                                                                            {getChildrenDisplayText(booking) || t.t('user')}
+                                                                        </span>
                                                                     </div>
                                                                     <div className="flex flex-wrap gap-2 items-center">
                                                                         <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${booking.status === 'CONFIRMED'
@@ -979,11 +966,7 @@ export function AdminDaycareBookings() {
                                     bookingDate.getMonth() === date.getMonth() &&
                                     bookingDate.getDate() === date.getDate();
                             });
-                            // Ordenar por hora ascendente
-                            const sorted = dayBookings.sort((a, b) => {
-                                return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
-                            });
-                            setDailyBookings(sorted);
+                            setDailyBookings(sortBookingsByTime(dayBookings));
                             
                             // Expandir automáticamente el mes y la semana correspondientes
                             const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
@@ -1055,40 +1038,101 @@ export function AdminDaycareBookings() {
                             <div className="bg-blue-50 p-4 rounded-xl">
                                 <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
                                     <Users className="w-5 h-5" />
-                                    {t.t('userData')}
+                                    {selectedBooking.isManual ? 'Datos del Cliente' : t.t('userData')}
                                 </h4>
                                 <div className="space-y-2 text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-medium">{t.t('name')}:</span>
-                                        <span>{selectedBooking.user?.name || t.t('notAvailable')}</span>
-                                    </div>
-                                    {selectedBooking.user?.phone_number && (
-                                        <button
-                                            onClick={() => handleCopyPhone(selectedBooking.user!.phone_number)}
-                                            className="flex items-center gap-2 hover:text-blue-600 transition-colors group"
-                                        >
-                                            <Phone className="w-4 h-4" />
-                                            <span>{selectedBooking.user.phone_number}</span>
-                                            {copiedPhone === selectedBooking.user.phone_number ? (
-                                                <Check className="w-4 h-4 text-green-600" />
-                                            ) : (
-                                                <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    {selectedBooking.isManual ? (
+                                        <>
+                                            {selectedBooking.manualClientName && (
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="font-medium">Nombre del cliente:</span>
+                                                    <span>{selectedBooking.manualClientName}</span>
+                                                </div>
                                             )}
-                                        </button>
-                                    )}
-                                    {selectedBooking.user?.email && (
-                                        <button
-                                            onClick={() => handleCopyEmail(selectedBooking.user!.email)}
-                                            className="flex items-center gap-2 hover:text-blue-600 transition-colors group"
-                                        >
-                                            <Mail className="w-4 h-4" />
-                                            <span>{selectedBooking.user.email}</span>
-                                            {copiedPhone === selectedBooking.user.email ? (
-                                                <Check className="w-4 h-4 text-green-600" />
-                                            ) : (
-                                                <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">Padre/Madre 1:</span>
+                                                <span>{selectedBooking.manualParent1Name || t.t('notAvailable')}</span>
+                                            </div>
+                                            {selectedBooking.manualParent1Phone && (
+                                                <button
+                                                    onClick={() => handleCopyPhone(selectedBooking.manualParent1Phone!)}
+                                                    className="flex items-center gap-2 hover:text-blue-600 transition-colors group text-left"
+                                                >
+                                                    <Phone className="w-4 h-4" />
+                                                    <span className="font-medium">Teléfono 1:</span>
+                                                    <span>{selectedBooking.manualParent1Phone}</span>
+                                                    {copiedPhone === selectedBooking.manualParent1Phone ? (
+                                                        <Check className="w-4 h-4 text-green-600" />
+                                                    ) : (
+                                                        <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    )}
+                                                </button>
                                             )}
-                                        </button>
+                                            {selectedBooking.manualParent2Name && (
+                                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="font-medium">Padre/Madre 2:</span>
+                                                        <span>{selectedBooking.manualParent2Name}</span>
+                                                    </div>
+                                                    {selectedBooking.manualParent2Phone && (
+                                                        <button
+                                                            onClick={() => handleCopyPhone(selectedBooking.manualParent2Phone!)}
+                                                            className="flex items-center gap-2 hover:text-blue-600 transition-colors group mt-1"
+                                                        >
+                                                            <Phone className="w-4 h-4" />
+                                                            <span className="font-medium">Teléfono 2:</span>
+                                                            <span>{selectedBooking.manualParent2Phone}</span>
+                                                            {copiedPhone === selectedBooking.manualParent2Phone ? (
+                                                                <Check className="w-4 h-4 text-green-600" />
+                                                            ) : (
+                                                                <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                            )}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                            {selectedBooking.comments && (
+                                                <div className="mt-3 pt-3 border-t border-gray-200">
+                                                    <span className="font-medium">Notas:</span>
+                                                    <p className="text-gray-600 mt-1 whitespace-pre-line">{selectedBooking.comments}</p>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">{t.t('name')}:</span>
+                                                <span>{selectedBooking.user?.name || t.t('notAvailable')}</span>
+                                            </div>
+                                            {selectedBooking.user?.phone_number && (
+                                                <button
+                                                    onClick={() => handleCopyPhone(selectedBooking.user!.phone_number)}
+                                                    className="flex items-center gap-2 hover:text-blue-600 transition-colors group"
+                                                >
+                                                    <Phone className="w-4 h-4" />
+                                                    <span>{selectedBooking.user.phone_number}</span>
+                                                    {copiedPhone === selectedBooking.user.phone_number ? (
+                                                        <Check className="w-4 h-4 text-green-600" />
+                                                    ) : (
+                                                        <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    )}
+                                                </button>
+                                            )}
+                                            {selectedBooking.user?.email && (
+                                                <button
+                                                    onClick={() => handleCopyEmail(selectedBooking.user!.email)}
+                                                    className="flex items-center gap-2 hover:text-blue-600 transition-colors group"
+                                                >
+                                                    <Mail className="w-4 h-4" />
+                                                    <span>{selectedBooking.user.email}</span>
+                                                    {copiedPhone === selectedBooking.user.email ? (
+                                                        <Check className="w-4 h-4 text-green-600" />
+                                                    ) : (
+                                                        <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                    )}
+                                                </button>
+                                            )}
+                                        </>
                                     )}
                                 </div>
                             </div>
@@ -1101,7 +1145,7 @@ export function AdminDaycareBookings() {
                                         <span className="text-sm text-gray-600">{t.t('date')}</span>
                                     </div>
                                     <p className="font-semibold text-gray-800">
-                                        {format(new Date(selectedBooking.startTime), "EEEE, dd 'de' MMMM 'de' yyyy", { locale: dateFnsLocale })}
+                                        {formatBookingDate(selectedBooking.startTime, dateFnsLocale)}
                                     </p>
                                 </div>
                                 <div className="p-4 bg-gray-50 rounded-xl">
@@ -1110,31 +1154,54 @@ export function AdminDaycareBookings() {
                                         <span className="text-sm text-gray-600">{t.t('schedule')}</span>
                                     </div>
                                     <p className="font-semibold text-gray-800">
-                                        {format(new Date(selectedBooking.startTime), "HH:mm")} - {format(new Date(selectedBooking.endTime), "HH:mm")}
+                                        {formatBookingTime(selectedBooking.startTime, selectedBooking.endTime)}
                                     </p>
                                 </div>
                             </div>
 
                             {/* Hijos */}
-                            {selectedBooking.children && selectedBooking.children.length > 0 && (
-                                <div className="bg-purple-50 p-4 rounded-xl">
-                                    <h4 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
-                                        <Users className="w-5 h-5" />
-                                        {t.t('children')} ({selectedBooking.children.length})
-                                    </h4>
-                                    <div className="space-y-2">
-                                        {selectedBooking.children.map((child, idx) => (
-                                            <div key={idx} className="bg-white p-3 rounded-lg">
-                                                <p className="font-medium text-gray-800">{child.name} {child.surname}</p>
-                                                {(child as any).dateOfBirth && (
+                            {selectedBooking.isManual ? (
+                                selectedBooking.manualNumberOfChildren && selectedBooking.manualNumberOfChildren > 0 && (
+                                    <div className="bg-purple-50 p-4 rounded-xl">
+                                        <h4 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                                            <Users className="w-5 h-5" />
+                                            {t.t('children')} ({selectedBooking.manualNumberOfChildren})
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {selectedBooking.manualChildName ? (
+                                                <div className="bg-white p-3 rounded-lg">
+                                                    <p className="font-medium text-gray-800 mb-1">{selectedBooking.manualChildName}</p>
                                                     <p className="text-sm text-gray-600">
-                                                        {t.t('birthDate')}: {format(new Date((child as any).dateOfBirth), "dd/MM/yyyy")}
+                                                        {selectedBooking.manualNumberOfChildren} niño{selectedBooking.manualNumberOfChildren !== 1 ? 's' : ''}
                                                     </p>
-                                                )}
-                                            </div>
-                                        ))}
+                                                </div>
+                                            ) : (
+                                                <p className="text-gray-600">{selectedBooking.manualNumberOfChildren} niño{selectedBooking.manualNumberOfChildren !== 1 ? 's' : ''}</p>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )
+                            ) : (
+                                selectedBooking.children && selectedBooking.children.length > 0 && (
+                                    <div className="bg-purple-50 p-4 rounded-xl">
+                                        <h4 className="font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                                            <Users className="w-5 h-5" />
+                                            {t.t('children')} ({selectedBooking.children.length})
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {selectedBooking.children.map((child, idx) => (
+                                                <div key={idx} className="bg-white p-3 rounded-lg">
+                                                    <p className="font-medium text-gray-800">{child.name} {child.surname}</p>
+                                                    {(child as any).dateOfBirth && (
+                                                        <p className="text-sm text-gray-600">
+                                                            {t.t('birthDate')}: {format(new Date((child as any).dateOfBirth), "dd/MM/yyyy")}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )
                             )}
 
                             {/* Estado */}
@@ -1282,6 +1349,19 @@ export function AdminDaycareBookings() {
                             </div>
                             {/* Botones de cambio de estado */}
                             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                {selectedBooking.isManual && (
+                    <button
+                        onClick={() => {
+                            setEditingManualBooking(selectedBooking);
+                            // No cerrar el modal de detalles, solo abrimos el modal de edición
+                            setIsManualModalOpen(true);
+                        }}
+                        className="flex-1 bg-purple-500 text-white px-3 sm:px-4 py-2 rounded-xl font-medium hover:bg-purple-600 transition-all duration-200 text-sm sm:text-base min-w-[48px] flex items-center justify-center gap-2"
+                    >
+                        <Edit className="w-4 h-4" />
+                        Editar
+                    </button>
+                )}
                                 {selectedBooking.status !== 'CONFIRMED' && (
                                     <button
                                         onClick={async () => {
@@ -1354,6 +1434,67 @@ export function AdminDaycareBookings() {
                 </div>
             )}
             {ConfirmComponent}
+            <ManualDaycareBookingModal
+                isOpen={isManualModalOpen}
+                onClose={() => {
+                    setIsManualModalOpen(false);
+                    setEditingManualBooking(null);
+                }}
+                existingBooking={editingManualBooking}
+                onSuccess={(updatedBooking?: DaycareBooking) => {
+                    if (!updatedBooking) {
+                        setIsManualModalOpen(false);
+                        setEditingManualBooking(null);
+                        return;
+                    }
+
+                    const isUpdate = editingManualBooking !== null;
+                    const bookingId = updatedBooking.id;
+                    
+                    // Actualizar TODOS los estados de forma síncrona en batch
+                    // 1. Actualizar selectedBooking si corresponde
+                    if (selectedBooking?.id === bookingId || editingManualBooking?.id === bookingId) {
+                        setSelectedBooking(updatedBooking);
+                    }
+                    
+                    // 2. Actualizar la lista principal de bookings
+                    setBookings(prev => {
+                        const index = prev.findIndex(b => b.id === bookingId);
+                        if (index >= 0) {
+                            const updated = [...prev];
+                            updated[index] = updatedBooking;
+                            return updated;
+                        }
+                        return [...prev, updatedBooking];
+                    });
+                    
+                    // 3. Actualizar dailyBookings si hay fecha seleccionada
+                    if (selectedDate) {
+                        const bookingDate = new Date(updatedBooking.startTime);
+                        const isSameDate = bookingDate.getFullYear() === selectedDate.getFullYear() &&
+                                          bookingDate.getMonth() === selectedDate.getMonth() &&
+                                          bookingDate.getDate() === selectedDate.getDate();
+                        
+                        setDailyBookings(prev => {
+                            if (isSameDate) {
+                                const index = prev.findIndex(b => b.id === bookingId);
+                                if (index >= 0) {
+                                    const updated = [...prev];
+                                    updated[index] = updatedBooking;
+                                    return sortBookingsByTime(updated);
+                                }
+                                return sortBookingsByTime([...prev, updatedBooking]);
+                            }
+                            // Si cambió de fecha y es actualización, remover del día anterior
+                            return isUpdate ? prev.filter(b => b.id !== bookingId) : prev;
+                        });
+                    }
+                    
+                    // 4. Cerrar el modal de edición
+                    setIsManualModalOpen(false);
+                    setEditingManualBooking(null);
+                }}
+            />
         </div>
     );
 }

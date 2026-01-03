@@ -12,9 +12,11 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
   const t = useTranslation('Auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
   const [surname, setSurname] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const { register, isLoading } = useAuth();
 
@@ -24,6 +26,11 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
 
     if (password.length < 6) {
       setError(t.t('passwordMin'));
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden');
       return;
     }
 
@@ -37,27 +44,27 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-gradient-to-br from-pink-400 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-          <UserPlus className="w-8 h-8 text-white" />
+      <div className="text-center mb-4">
+        <div className="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-500 rounded-xl flex items-center justify-center mx-auto mb-2 shadow-lg">
+          <UserPlus className="w-6 h-6 text-white" />
         </div>
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">{t.t('registerTitle')}</h2>
-        <p className="text-gray-600">{t.t('registerSubtitle')}</p>
+        <h2 className="text-2xl font-bold text-gray-800 mb-1">{t.t('registerTitle')}</h2>
+        <p className="text-sm text-gray-600">{t.t('registerSubtitle')}</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
 
         <div>
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-gray-700 font-medium mb-1 text-sm">
             {t.t('name')}
           </label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200 text-sm"
               placeholder={t.t('namePlaceholder')}
               required
             />
@@ -65,32 +72,32 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
         </div>
         
         <div>
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-gray-700 font-medium mb-1 text-sm">
             {t.t('surname')}
           </label>
           <div className="relative">
-            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={surname}
               onChange={(e) => setSurname(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200 text-sm"
               placeholder={t.t('surnamePlaceholder')}
               required
             />
           </div>
         </div>
         <div>
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-gray-700 font-medium mb-1 text-sm">
             {t.t('email')}
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+              className="w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200 text-sm"
               placeholder={t.t('emailPlaceholder')}
               required
             />
@@ -98,16 +105,16 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
         </div>
 
         <div>
-          <label className="block text-gray-700 font-medium mb-2">
+          <label className="block text-gray-700 font-medium mb-1 text-sm">
             {t.t('password')}
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-10 pr-12 py-3 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200"
+              className="w-full pl-9 pr-10 py-2 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200 text-sm"
               placeholder={t.t('passwordMinPlaceholder')}
               required
             />
@@ -116,13 +123,37 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-gray-700 font-medium mb-1 text-sm">
+            Repetir contraseña
+          </label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full pl-9 pr-10 py-2 rounded-xl border border-gray-200 focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition-all duration-200 text-sm"
+              placeholder="Repite la contraseña"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl">
+          <div className="bg-red-50 border border-red-200 text-red-600 px-3 py-2 rounded-xl text-sm">
             {error}
           </div>
         )}
@@ -130,14 +161,14 @@ export function RegisterForm({ onSwitchToLogin, onClose }: RegisterFormProps) {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-gradient-to-r from-pink-400 to-purple-500 text-white py-3 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
+          className="w-full bg-gradient-to-r from-pink-400 to-purple-500 text-white py-2.5 rounded-xl font-bold text-base hover:shadow-lg transform hover:scale-105 transition-all duration-300 disabled:opacity-50 disabled:transform-none"
         >
           {isLoading ? t.t('creatingAccount') : t.t('registerButton')}
         </button>
       </form>
 
-      <div className="mt-6 text-center">
-        <p className="text-gray-600">
+      <div className="mt-4 text-center">
+        <p className="text-sm text-gray-600">
           {t.t('hasAccount')}{' '}
           <button
             onClick={onSwitchToLogin}

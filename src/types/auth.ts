@@ -36,9 +36,18 @@ export interface DaycareBooking{
   upstringdAt: string;
   status: Status;
   attendanceStatus?: AttendanceStatus;
-  user: User;
+  user?: User | null; // Opcional para reservas manuales
   children: User[]; // Los hijos son usuarios (User con role CHILD)
   slots: DaycareSlot[];
+  // Campos para reservas manuales
+  isManual?: boolean;
+  manualClientName?: string | null;
+  manualNumberOfChildren?: number | null;
+  manualChildName?: string | null;
+  manualParent1Name?: string | null;
+  manualParent1Phone?: string | null;
+  manualParent2Name?: string | null;
+  manualParent2Phone?: string | null;
 }
 
 export interface DaycareSlot{

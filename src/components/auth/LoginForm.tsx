@@ -6,11 +6,12 @@ import { Spinner } from '../shared/Spinner';
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
+  onSwitchToForgotPassword?: () => void;
   onClose: () => void;
   sessionExpiredMessage?: string | null;
 }
 
-export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }: LoginFormProps) {
+export function LoginForm({ onSwitchToRegister, onSwitchToForgotPassword, onClose, sessionExpiredMessage }: LoginFormProps) {
   const t = useTranslation('Auth');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -66,9 +67,20 @@ export function LoginForm({ onSwitchToRegister, onClose, sessionExpiredMessage }
         </div>
 
         <div>
-          <label className="block text-gray-700 font-medium mb-2">
-            {t.t('password')}
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-gray-700 font-medium">
+              {t.t('password')}
+            </label>
+            {onSwitchToForgotPassword && (
+              <button
+                type="button"
+                onClick={onSwitchToForgotPassword}
+                className="text-sm text-green-500 hover:underline font-medium"
+              >
+                ¿Olvidaste tu contraseña?
+              </button>
+            )}
+          </div>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
