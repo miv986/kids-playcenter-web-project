@@ -38,6 +38,21 @@ export function AdminVisitSlots() {
     // Usar hooks helper para meses y semanas
     const monthLoading = useMonthLoading();
     const weekPagination = useWeekPagination();
+    const [loadedMonths, setLoadedMonths] = useState<Set<string>>(new Set());
+    const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+    
+    // Función para toggle de mes
+    const toggleMonth = useCallback((monthKey: string) => {
+        setExpandedMonths(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(monthKey)) {
+                newSet.delete(monthKey);
+            } else {
+                newSet.add(monthKey);
+            }
+            return newSet;
+        });
+    }, []);
 
     const openModal = (slot?: MeetingSlot) => {
         setSelectedSlot(slot || undefined);
@@ -66,12 +81,12 @@ export function AdminVisitSlots() {
                         const monthKey = `${slotDate.getFullYear()}-${slotDate.getMonth()}`;
                         uniqueMonths.add(monthKey);
                     });
-                    monthLoading.setLoadedMonths(uniqueMonths);
+                    setLoadedMonths(uniqueMonths);
                     
                     // Expandir el mes actual por defecto
                     const now = new Date();
                     const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
-                    monthLoading.setExpandedMonths(new Set([currentMonthKey]));
+                    setExpandedMonths(new Set([currentMonthKey]));
                 } catch (error) {
                     console.error("Error cargando slots:", error);
                 } finally {
@@ -218,14 +233,14 @@ export function AdminVisitSlots() {
                 availableSlots: monthSlots.filter(s => s.status === 'OPEN' && s.availableSpots > 0).length,
                 totalCapacity: monthSlots.reduce((sum, s) => sum + s.capacity, 0),
                 availableCapacity: monthSlots.reduce((sum, s) => sum + s.availableSpots, 0),
-                isLoaded: monthLoading.loadedMonths.has(monthKey),
+                isLoaded: loadedMonths.has(monthKey),
                 isLoading: monthLoading.loadingMonths.has(monthKey)
             };
         });
 
         // Ordenar por fecha descendente (más recientes primero)
         return monthsData.sort((a, b) => b.monthStart.getTime() - a.monthStart.getTime());
-    }, [slotsToShow, selectedDate, monthLoading.loadedMonths, monthLoading.loadingMonths]);
+    }, [slotsToShow, selectedDate, loadedMonths, monthLoading.loadingMonths]);
 
     const calendarData = useMemo(() => {
         const bookedDays: number[] = [];
@@ -728,7 +743,7 @@ export function AdminVisitSlots() {
                             ) : (
                                 <div className="space-y-3">
                                     {slotsByMonth.map((month) => {
-                                        const isMonthExpanded = monthLoading.expandedMonths.has(month.monthKey);
+                                        const isMonthExpanded = expandedMonths.has(month.monthKey);
 
                                         return (
                                             <div
@@ -737,7 +752,7 @@ export function AdminVisitSlots() {
                                             >
                                                 {/* Card de mes */}
                                                 <button
-                                                    onClick={() => monthLoading.toggleMonth(month.monthKey, month.monthStart.getFullYear(), month.monthStart.getMonth(), fetchSlotsByMonth, setSlots)}
+                                                    onClick={() => toggleMonth(month.monthKey)}
                                                     disabled={month.isLoading}
                                                     className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
                                                 >

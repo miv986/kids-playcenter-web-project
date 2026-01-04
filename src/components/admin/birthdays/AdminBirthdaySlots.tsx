@@ -35,6 +35,8 @@ export function AdminBirthdaySlots() {
     const [isLoading, setIsLoading] = useState(true);
     const [isLoadingDaily, setIsLoadingDaily] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [loadedMonths, setLoadedMonths] = useState<Set<string>>(new Set());
+    const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
     
     // Usar hooks helper para meses y semanas
     const monthLoading = useMonthLoading();
@@ -49,6 +51,19 @@ export function AdminBirthdaySlots() {
         setSelectedSlot(null);
         setIsModalOpen(false);
     };
+
+    // Función para toggle de mes
+    const toggleMonth = useCallback((monthKey: string) => {
+        setExpandedMonths(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(monthKey)) {
+                newSet.delete(monthKey);
+            } else {
+                newSet.add(monthKey);
+            }
+            return newSet;
+        });
+    }, []);
 
     // Cargar todos los slots al inicio (24 meses de rango)
     useEffect(() => {
@@ -67,12 +82,12 @@ export function AdminBirthdaySlots() {
                         const monthKey = `${slotDate.getFullYear()}-${slotDate.getMonth()}`;
                         uniqueMonths.add(monthKey);
                     });
-                    monthLoading.setLoadedMonths(uniqueMonths);
+                    setLoadedMonths(uniqueMonths);
                     
                     // Expandir el mes actual por defecto
                     const now = new Date();
                     const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
-                    monthLoading.setExpandedMonths(new Set([currentMonthKey]));
+                    setExpandedMonths(new Set([currentMonthKey]));
                 } catch (error) {
                     console.error("Error cargando slots:", error);
                 } finally {
@@ -199,14 +214,14 @@ export function AdminBirthdaySlots() {
                 weeks: weeksData,
                 totalSlots: monthSlots.length,
                 availableSlots: monthSlots.filter(s => s.status === 'OPEN').length,
-                isLoaded: monthLoading.loadedMonths.has(monthKey),
+                isLoaded: loadedMonths.has(monthKey),
                 isLoading: monthLoading.loadingMonths.has(monthKey)
             };
         });
 
         // Ordenar por fecha descendente (más recientes primero)
         return monthsData.sort((a, b) => b.monthStart.getTime() - a.monthStart.getTime());
-    }, [filteredSlots, selectedDate, monthLoading.loadedMonths, monthLoading.loadingMonths]);
+    }, [filteredSlots, selectedDate, loadedMonths, monthLoading.loadingMonths]);
 
 
     // Calcular días con slots para el calendario con información detallada
@@ -541,7 +556,7 @@ export function AdminBirthdaySlots() {
                             ) : (
                                 <div className="space-y-3">
                                     {slotsByMonth.map((month) => {
-                                        const isMonthExpanded = monthLoading.expandedMonths.has(month.monthKey);
+                                        const isMonthExpanded = expandedMonths.has(month.monthKey);
 
                                         return (
                                             <div
@@ -550,7 +565,7 @@ export function AdminBirthdaySlots() {
                                             >
                                                 {/* Card de mes */}
                                                 <button
-                                                    onClick={() => monthLoading.toggleMonth(month.monthKey, month.monthStart.getFullYear(), month.monthStart.getMonth(), fetchSlotsByMonth, setSlots)}
+                                                    onClick={() => toggleMonth(month.monthKey)}
                                                     disabled={month.isLoading}
                                                     className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
                                                 >

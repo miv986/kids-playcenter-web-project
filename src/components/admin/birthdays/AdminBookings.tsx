@@ -46,6 +46,21 @@ export function AdminBookings() {
     // Usar hooks helper para meses y semanas
     const monthLoading = useMonthLoading();
     const weekPagination = useWeekPagination();
+    const [loadedMonths, setLoadedMonths] = useState<Set<string>>(new Set());
+    const [expandedMonths, setExpandedMonths] = useState<Set<string>>(new Set());
+    
+    // Función para toggle de mes
+    const toggleMonth = useCallback((monthKey: string) => {
+        setExpandedMonths(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(monthKey)) {
+                newSet.delete(monthKey);
+            } else {
+                newSet.add(monthKey);
+            }
+            return newSet;
+        });
+    }, []);
 
     const openModal = (booking: BirthdayBooking) => {
         setSelectedBooking(booking);
@@ -74,12 +89,12 @@ export function AdminBookings() {
                         const monthKey = `${bookingDate.getFullYear()}-${bookingDate.getMonth()}`;
                         uniqueMonths.add(monthKey);
                     });
-                    monthLoading.setLoadedMonths(uniqueMonths);
+                    setLoadedMonths(uniqueMonths);
                     
                     // Expandir el mes actual por defecto
                     const now = new Date();
                     const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
-                    monthLoading.setExpandedMonths(new Set([currentMonthKey]));
+                    setExpandedMonths(new Set([currentMonthKey]));
                 } catch (error) {
                     console.error("Error cargando reservas:", error);
                 } finally {
@@ -259,7 +274,7 @@ export function AdminBookings() {
                 pendingBookings: monthBookings.filter(b => b.status === 'PENDING').length,
                 confirmedBookings: monthBookings.filter(b => b.status === 'CONFIRMED').length,
                 cancelledBookings: monthBookings.filter(b => b.status === 'CANCELLED').length,
-                isLoaded: monthLoading.loadedMonths.has(monthKey),
+                isLoaded: loadedMonths.has(monthKey),
                 isLoading: monthLoading.loadingMonths.has(monthKey)
             };
         });
@@ -267,7 +282,7 @@ export function AdminBookings() {
         // Ordenar por fecha descendente (más recientes primero)
         // Mostrar todos los meses, incluso si no tienen reservas (para poder cargarlos)
         return monthsData.sort((a, b) => b.monthStart.getTime() - a.monthStart.getTime());
-    }, [filteredBookings, selectedDate, monthLoading.loadedMonths, monthLoading.loadingMonths]);
+    }, [filteredBookings, selectedDate, loadedMonths, monthLoading.loadingMonths]);
 
 
     const bookedDays = useMemo(() => {
@@ -609,7 +624,7 @@ export function AdminBookings() {
                             ) : (
                                 <div className="space-y-3">
                                     {bookingsByMonth.map((month) => {
-                                        const isMonthExpanded = monthLoading.expandedMonths.has(month.monthKey);
+                                        const isMonthExpanded = expandedMonths.has(month.monthKey);
 
                                         return (
                                             <div
@@ -618,7 +633,7 @@ export function AdminBookings() {
                                             >
                                                 {/* Card de mes */}
                                                 <button
-                                                    onClick={() => monthLoading.toggleMonth(month.monthKey, month.monthStart.getFullYear(), month.monthStart.getMonth(), fetchBookingsByMonth, setBookings)}
+                                                    onClick={() => toggleMonth(month.monthKey)}
                                                     disabled={month.isLoading}
                                                     className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-wait"
                                                 >
