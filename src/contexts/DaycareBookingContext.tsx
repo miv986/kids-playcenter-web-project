@@ -35,7 +35,7 @@ export function useDaycareBookings() {
 export function DaycareBookingProvider({ children }: { children: React.ReactNode }) {
     const http = useHttp();
 
-    // 🟢 Obtener todas las reservas (admin)
+    // 🟢 Obtener todas las reservas (sin filtros, backend aplica rango de 24 meses automáticamente)
     const fetchBookings = async () => {
         try {
             const data = await http.get("/api/daycareBookings");
@@ -48,7 +48,7 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
         }
     };
 
-    // 🟢 Obtener reservas por mes específico (año y mes: 0-11)
+    // 📅 Obtener reservas por mes específico (año y mes: 0-11)
     const fetchBookingsByMonth = async (year: number, month: number) => {
         try {
             const startDate = new Date(year, month, 1);

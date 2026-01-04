@@ -83,13 +83,36 @@ export function AdminDaycareSlots() {
         }
     }, [fetchSlotsByMonth, loadedMonths]);
 
-    // Cargar mes actual al inicio
+    // Cargar todos los slots al inicio (24 meses de rango)
     useEffect(() => {
         if (!!user) {
-            const now = new Date();
-            loadMonth(now.getFullYear(), now.getMonth(), true);
+            const loadAllSlots = async () => {
+                try {
+                    // fetchSlots sin parámetros carga 12 meses atrás y 12 adelante automáticamente
+                    const allSlots = await fetchSlots();
+                    setSlots(allSlots);
+                    
+                    // Marcar todos los meses como cargados para evitar cargas redundantes
+                    const uniqueMonths = new Set<string>();
+                    allSlots.forEach(slot => {
+                        const slotDate = new Date(slot.date);
+                        const monthKey = `${slotDate.getFullYear()}-${slotDate.getMonth()}`;
+                        uniqueMonths.add(monthKey);
+                    });
+                    setLoadedMonths(uniqueMonths);
+                    
+                    // Expandir el mes actual por defecto
+                    const now = new Date();
+                    const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
+                    setExpandedMonths(new Set([currentMonthKey]));
+                } catch (error) {
+                    console.error("Error cargando slots:", error);
+                }
+            };
+            loadAllSlots();
         }
-    }, [user, loadMonth]);
+    }, [user, fetchSlots]);
+
 
     // Filtrar slots del día seleccionado desde todos los slots cargados
     const dailySlots = useMemo(() => {

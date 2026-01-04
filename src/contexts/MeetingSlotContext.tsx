@@ -70,6 +70,7 @@ export function MeetingSlotProvider({ children }: { children: React.ReactNode })
 
     const fetchSlots = async () => {
         try {
+            // Sin parámetros, el backend devuelve 12 meses atrás y 12 adelante
             const data = await http.get("/api/meetingSlots");
             return data || [];
         } catch (err: any) {

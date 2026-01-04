@@ -157,9 +157,10 @@ export function DaycareSlotProvider({ children }: { children: React.ReactNode })
         }
     };
 
-    // 📅 Obtener slots disponibles (abiertos y con plazas)
+    // 📅 Obtener todos los slots (sin filtros, backend aplica rango de 24 meses automáticamente)
     const fetchSlots = async () => {
         try {
+            // Sin parámetros, el backend devuelve 12 meses atrás y 12 adelante
             const data = await http.get("/api/daycareSlots/");
             return data || [];
         } catch (err: any) {

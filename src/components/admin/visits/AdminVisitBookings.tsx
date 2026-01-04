@@ -42,22 +42,38 @@ export function AdminVisitBookings() {
     const monthLoading = useMonthLoading();
     const weekPagination = useWeekPagination();
 
-    // Cargar mes actual al inicio
+    // Cargar todas las reservas al inicio (24 meses de rango)
     useEffect(() => {
         if (!!user) {
-            const now = new Date();
-            setIsLoadingBookings(true);
-            monthLoading.loadMonth(
-                now.getFullYear(),
-                now.getMonth(),
-                fetchBookingsByMonth,
-                setBookings,
-                true
-            ).finally(() => {
-                setIsLoadingBookings(false);
-            });
+            const loadAllBookings = async () => {
+                setIsLoadingBookings(true);
+                try {
+                    // fetchBookings sin parámetros carga 12 meses atrás y 12 adelante automáticamente
+                    const allBookings = await fetchBookings();
+                    setBookings(allBookings);
+                    
+                    // Marcar todos los meses como cargados
+                    const uniqueMonths = new Set<string>();
+                    allBookings.forEach(booking => {
+                        const bookingDate = booking.slot ? new Date(booking.slot.startTime) : new Date(booking.createdAt || new Date());
+                        const monthKey = `${bookingDate.getFullYear()}-${bookingDate.getMonth()}`;
+                        uniqueMonths.add(monthKey);
+                    });
+                    monthLoading.setLoadedMonths(uniqueMonths);
+                    
+                    // Expandir el mes actual por defecto
+                    const now = new Date();
+                    const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
+                    monthLoading.setExpandedMonths(new Set([currentMonthKey]));
+                } catch (error) {
+                    console.error("Error cargando reservas:", error);
+                } finally {
+                    setIsLoadingBookings(false);
+                }
+            };
+            loadAllBookings();
         }
-    }, [user, monthLoading.loadMonth, fetchBookingsByMonth]);
+    }, [user, fetchBookings]);
 
     useEffect(() => {
         const loadDailyBookings = async () => {

@@ -142,13 +142,38 @@ export function AdminDaycareBookings() {
         }
     }, [fetchBookingsByMonth, loadedMonths]);
 
-    // Cargar mes actual al inicio
+    // Cargar todas las reservas al inicio (24 meses de rango)
     useEffect(() => {
         if (!!user) {
-            const now = new Date();
-            loadMonth(now.getFullYear(), now.getMonth(), true);
+            const loadAllBookings = async () => {
+                setIsLoadingBookings(true);
+                try {
+                    // fetchBookings sin parámetros carga 12 meses atrás y 12 adelante automáticamente
+                    const allBookings = await fetchBookings();
+                    setBookings(allBookings);
+                    
+                    // Marcar todos los meses como cargados
+                    const uniqueMonths = new Set<string>();
+                    allBookings.forEach(booking => {
+                        const bookingDate = new Date(booking.startTime);
+                        const monthKey = `${bookingDate.getFullYear()}-${bookingDate.getMonth()}`;
+                        uniqueMonths.add(monthKey);
+                    });
+                    setLoadedMonths(uniqueMonths);
+                    
+                    // Expandir el mes actual por defecto
+                    const now = new Date();
+                    const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
+                    setExpandedMonths(new Set([currentMonthKey]));
+                } catch (error) {
+                    console.error("Error cargando reservas:", error);
+                } finally {
+                    setIsLoadingBookings(false);
+                }
+            };
+            loadAllBookings();
         }
-    }, [user, loadMonth]);
+    }, [user, fetchBookings]);
 
     const filteredBookings = useMemo(() => {
         let result = bookings.filter(booking =>

@@ -50,22 +50,38 @@ export function AdminBirthdaySlots() {
         setIsModalOpen(false);
     };
 
-    // Cargar mes actual al inicio
+    // Cargar todos los slots al inicio (24 meses de rango)
     useEffect(() => {
         if (!!user) {
-            const now = new Date();
-            setIsLoading(true);
-            monthLoading.loadMonth(
-                now.getFullYear(),
-                now.getMonth(),
-                fetchSlotsByMonth,
-                setSlots,
-                true
-            ).finally(() => {
-                setIsLoading(false);
-            });
+            const loadAllSlots = async () => {
+                setIsLoading(true);
+                try {
+                    // fetchSlots sin parámetros carga 12 meses atrás y 12 adelante automáticamente
+                    const allSlots = await fetchSlots();
+                    setSlots(allSlots);
+                    
+                    // Marcar todos los meses como cargados
+                    const uniqueMonths = new Set<string>();
+                    allSlots.forEach(slot => {
+                        const slotDate = new Date(slot.date);
+                        const monthKey = `${slotDate.getFullYear()}-${slotDate.getMonth()}`;
+                        uniqueMonths.add(monthKey);
+                    });
+                    monthLoading.setLoadedMonths(uniqueMonths);
+                    
+                    // Expandir el mes actual por defecto
+                    const now = new Date();
+                    const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
+                    monthLoading.setExpandedMonths(new Set([currentMonthKey]));
+                } catch (error) {
+                    console.error("Error cargando slots:", error);
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+            loadAllSlots();
         }
-    }, [user, monthLoading.loadMonth, fetchSlotsByMonth]);
+    }, [user, fetchSlots]);
 
     // Filtrar slots por búsqueda
     const filteredSlots = useMemo(() => {

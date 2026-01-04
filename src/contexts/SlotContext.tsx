@@ -74,6 +74,7 @@ export function SlotProvider({ children }: { children: React.ReactNode }) {
 
     const fetchSlots = async () => {
         try {
+            // Sin parámetros, el backend devuelve 12 meses atrás y 12 adelante
             const data = await http.get("/api/birthdaySlots");
             return data || [];
         } catch (err: any) {

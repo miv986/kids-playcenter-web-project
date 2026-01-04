@@ -1,18 +1,26 @@
 import { DaycareBooking } from '../types/auth';
 import { format, Locale } from 'date-fns';
+import { ca } from 'date-fns/locale';
+import { formatTimeOnly, formatDateOnly } from './formatDate';
+
 
 /**
  * Formatea la fecha de una reserva con formato completo
+ * Usa el mismo sistema que formatDateOnly para consistencia
  */
 export function formatBookingDate(date: Date | string, locale: Locale): string {
-    return format(new Date(date), "EEEE, dd 'de' MMMM 'de' yyyy", { locale });
+    const localeString = locale === ca ? 'ca' : 'es-ES';
+    return formatDateOnly(date, localeString);
 }
 
 /**
  * Formatea el horario de una reserva (HH:mm - HH:mm)
+ * Usa el mismo sistema que formatTimeOnly para consistencia
  */
 export function formatBookingTime(startTime: Date | string, endTime: Date | string): string {
-    return `${format(new Date(startTime), "HH:mm")} - ${format(new Date(endTime), "HH:mm")}`;
+    // Usar español por defecto, pero se puede hacer más flexible si es necesario
+    const localeString = 'es-ES';
+    return `${formatTimeOnly(startTime, localeString)} - ${formatTimeOnly(endTime, localeString)}`;
 }
 
 /**
