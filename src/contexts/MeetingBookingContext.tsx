@@ -30,9 +30,12 @@ export function useMeetingBookings() {
 }
 
 // Función helper para normalizar fechas de reservas de meeting
+// PROBLEMA: Las fechas antiguas vienen con Z (UTC), pero representan hora local
+// SOLUCIÓN: Eliminar la Z sin convertir la hora, para que se interprete como local
 function normalizeMeetingBookingDates(booking: any): MeetingBooking {
     const normalizeDate = (dateStr: string | Date): string => {
         if (!dateStr) return dateStr;
+        
         if (dateStr instanceof Date) {
             const year = dateStr.getFullYear();
             const month = String(dateStr.getMonth() + 1).padStart(2, '0');
@@ -44,16 +47,10 @@ function normalizeMeetingBookingDates(booking: any): MeetingBooking {
             return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
         }
         
+        // Si viene con Z o timezone, eliminarlos sin convertir (interpretar como local)
         if (typeof dateStr === 'string' && (dateStr.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(dateStr))) {
-            const date = new Date(dateStr);
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            const hours = String(date.getHours()).padStart(2, '0');
-            const minutes = String(date.getMinutes()).padStart(2, '0');
-            const seconds = String(date.getSeconds()).padStart(2, '0');
-            const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
-            return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
+            // Quitar Z o timezone y devolver como local
+            return dateStr.replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '');
         }
         
         return dateStr;
