@@ -95,7 +95,9 @@ export function NewDaycareBookingModal({ isOpen, onClose, existingBooking, hasCh
             const data = new Map<string, { available: number, total: number }>();
 
             allSlots.forEach(slot => {
-                const dateKey = slot.date;
+                // ✅ Extraer solo la fecha (YYYY-MM-DD) del formato ISO que viene del backend
+                const slotDate = new Date(slot.date);
+                const dateKey = `${slotDate.getFullYear()}-${(slotDate.getMonth() + 1).toString().padStart(2, '0')}-${slotDate.getDate().toString().padStart(2, '0')}`;
                 if (!cache.has(dateKey)) {
                     cache.set(dateKey, []);
                 }
