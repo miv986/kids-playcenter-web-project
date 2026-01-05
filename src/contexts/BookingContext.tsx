@@ -103,8 +103,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
       // Filtrar en backend usando query params
       const bookings = await http.get(`/api/bookings/getBirthdayBookings?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
-      // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
-      return (bookings || []).map(normalizeBirthdayBookingDates) as BirthdayBooking[];
+      // ✅ El backend ya envía fechas formateadas correctamente
+      return bookings as BirthdayBooking[];
     } catch (err: any) {
       if (err.message !== 'No token provided') {
         console.error("❌ Error cargando reservas por mes:", err);
@@ -134,8 +134,8 @@ export function BookingProvider({ children }: { children: React.ReactNode }) {
 
     try {
       const data = await http.get(`/api/bookings/getBirthdayBooking/by-date/${formattedDate}`);
-      // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
-      return (data || []).map(normalizeBirthdayBookingDates) as BirthdayBooking[];
+      // ✅ El backend ya envía fechas formateadas correctamente
+      return data as BirthdayBooking[];
     } catch (error) {
       console.error("❌ Error cargando reservas de día:", error);
       return [];

@@ -107,8 +107,8 @@ export function MeetingBookingProvider({ children }: { children: React.ReactNode
 
             // Filtrar en backend usando query params
             const bookings = await http.get(`/api/meetingBookings?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
-            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
-            return (bookings || []).map(normalizeMeetingBookingDates) as MeetingBooking[];
+            // ✅ El backend ya envía fechas formateadas correctamente
+            return bookings as MeetingBooking[];
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando reservas por mes:", err);
@@ -126,8 +126,8 @@ export function MeetingBookingProvider({ children }: { children: React.ReactNode
 
         try {
             const data = await http.get(`/api/meetingBookings/by-date/${formattedDate}`);
-            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
-            return (data || []).map(normalizeMeetingBookingDates) as MeetingBooking[];
+            // ✅ El backend ya envía fechas formateadas correctamente
+            return data as MeetingBooking[];
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando reservas de meeting por fecha:", err);
