@@ -32,49 +32,16 @@ export function useDaycareBookings() {
     return context;
 }
 
-// Función helper para normalizar fechas de reservas (compatible con formato antiguo y nuevo)
-// PROBLEMA: Las fechas antiguas vienen con Z (UTC), pero representan hora local
-// SOLUCIÓN: Eliminar la Z sin convertir la hora, para que se interprete como local
-function normalizeBookingDates(booking: any): DaycareBooking {
-    const normalizeDate = (dateStr: string | Date): string => {
-        if (!dateStr) return dateStr;
-        
-        if (dateStr instanceof Date) {
-            const year = dateStr.getFullYear();
-            const month = String(dateStr.getMonth() + 1).padStart(2, '0');
-            const day = String(dateStr.getDate()).padStart(2, '0');
-            const hours = String(dateStr.getHours()).padStart(2, '0');
-            const minutes = String(dateStr.getMinutes()).padStart(2, '0');
-            const seconds = String(dateStr.getSeconds()).padStart(2, '0');
-            const milliseconds = String(dateStr.getMilliseconds()).padStart(3, '0');
-            return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
-        }
-        
-        // Si viene con Z o timezone, eliminarlos sin convertir (interpretar como local)
-        if (typeof dateStr === 'string' && (dateStr.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(dateStr))) {
-            // Quitar Z o timezone y devolver como local
-            return dateStr.replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '');
-        }
-        
-        return dateStr;
-    };
-    
-    return {
-        ...booking,
-        startTime: normalizeDate(booking.startTime),
-        endTime: normalizeDate(booking.endTime),
-    };
-}
-
 export function DaycareBookingProvider({ children }: { children: React.ReactNode }) {
     const http = useHttp();
 
     // 🟢 Obtener todas las reservas (sin filtros, backend aplica rango de 24 meses automáticamente)
+    // ✅ El backend ya envía fechas en formato ISO sin Z (Europe/Madrid)
+    // ✅ No necesitamos normalización, el sistema de timezone unificado lo maneja
     const fetchBookings = async () => {
         try {
             const data = await http.get("/api/daycareBookings");
-            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
-            return (data as DaycareBooking[]).map(normalizeBookingDates);
+            return data as DaycareBooking[];
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando todas las reservas de daycare:", err);
@@ -101,8 +68,8 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
 
             // Filtrar en backend usando query params
             const bookings = await http.get(`/api/daycareBookings?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
-            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
-            return (bookings as DaycareBooking[]).map(normalizeBookingDates);
+            // ✅ El backend ya envía fechas formateadas correctamente
+            return bookings as DaycareBooking[];
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando reservas por mes:", err);
@@ -112,11 +79,11 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
     };
 
     // 🧍 Obtener solo las reservas del usuario actual
+    // ✅ El backend ya envía fechas formateadas correctamente
     const fetchMyBookings = async () => {
         try {
             const data = await http.get("/api/daycareBookings");
-            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
-            return (data as DaycareBooking[]).map(normalizeBookingDates);
+            return data as DaycareBooking[];
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando reservas del usuario:", err);
