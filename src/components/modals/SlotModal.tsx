@@ -52,6 +52,7 @@ export function SlotModal<T extends GenericSlot>({
   const [useAdvancedConfig, setUseAdvancedConfig] = useState(false);
   const [selectedDates, setSelectedDates] = useState<Date[]>([]);
   const [calendarMonth, setCalendarMonth] = useState(new Date());
+  const [isLoading, setIsLoading] = useState(false); // ✅ Estado de carga
 
   useEffect(() => {
     if (slot) {
@@ -129,6 +130,9 @@ export function SlotModal<T extends GenericSlot>({
   };
 
   const handleSave = async () => {
+    // ✅ Evitar múltiples envíos
+    if (isLoading) return;
+
     if (!formData.date) {
       showToast.error(t('dateRequired'));
       return;
@@ -178,6 +182,8 @@ export function SlotModal<T extends GenericSlot>({
     }
 
     try {
+      setIsLoading(true); // ✅ Activar spinner
+      
       // Guardar o actualizar
       if (slot?.id) {
         const updatedSlot: any = await updateSlot(slot.id, formData);
@@ -209,6 +215,8 @@ export function SlotModal<T extends GenericSlot>({
     } catch (error) {
       console.error("Error guardando slot:", error);
       showToast.error(t('saveError'));
+    } finally {
+      setIsLoading(false); // ✅ Desactivar spinner
     }
   };
 
@@ -448,13 +456,25 @@ export function SlotModal<T extends GenericSlot>({
         <div className="mt-6 flex gap-2">
           <button
             onClick={handleSave}
-            className="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 flex-1"
+            disabled={isLoading}
+            className="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 flex-1 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {slot ? t('saveChanges') : t('createSlot')}
+            {isLoading ? (
+              <>
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{t('saving')}</span>
+              </>
+            ) : (
+              <span>{slot ? t('saveChanges') : t('createSlot')}</span>
+            )}
           </button>
           <button
             onClick={onClose}
-            className="bg-gray-200 px-4 py-2 rounded-xl hover:bg-gray-300 flex-1"
+            disabled={isLoading}
+            className="bg-gray-200 px-4 py-2 rounded-xl hover:bg-gray-300 flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {t('cancel')}
           </button>
