@@ -32,6 +32,47 @@ export function useDaycareBookings() {
     return context;
 }
 
+// Función helper para normalizar fechas de reservas (compatible con formato antiguo y nuevo)
+function normalizeBookingDates(booking: any): DaycareBooking {
+    // Normalizar startTime y endTime para que funcionen tanto con formato ISO con Z como sin Z
+    const normalizeDate = (dateStr: string | Date): string => {
+        if (!dateStr) return dateStr;
+        if (dateStr instanceof Date) {
+            // Si ya es Date, convertir a ISO local (sin Z)
+            const year = dateStr.getFullYear();
+            const month = String(dateStr.getMonth() + 1).padStart(2, '0');
+            const day = String(dateStr.getDate()).padStart(2, '0');
+            const hours = String(dateStr.getHours()).padStart(2, '0');
+            const minutes = String(dateStr.getMinutes()).padStart(2, '0');
+            const seconds = String(dateStr.getSeconds()).padStart(2, '0');
+            const milliseconds = String(dateStr.getMilliseconds()).padStart(3, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
+        }
+        
+        // Si es string ISO con Z (UTC), convertir a hora local y luego a ISO local
+        if (typeof dateStr === 'string' && (dateStr.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(dateStr))) {
+            const date = new Date(dateStr);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
+        }
+        
+        // Si ya es ISO local (sin Z), devolverlo tal cual
+        return dateStr;
+    };
+    
+    return {
+        ...booking,
+        startTime: normalizeDate(booking.startTime),
+        endTime: normalizeDate(booking.endTime),
+    };
+}
+
 export function DaycareBookingProvider({ children }: { children: React.ReactNode }) {
     const http = useHttp();
 
@@ -39,7 +80,8 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
     const fetchBookings = async () => {
         try {
             const data = await http.get("/api/daycareBookings");
-            return data as DaycareBooking[];
+            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
+            return (data as DaycareBooking[]).map(normalizeBookingDates);
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando todas las reservas de daycare:", err);
@@ -66,7 +108,8 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
 
             // Filtrar en backend usando query params
             const bookings = await http.get(`/api/daycareBookings?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
-            return bookings as DaycareBooking[];
+            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
+            return (bookings as DaycareBooking[]).map(normalizeBookingDates);
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando reservas por mes:", err);
@@ -79,7 +122,8 @@ export function DaycareBookingProvider({ children }: { children: React.ReactNode
     const fetchMyBookings = async () => {
         try {
             const data = await http.get("/api/daycareBookings");
-            return data as DaycareBooking[];
+            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
+            return (data as DaycareBooking[]).map(normalizeBookingDates);
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando reservas del usuario:", err);

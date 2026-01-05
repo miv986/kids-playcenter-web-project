@@ -29,6 +29,51 @@ export function useMeetingBookings() {
     return context;
 }
 
+// Función helper para normalizar fechas de reservas de meeting
+function normalizeMeetingBookingDates(booking: any): MeetingBooking {
+    const normalizeDate = (dateStr: string | Date): string => {
+        if (!dateStr) return dateStr;
+        if (dateStr instanceof Date) {
+            const year = dateStr.getFullYear();
+            const month = String(dateStr.getMonth() + 1).padStart(2, '0');
+            const day = String(dateStr.getDate()).padStart(2, '0');
+            const hours = String(dateStr.getHours()).padStart(2, '0');
+            const minutes = String(dateStr.getMinutes()).padStart(2, '0');
+            const seconds = String(dateStr.getSeconds()).padStart(2, '0');
+            const milliseconds = String(dateStr.getMilliseconds()).padStart(3, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
+        }
+        
+        if (typeof dateStr === 'string' && (dateStr.endsWith('Z') || /[+-]\d{2}:\d{2}$/.test(dateStr))) {
+            const date = new Date(dateStr);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            const milliseconds = String(date.getMilliseconds()).padStart(3, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
+        }
+        
+        return dateStr;
+    };
+    
+    const normalized = { ...booking };
+    
+    // Normalizar fechas del slot si existe
+    if (normalized.slot) {
+        normalized.slot = {
+            ...normalized.slot,
+            date: normalized.slot.date ? normalizeDate(normalized.slot.date) : normalized.slot.date,
+            startTime: normalized.slot.startTime ? normalizeDate(normalized.slot.startTime) : normalized.slot.startTime,
+            endTime: normalized.slot.endTime ? normalizeDate(normalized.slot.endTime) : normalized.slot.endTime,
+        };
+    }
+    
+    return normalized;
+}
+
 export function MeetingBookingProvider({ children }: { children: React.ReactNode }) {
     const http = useHttp();
 
@@ -36,7 +81,8 @@ export function MeetingBookingProvider({ children }: { children: React.ReactNode
     const fetchBookings = async () => {
         try {
             const data = await http.get("/api/meetingBookings");
-            return data as MeetingBooking[];
+            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
+            return (data || []).map(normalizeMeetingBookingDates) as MeetingBooking[];
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando todas las reservas de meeting:", err);
@@ -64,7 +110,8 @@ export function MeetingBookingProvider({ children }: { children: React.ReactNode
 
             // Filtrar en backend usando query params
             const bookings = await http.get(`/api/meetingBookings?startDate=${formattedStartDate}&endDate=${formattedEndDate}`);
-            return bookings as MeetingBooking[];
+            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
+            return (bookings || []).map(normalizeMeetingBookingDates) as MeetingBooking[];
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando reservas por mes:", err);
@@ -82,7 +129,8 @@ export function MeetingBookingProvider({ children }: { children: React.ReactNode
 
         try {
             const data = await http.get(`/api/meetingBookings/by-date/${formattedDate}`);
-            return data as MeetingBooking[] || [];
+            // Normalizar fechas para compatibilidad con reservas antiguas y nuevas
+            return (data || []).map(normalizeMeetingBookingDates) as MeetingBooking[];
         } catch (err: any) {
             if (err.message !== 'No token provided') {
                 console.error("❌ Error cargando reservas de meeting por fecha:", err);
